@@ -8,7 +8,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,7 +38,7 @@ def build_pdf() -> None:
         topMargin=0.32 * inch,
         bottomMargin=0.3 * inch,
         title="PATC OSV One-Year Action Plan",
-        author="PATC Labs",
+        author="PATC",
     )
 
     styles = getSampleStyleSheet()
@@ -71,24 +71,22 @@ def build_pdf() -> None:
     )
 
     story = [
-        para("PATC - One-Year Action Plan for Probabilistic Adaptive Traffic Control", title),
-        para("<b>Goal.</b> Build a shadow-mode adaptive traffic control system for one Bangalore junction: observe live queues, estimate uncertainty, simulate the next cycles, and recommend explainable green-time changes before live actuation.", body),
-        para("<b>Current proof package.</b> Bangalore junction observations, rejected fixed-time-only prototypes, a SUMO baseline, queue-estimation tests, and a failure log, each linked to notes, screenshots, notebooks, or demo outputs.", body),
-        para("Why this team", section),
-        para("The team combines industrial validation discipline with embedded/software execution. One founder is an IIT Hyderabad mechanical engineer with heavy-industry validation/testing experience across large industrial systems; the other is an electronics/software engineer with roughly 3 years building embedded, sensing, and software projects.", body),
-        para("12-month build plan", section),
+        para("One-Year Action Plan: Timeline and Cost", title),
+        para("<b>Completion target.</b> A field-ready shadow-mode traffic intelligence pilot: one Bengaluru junction as the first controlled testbed, one annotated dataset, calibrated simulator, recommendation dashboard, mock signal-controller demo, and validation report. This is the proof step before any live-road control rollout.", body),
+        para("12-month timeline", section),
     ]
 
     plan_rows = [
-        ["Months 1-2", "Lock one junction from the existing shortlist; collect 40-60 hours of observations/video/manual counts; document phase plan, queue buildup, empty-green waste, and rain/night failure cases."],
-        ["Months 3-4", "Calibrate a one-junction simulator that predicts queue growth under uncertain arrivals and tests recommendations against fixed-time baselines."],
-        ["Months 5-6", "Launch shadow-mode dashboard: phase, queue estimate, confidence, recommended action, reason, safety constraint, and fallback condition."],
-        ["Months 7-9", "Run validation: sensor-noise tests, demand variation, spillback scenarios, delay analysis, and a public one-junction report."],
-        ["Months 10-12", "Build embedded prototype and hardware-in-loop mock controller; prepare pilot protocol, operator workflow, and traffic-department briefing."],
+        ["Months 1-2", "Select one Bengaluru junction, collect/manual-label traffic observations, and document signal phases, empty-green waste, queue spillback, rain/night issues, and pedestrian conflicts."],
+        ["Months 3-4", "Build fixed-time baseline simulator and queue-estimation prototype with confidence scores; test changing arrivals, blockage, and sensor-noise cases."],
+        ["Months 5-6", "Build probabilistic timing recommendation engine: queue estimate, confidence score, timing recommendation, reason, expected effect, and fallback trigger."],
+        ["Months 7-8", "Build shadow-mode dashboard and mock signal-controller demo; compare recommendations against observed signal cycles with no live-road authority or signal-control dependency."],
+        ["Months 9-10", "Run shadow tests, compare against fixed-time baseline, and refine using demand variation, camera-noise tests, rain/night robustness, and failure logs."],
+        ["Months 11-12", "Produce validation report, pilot-readiness package, safety/fallback documentation, deployment checklist, stakeholder briefing, and repeatable rollout template for more junctions and other cities."],
     ]
     table = Table(
         [[para(a, title), para(b, body)] for a, b in plan_rows],
-        colWidths=[1.14 * inch, 6.72 * inch],
+        colWidths=[1.12 * inch, 6.74 * inch],
         hAlign="LEFT",
     )
     table.setStyle(
@@ -109,22 +107,45 @@ def build_pdf() -> None:
     story.append(table)
     story.extend(
         [
-            para("Cost overview for the fellowship year", section),
-            para(
-                "If awarded full fellowship funding: two-founder runway/focused build time ($50k); data collection and annotation ($14k); cameras, edge devices, mock controller, mounting, and test equipment ($12k); cloud/simulation/tooling ($8k); partner meetings, compliance, and pilot documentation ($8k); contingency ($8k).",
-                body,
-            ),
-            para("Milestone outputs", section),
-            para(
-                "By year end: one annotated junction dataset, calibrated simulator, public dashboard demo, mock-controller demo, and validation report targeting 15-25% empty-green reduction, 10-15% queue/wait reduction, and zero safety-rule violations in shadow-mode tests.",
-                body,
-            ),
-            para("Failure discipline", section),
-            para(
-                "This fails if it becomes a black-box demo operators cannot trust, if data access is too weak, if official signal access is not possible within the fellowship year, or if local optimization worsens downstream flow. Mitigation: stay in shadow mode first, publish baselines, show confidence, keep manual override, and prove one junction before citywide claims.",
-                body,
-            ),
+            para("Cost overview", section),
         ]
+    )
+
+    cost_rows = [
+        ["Founder execution runway", "$55k", "If awarded full fellowship funding: runway for Kowshik full-time execution and Sidvik's structured field, validation, safety, and deployment support."],
+        ["Traffic data and labeling", "$12k", "Junction visits, video/manual counts, annotation, and repeat observations across peak, rain, and night cases."],
+        ["Prototype hardware", "$10k", "Cameras, edge device, mock controller, relay board, mounts, power/network test equipment."],
+        ["Simulation and cloud", "$8k", "SUMO experiments, storage, dashboard hosting, experiment tracking, backups, and compute."],
+        ["Pilot preparation", "$7k", "Local travel, stakeholder meetings, operator workflow, and pilot-readiness package."],
+        ["Safety/admin", "$5k", "Fallback documentation, validation review, legal/admin, and deployment-readiness materials."],
+        ["Contingency", "$3k", "Hardware replacement, extra observations, data gaps, and stakeholder-demo costs."],
+    ]
+    cost_table = Table(
+        [[para(a, title), para(b, title), para(c, body)] for a, b, c in cost_rows],
+        colWidths=[2.05 * inch, 0.72 * inch, 5.09 * inch],
+        hAlign="LEFT",
+    )
+    cost_table.setStyle(
+        TableStyle(
+            [
+                ("FONTNAME", (0, 0), (-1, -1), "Arial"),
+                ("FONTSIZE", (0, 0), (-1, -1), 11),
+                ("LEADING", (0, 0), (-1, -1), 16.5),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("LINEBELOW", (0, 0), (-1, -2), 0.25, colors.HexColor("#D5CEC0")),
+            ]
+        )
+    )
+    story.append(cost_table)
+    story.append(
+        para(
+            "<b>Budget assumption.</b> The full $100k fellowship compresses a year of validation. A smaller grant would fund a narrower data/prototype slice but would not buy the same full-time execution runway.",
+            body,
+        )
     )
 
     doc.build(story)

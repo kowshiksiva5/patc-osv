@@ -1,6 +1,6 @@
-# PATC OSV Site
+# PATC Company Site
 
-Static public site and OSV one-page PDF for the Probabilistic Adaptive Traffic Control application.
+Static public company site for PATC plus the OSV-required one-page action-plan PDF.
 
 ## Run Locally
 
