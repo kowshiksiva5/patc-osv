@@ -1,6 +1,6 @@
 # PATC Company Site
 
-Static public company site for PATC, including an interactive corridor demo and a generated one-page timeline/cost PDF used outside the public site.
+Static public company site for PATC, including an embedded shadow-mode city simulation artifact and a generated one-page timeline/cost PDF used outside the public site.
 
 ## Run Locally
 

@@ -19,7 +19,6 @@
       </a>
       <nav aria-label="Primary navigation">
         <a href="#demo">Demo</a>
-        <a href="#platform">Platform</a>
         <a href="#model">Model</a>
         <a href="#validation">Validation</a>
         <a href="#company">Company</a>
@@ -31,199 +30,162 @@
         <canvas id="trafficCanvas" aria-hidden="true"></canvas>
         <div class="hero-copy">
           <p class="eyebrow">Adaptive signal intelligence</p>
-          <h1>City signals should coordinate before queues become gridlock.</h1>
+          <h1>Shadow-mode traffic intelligence for one real Bengaluru corridor.</h1>
           <p class="hero-lede">
-            PATC observes connected corridors, predicts spillback risk, simulates
-            signal timing options, and recommends operator-reviewed decisions for
-            chaotic mixed-traffic cities.
+            PATC observes connected corridors, models traffic as flow, predicts
+            startup loss and spillback, then recommends signal decisions that
+            operators can inspect before any live-control step.
           </p>
           <div class="hero-actions">
-            <a href="#demo">Run corridor demo</a>
-            <a href="#platform">See product flow</a>
+            <a href="#demo">Open live simulation</a>
+            <a href="#model">See the engine</a>
           </div>
         </div>
         <aside class="hero-panel" aria-label="Live system snapshot">
-          <p>Corridor state</p>
+          <p>Shadow-mode target</p>
           <dl>
             <div>
-              <dt>Mode</dt>
-              <dd id="heroMode">PATC</dd>
+              <dt>Sector</dt>
+              <dd>4-6 signals</dd>
             </div>
             <div>
-              <dt>Queue risk</dt>
-              <dd id="heroRisk">Medium</dd>
+              <dt>Horizon</dt>
+              <dd>6 steps</dd>
             </div>
             <div>
               <dt>Confidence</dt>
-              <dd><span id="confidenceValue">82%</span></dd>
+              <dd><span id="confidenceValue">84%</span></dd>
             </div>
           </dl>
-          <small>Interactive product simulation for demonstration.</small>
+          <small>Simulation-driven recommendation layer for mixed-traffic cities.</small>
         </aside>
       </section>
 
-      <section id="demo" class="section demo" aria-label="Interactive corridor demo">
+      <section id="demo" class="section demo">
         <div class="section-head">
-          <p class="eyebrow">Interactive demo</p>
-          <h2>Stress the corridor and watch the recommendation change.</h2>
+          <p class="eyebrow">Live simulation lab</p>
+          <h2>Live city simulation with model telemetry.</h2>
           <p>
-            Switch control modes, add rain or arrival surges, and compare how the
-            corridor reacts. PATC is designed to recommend only when the expected
-            gain is high enough and fallback is safe.
+            This lab uses the original PATC simulation artifact directly: city
+            network canvas, signal state, vehicle density, movement probability,
+            Markov transitions, LWR flow-density curve, phase timeline, Pi_m
+            gauges, MPC horizon, decision log, and KPI bars.
           </p>
         </div>
 
-        <div class="demo-grid">
-          <div class="console">
-            <div class="console-top">
-              <span></span>
-              <p>Sector A / Shadow console</p>
-            </div>
-            <div class="corridor-board" aria-hidden="true">
-              <div class="board-road"></div>
-              <div class="board-feeder feeder-a"></div>
-              <div class="board-feeder feeder-b"></div>
-              <div class="board-feeder feeder-c"></div>
-              <div class="board-wave"></div>
-              <span class="board-node node-a"></span>
-              <span class="board-node node-b"></span>
-              <span class="board-node node-c"></span>
-            </div>
-            <div class="decision-feed">
-              <div><strong>Observed</strong><span id="observedState">Queue forming near S2</span></div>
-              <div><strong>Recommended</strong><span id="recommendationText">Hold S1, clear S2 discharge</span></div>
-              <div><strong>Fallback</strong><span>Return to fixed plan if confidence drops below 70%</span></div>
-            </div>
-          </div>
-
-          <div class="demo-controls">
-            <div class="control-group">
-              <span class="control-label">Control mode</span>
-              <div class="segmented" role="group" aria-label="Control mode">
-                <button type="button" data-mode="fixed">Fixed</button>
-                <button type="button" data-mode="actuated">Actuated</button>
-                <button type="button" data-mode="patc" class="active">PATC</button>
-              </div>
-            </div>
-
-            <div class="control-group">
-              <span class="control-label">Scenario</span>
-              <div class="scenario-list" role="group" aria-label="Scenario">
-                <button type="button" data-scenario="normal" class="active">Normal</button>
-                <button type="button" data-scenario="rain">Rain</button>
-                <button type="button" data-scenario="surge">Office surge</button>
-                <button type="button" data-scenario="blocked">Downstream block</button>
-              </div>
-            </div>
-
-            <label class="range-row">
-              <span>Rain intensity</span>
-              <input id="rainSlider" type="range" min="0" max="100" value="22" />
-            </label>
-            <label class="range-row">
-              <span>Arrival surge</span>
-              <input id="surgeSlider" type="range" min="0" max="100" value="35" />
-            </label>
-
-            <div class="metrics">
-              <div><span id="queueMetric">41</span><small>Queue pressure</small></div>
-              <div><span id="delayMetric">Medium</span><small>Delay risk</small></div>
-              <div><span id="phaseMetric">S2 +18s</span><small>Phase action</small></div>
-              <div><span id="confidenceMetric">82%</span><small>Confidence</small></div>
-            </div>
-          </div>
+        <div class="watch-strip" aria-label="What to watch in the simulation">
+          <span>Watch density rise</span>
+          <span>Signal phase switch</span>
+          <span>Pi_m recover</span>
+          <span>MPC horizon rebalance</span>
+          <span>Decision log update</span>
         </div>
-      </section>
 
-      <section id="platform" class="section platform">
-        <div class="section-head compact">
-          <p class="eyebrow">Product flow</p>
-          <h2>From noisy corridor data to an inspectable signal decision.</h2>
+        <div class="artifact-kpis" aria-label="Simulation KPI summary">
+          <article>
+            <strong>35%</strong>
+            <span>Delay simulation target</span>
+          </article>
+          <article>
+            <strong>27%</strong>
+            <span>CO2 simulation target</span>
+          </article>
+          <article>
+            <strong>31%</strong>
+            <span>Fuel simulation target</span>
+          </article>
+          <article>
+            <strong>26%</strong>
+            <span>Stops simulation target</span>
+          </article>
+          <article>
+            <strong>29%</strong>
+            <span>Residual queue target</span>
+          </article>
         </div>
-        <div class="flow-grid">
-          <article>
-            <span>01</span>
-            <h3>Observe</h3>
-            <p>Signal phase, queue growth, approach demand, rain, blocked turns, and local timing behavior.</p>
-          </article>
-          <article>
-            <span>02</span>
-            <h3>Estimate</h3>
-            <p>Density, discharge rate, startup loss, queue-wave movement, and spillback probability.</p>
-          </article>
-          <article>
-            <span>03</span>
-            <h3>Simulate</h3>
-            <p>Compare timing and offset options across the next control horizon before recommending action.</p>
-          </article>
-          <article>
-            <span>04</span>
-            <h3>Recommend</h3>
-            <p>Show the reason, expected effect, confidence, and fallback condition for operator review.</p>
-          </article>
+
+        <div class="simulation-shell">
+          <div class="simulation-toolbar">
+            <span class="live-pulse"></span>
+            <span>Interactive city network simulation</span>
+            <a href="assets/patc_city_simulation.html" target="_blank" rel="noreferrer">Open full screen</a>
+          </div>
+          <iframe
+            title="PATC live city network simulation"
+            src="assets/patc_city_simulation.html"
+            sandbox="allow-scripts"
+          ></iframe>
         </div>
       </section>
 
       <section id="model" class="section model">
         <div class="section-head">
-          <p class="eyebrow">Technical model</p>
-          <h2>The product interface is simple; the engine is built around traffic flow.</h2>
+          <p class="eyebrow">Technical engine</p>
+          <h2>A traffic-control product built around flow, probability, and prediction.</h2>
           <p>
-            PATC turns the technical artifact into an operating model: flow physics
-            for density, movement probability for queue discharge, and predictive
-            optimization for corridor timing.
+            The public product should feel simple. Under it, PATC combines
+            physics-style flow modeling, probabilistic queue discharge, and
+            rolling signal optimization.
           </p>
         </div>
         <div class="model-grid">
           <article class="model-card">
-            <div class="density-visual">
+            <div class="density-visual" aria-hidden="true">
               <span></span><span></span><span></span><span></span><span></span>
             </div>
             <h3>LWR flow field</h3>
-            <p>Traffic is treated like density moving through constrained links, not just a vehicle count at one point.</p>
+            <p>Traffic density evolves across connected links, so the system sees queue waves instead of isolated counts.</p>
           </article>
           <article class="model-card">
-            <div class="state-machine">
-              <span>Idle</span><i></i><span>Accelerating</span><i></i><span>Flow</span>
+            <div class="state-machine" aria-hidden="true">
+              <span>Idle</span><i></i><span>Accel</span><i></i><span>Flow</span>
             </div>
             <h3>Movement probability</h3>
-            <p>Stopped queues do not discharge instantly. PATC estimates startup loss and cohort movement state.</p>
+            <p>Pi_m corrects green-time allocation for driver startup latency and stop-line discharge behavior.</p>
           </article>
           <article class="model-card">
-            <div class="horizon-visual">
-              <span>t</span><span>+5s</span><span>+10s</span><span>+15s</span><span>+20s</span>
+            <div class="horizon-visual" aria-hidden="true">
+              <span>n</span><span>+1</span><span>+2</span><span>+3</span><span>+6</span>
             </div>
             <h3>MPC horizon</h3>
-            <p>Timing choices are evaluated across downstream consequences, not only the current signal cycle.</p>
+            <p>Every control step compares future signal allocations before recommending a phase decision.</p>
           </article>
         </div>
-        <div class="artifact-preview">
-          <div>
-            <p class="eyebrow">Technical artifact preview</p>
-            <h3>Full model reference running inside the product site.</h3>
-            <p>
-              The source artifact has been distilled here as a live technical appendix.
-              The public site keeps the product simple, while the appendix preserves
-              the LWR, Markov movement, MPC, validation, and impact visuals.
-            </p>
-          </div>
-          <iframe
-            title="PATC technical model artifact"
-            src="assets/patc_technical_artifact.html#sec-architecture"
-          ></iframe>
+
+        <div class="flow-grid">
+          <article>
+            <span>01</span>
+            <h3>Observe</h3>
+            <p>Signal phase, queue growth, approach density, weather, blocked links, and local timing behavior.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h3>Estimate</h3>
+            <p>Density, discharge rate, movement probability, startup loss, and spillback pressure.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h3>Simulate</h3>
+            <p>Replay timing and offset decisions across the next horizon before recommending action.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <h3>Recommend</h3>
+            <p>Show reason, expected effect, confidence, and fallback trigger for operator review.</p>
+          </article>
         </div>
       </section>
 
       <section id="validation" class="section validation">
         <div class="section-head compact">
           <p class="eyebrow">Validation path</p>
-          <h2>Pilot without control risk.</h2>
+          <h2>Earn trust in shadow mode before control.</h2>
         </div>
         <ol class="pilot-steps">
-          <li><strong>Offline corridor model</strong><span>Use existing observations plus new field data to calibrate a selected Bengaluru sector.</span></li>
-          <li><strong>Shadow-mode replay</strong><span>Run PATC recommendations against fixed-time and actuated baselines without touching live control.</span></li>
-          <li><strong>Operator workflow</strong><span>Expose the reason, confidence, expected effect, and fallback condition for each recommendation.</span></li>
-          <li><strong>Controlled pilot package</strong><span>Prepare safety review, mock-controller demo, deployment checklist, and authority-ready memo.</span></li>
+          <li><strong>Offline sector model</strong><span>Select one Bengaluru sector with 4-6 connected signals and define baseline timing metrics.</span></li>
+          <li><strong>Field evidence</strong><span>Collect 120-180 observation hours across peak, off-peak, rain, weekend, school, office, and seasonal variation.</span></li>
+          <li><strong>Shadow replay</strong><span>Run PATC recommendations against fixed-time and actuated baselines without touching live control.</span></li>
+          <li><strong>Pilot package</strong><span>Prepare dashboard, mock-controller demo, safety/fallback playbook, validation report, and authority-ready memo.</span></li>
         </ol>
       </section>
 
@@ -231,7 +193,7 @@
         <p class="eyebrow">Use cases</p>
         <div class="use-grid">
           <article><h3>Urban corridors</h3><p>Coordinate linked signals where upstream and downstream queues interact.</p></article>
-          <article><h3>Rain disruption</h3><p>Adjust recommendations when discharge slows and demand patterns become less predictable.</p></article>
+          <article><h3>Rain disruption</h3><p>Adjust recommendations when discharge slows and arrivals become less predictable.</p></article>
           <article><h3>Office peaks</h3><p>Handle recurring surge waves without assuming every day has the same timing profile.</p></article>
           <article><h3>Downstream blockage</h3><p>Stop feeding a blocked road when the next section cannot discharge vehicles.</p></article>
         </div>
@@ -239,21 +201,27 @@
 
       <section id="company" class="section company">
         <p class="eyebrow">Company</p>
-        <h2>Built in Bengaluru for mixed-traffic cities.</h2>
+        <h2>Built from Bengaluru traffic, not slideware.</h2>
         <p>
-          PATC came from six months of repeated Bengaluru traffic pain, wrong early
-          ideas, manual observations, commuter conversations, and failed one-signal
-          thinking. The current thesis is corridor coordination first: model the
-          flow, recommend in shadow mode, and earn trust before control.
+          PATC started with six months of repeated Bengaluru traffic pain:
+          watching one signal clear while the next road stayed blocked, testing
+          wrong one-signal ideas, taking manual observations, talking to
+          commuters, and turning the problem into a corridor-flow model.
+        </p>
+        <p>
+          The company is focused on a narrow first wedge: shadow-mode
+          recommendations for mixed-traffic corridors, with enough evidence,
+          simulation depth, and operator review to earn trust before touching
+          live control.
         </p>
         <div class="team-grid">
           <article>
             <h3>Kowshik Motepalli</h3>
-            <p>AI/software systems, simulation, product engineering, and product surface.</p>
+            <p>Builds the AI/software stack: simulation, product surface, data workflow, and decision logic.</p>
           </article>
           <article>
             <h3>Sidvik Basa</h3>
-            <p>Mechanical systems thinking, flow intuition, validation discipline, and field grounding.</p>
+            <p>Grounds the system in physical flow: mechanical intuition, field observation, validation discipline, and pilot practicality.</p>
           </article>
         </div>
       </section>
