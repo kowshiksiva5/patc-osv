@@ -1,6 +1,6 @@
 # PATC Company Site
 
-Static public company site for PATC. The homepage directly embeds the interactive city-network simulation, model telemetry, LWR/Markov visualizations, proof path, and a generated one-page timeline/cost PDF used outside the public site.
+Static public company site for PATC. The homepage directly embeds the interactive city-network simulation, model telemetry, LWR-inspired/expected-state visualizations, field validation path, and generated timeline/cost plus M1 observation-request PDFs.
 
 ## Run Locally
 

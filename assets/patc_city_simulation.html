@@ -196,9 +196,9 @@ footer{
       <p class="hdr-subtitle">Two-vehicle route intersection with PATC signal recommendations in simulation</p>
     </div>
     <div class="hdr-meta">
-      <div class="meta-chip">LWR Model <span>Active</span></div>
-      <div class="meta-chip">Markov Chain <span>3-State</span></div>
-      <div class="meta-chip">Rolling Horizon <span>H=6</span></div>
+      <div class="meta-chip">LWR-Inspired View <span>Active</span></div>
+      <div class="meta-chip">Startup Filter <span>3-State</span></div>
+      <div class="meta-chip">Projection View <span>H=6</span></div>
       <div class="meta-chip">Demand pressure <span>Scenario input</span></div>
     </div>
   </div>
@@ -211,29 +211,29 @@ footer{
   <div class="concept-card">
     <div class="icon">🌊</div>
     <div>
-      <h3>LWR Kinematic Wave Model</h3>
-      <p>Traffic density ρ(x,t) evolves as a compressible fluid via ∂ρ/∂t + ∂q/∂x = S(x,t). 
-         Free-flow and congested regimes are captured by a triangular fundamental diagram Q(ρ).</p>
-      <div class="pill">Eq 3.1 — Conservation Law</div>
+      <h3>LWR-Inspired Density View</h3>
+      <p>Traffic density is visualized with free-flow and congested regimes from a triangular
+         fundamental diagram. Field data is needed before claiming calibrated wave dynamics.</p>
+      <div class="pill">Calibration target</div>
     </div>
   </div>
   <div class="concept-card">
     <div class="icon">🎲</div>
     <div>
-      <h3>Markov Chain Mobility Model</h3>
-      <p>Each vehicle transitions stochastically: Idle → Accelerating → Constant Flow. The 
+      <h3>Expected-State Startup Filter</h3>
+      <p>Each route propagates expected state mass across Idle → Accelerating → Constant Flow. The
          Probability of Movement Πₘ(k) = α·πₐ(k) + πꜰ(k) corrects green-time allocation for 
          real driver startup latency.</p>
-      <div class="pill">Eq 3.3–3.5 — State Transitions</div>
+      <div class="pill">Startup-loss approximation</div>
     </div>
   </div>
   <div class="concept-card">
     <div class="icon">⚡</div>
     <div>
-      <h3>Rolling Recommendation Horizon</h3>
-      <p>Every N꜀=5s, a pressure-based shadow recommender scores density, wait, startup loss,
-         and downstream queue risk across H=6 future steps before suggesting phase timing.</p>
-      <div class="pill">Demo model — horizon scoring</div>
+      <h3>Projection View</h3>
+      <p>Every N꜀=5s, a pressure-based shadow recommender projects density/wait pressure
+         across H=6 future steps before showing a candidate action.</p>
+      <div class="pill">Demo model — projection</div>
     </div>
   </div>
 </div>
@@ -366,14 +366,14 @@ footer{
   <!-- Markov Chain -->
   <div class="viz-card">
     <h3>Markov Chain State Machine</h3>
-    <p class="viz-sub">Stochastic vehicle mobility transitions. Highlighted node = current state for each vehicle. 
-       Transition probabilities λ₁ (Idle→Acc) and λ₂ (Acc→Flow) govern startup dynamics.</p>
+    <p class="viz-sub">Expected-state vehicle mobility transitions. Highlighted node = dominant state for each route.
+       Transition probabilities λ₁ (Idle→Acc) and λ₂ (Acc→Flow) approximate startup dynamics.</p>
     <canvas id="markovCanvas" width="560" height="260"></canvas>
   </div>
 
   <!-- LWR Fundamental Diagram -->
   <div class="viz-card">
-    <h3>LWR Fundamental Diagram  Q(ρ)</h3>
+    <h3>LWR-Inspired Fundamental Diagram  Q(ρ)</h3>
     <p class="viz-sub">Triangular flow-density relationship. Points show expected discharge proxies for each approach.
        Free-flow regime: q = vf·ρ. Congested: q = w·(ρⱼ − ρ).</p>
     <canvas id="lwrCanvas" width="560" height="260"></canvas>
@@ -382,8 +382,8 @@ footer{
   <!-- Signal Phase Timeline — full width -->
   <div class="viz-card viz-full">
     <h3>Signal Phase Timeline  ·  Scrolling 60-Second History</h3>
-    <p class="viz-sub">Simulation Gantt chart of PATC-recommended green allocations. 
-       Green bars = active phase. Red = halted. Width encodes PATC-recommended duration per cycle.</p>
+    <p class="viz-sub">Simulation Gantt chart of replay green allocations.
+       Green bars = active phase. Red = halted. Width encodes current replay duration per cycle.</p>
     <canvas id="timelineCanvas" width="1160" height="120"></canvas>
   </div>
 
@@ -407,33 +407,33 @@ footer{
 
 <!-- ═══ PERFORMANCE KPIs ═══ -->
 <div class="kpi-section">
-  <h3>Scenario Targets vs. Fixed-Time Baseline</h3>
-  <p class="kpi-sub">Hypothesis targets from Πₘ-corrected discharge, demand anticipation, and rolling horizon recommendations.</p>
+  <h3>Synthetic Hypothesis Targets vs. Fixed-Time Baseline</h3>
+  <p class="kpi-sub">Only delay and residual queue have numeric synthetic fixture targets. CO2, fuel, and stops are not measured yet.</p>
   <div class="kpi-grid">
     <div class="kpi-item">
-      <div class="kpi-labels"><span class="kpi-name">Avg. Intersection Delay</span><span class="kpi-pct">↓ 35%</span></div>
-      <div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:0%" data-target="35"></div></div>
-      <div class="kpi-note">Isolated intersection vs Webster's baseline</div>
+      <div class="kpi-labels"><span class="kpi-name">Avg. Intersection Delay</span><span class="kpi-pct">↓ 24%</span></div>
+      <div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:0%" data-target="24"></div></div>
+      <div class="kpi-note">Synthetic fixture target, not field result</div>
     </div>
     <div class="kpi-item">
-      <div class="kpi-labels"><span class="kpi-name">CO₂ Emissions</span><span class="kpi-pct">↓ 27%</span></div>
-      <div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:0%" data-target="27"></div></div>
-      <div class="kpi-note">Idling reduction, fewer stop-start cycles</div>
+      <div class="kpi-labels"><span class="kpi-name">CO₂ Emissions</span><span class="kpi-pct">directional</span></div>
+      <div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:0%" data-target="0"></div></div>
+      <div class="kpi-note">Not measured until field labels exist</div>
     </div>
     <div class="kpi-item">
-      <div class="kpi-labels"><span class="kpi-name">Fuel Consumption</span><span class="kpi-pct">↓ 31%</span></div>
+      <div class="kpi-labels"><span class="kpi-name">Fuel Consumption</span><span class="kpi-pct">directional</span></div>
+      <div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:0%" data-target="0"></div></div>
+      <div class="kpi-note">Not measured until field labels exist</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-labels"><span class="kpi-name">Stops per Vehicle</span><span class="kpi-pct">directional</span></div>
+      <div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:0%" data-target="0"></div></div>
+      <div class="kpi-note">Not measured until field labels exist</div>
+    </div>
+    <div class="kpi-item">
+      <div class="kpi-labels"><span class="kpi-name">Residual Queue Length</span><span class="kpi-pct">↓ 31%</span></div>
       <div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:0%" data-target="31"></div></div>
-      <div class="kpi-note">Correlated with CO₂, plus EV braking gains</div>
-    </div>
-    <div class="kpi-item">
-      <div class="kpi-labels"><span class="kpi-name">Stops per Vehicle</span><span class="kpi-pct">↓ 26%</span></div>
-      <div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:0%" data-target="26"></div></div>
-      <div class="kpi-note">Fewer brake events → less particulate</div>
-    </div>
-    <div class="kpi-item">
-      <div class="kpi-labels"><span class="kpi-name">Residual Queue Length</span><span class="kpi-pct">↓ 29%</span></div>
-      <div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:0%" data-target="29"></div></div>
-      <div class="kpi-note">Rolling horizon exposes queue accumulation</div>
+      <div class="kpi-note">Synthetic fixture target, not field result</div>
     </div>
   </div>
 </div>
@@ -441,8 +441,8 @@ footer{
 </main>
 
 <footer>
-  PATC-TRP-2025-001 · v1.0 · ITS Division · All mathematical models grounded in LWR (1955), Daganzo CTM (1994), Webster (1958) ·
-  Shadow-mode simulation for technical exploration; not a deployment claim.
+  PATC technical artifact · LWR-inspired and startup-loss concept replay ·
+  Shadow-mode simulation for technical exploration; not a deployment or field-impact claim.
 </footer>
 
 <script src="simulation.js"></script>

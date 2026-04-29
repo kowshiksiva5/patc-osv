@@ -18,10 +18,11 @@
         <span>PATC</span>
       </a>
       <nav aria-label="Primary navigation">
+        <a href="#product">Product</a>
         <a href="#simulation">Simulation</a>
         <a href="#evidence">Evidence</a>
-        <a href="#proof">Proof</a>
-        <a href="#plan">Plan</a>
+        <a href="#proof">Pilot</a>
+        <a href="#company">Company</a>
       </nav>
     </header>
 
@@ -30,39 +31,40 @@
         <canvas id="trafficCanvas" aria-hidden="true"></canvas>
         <div class="hero-shade"></div>
         <div class="hero-copy">
-          <p class="eyebrow">Probabilistic adaptive traffic control</p>
-          <h1>Make every signal in a busy sector think together.</h1>
+          <p class="eyebrow">Shadow-mode signal intelligence for congested corridors</p>
+          <h1>Help traffic teams see sector pressure before queues lock up.</h1>
           <p class="hero-lede">
-            PATC starts as a synthetic replay demo today, then turns field
-            counts and signal observations into corridor pressure, queue
-            spillback, startup loss, and operator-reviewed signal moves.
+            PATC starts with a synthetic replay today, then turns field counts
+            and signal observations into corridor pressure, spillback warnings,
+            startup-loss estimates, and operator-reviewed signal recommendations.
           </p>
           <div class="hero-actions">
             <a href="#simulation">Explore the replay</a>
-            <a href="#proof">Check the pilot path</a>
+            <a href="#proof">View pilot readiness</a>
           </div>
         </div>
       </section>
 
-      <section class="reviewer-packet" aria-label="Reviewer packet">
-        <a href="#simulation"><span>Current artifact</span><strong>Interactive concept replay</strong></a>
-        <a href="#evidence"><span>What is real today</span><strong>Synthetic replay + PDF packet</strong></a>
-        <a href="#proof"><span>What OSV funds</span><strong>Field-labeled sector validation</strong></a>
-        <a href="output/pdf/patc_timeline_cost.pdf"><span>One-page plan</span><strong>Open budget PDF</strong></a>
+      <section id="product" class="product-path" aria-label="Product path">
+        <a href="#simulation"><span>Problem</span><strong>Linked queues fail as a sector</strong></a>
+        <a href="#simulation"><span>Product</span><strong>Shadow recommendations + replay</strong></a>
+        <a href="#evidence"><span>Current proof</span><strong>Synthetic fixture, clearly labeled</strong></a>
+        <a href="#proof"><span>Pilot path</span><strong>Field labels before control</strong></a>
       </section>
 
       <section class="recommendation-sample" aria-label="Sample operator recommendation">
         <div>
-          <p class="eyebrow">Sample operator recommendation</p>
-          <h2>Illustrative target: extend E/W green by 8 seconds when residual queue is predicted to drop from 118m to 82m.</h2>
+          <p class="eyebrow">Sample shadow decision</p>
+          <h2>Recommendation, reason, effect, safety fallback, and validation status in one card.</h2>
         </div>
         <div class="sample-grid">
+          <span><strong>Recommendation</strong> In replay, test extending E/W green by 8 seconds; this is not operational advice.</span>
           <span><strong>Reason</strong> Synthetic downstream context pressure is rising faster than N/S discharge recovery.</span>
           <span><strong>Confidence</strong> 0.78 from concept replay; field confidence requires labeled density and discharge observations.</span>
           <span><strong>Fallback</strong> Hold fixed-time plan if pedestrian window is active, emergency preemption fires, or data is stale for 2 cycles.</span>
-          <span><strong>Expected effect</strong> Concept-trace target: residual queue 118m -> 82m and average delay 74s -> 56s against fixed-time baseline.</span>
+          <span><strong>Hypothesis effect</strong> Concept fixture: residual queue 118m -> 82m and average delay 74s -> 56s against fixed-time baseline.</span>
           <span><strong>Trace math</strong> Delay improves 24% and residual queue improves 31% in the synthetic trace; both require M6 field validation.</span>
-          <span><strong>Metric provenance</strong> Synthetic trace PATC-SIM-0430-PEAK-SPILLBACK-001; <a href="output/trace/patc_sample_recommendation.json">open JSON trace</a>.</span>
+          <span><strong>Metric provenance</strong> Hand-authored synthetic fixture PATC-SIM-0430-PEAK-SPILLBACK-001; <a href="output/trace/patc_sample_recommendation.json">open JSON trace</a>.</span>
           <span><strong>M1 request</strong> <a href="output/pdf/patc_m1_btp_request.pdf">Open BTP observation request draft</a>; status: not sent.</span>
         </div>
       </section>
@@ -80,10 +82,10 @@
         </div>
 
         <div class="artifact-meta" aria-label="Simulation model metadata">
-          <span>Network scope <strong>sector map + active nodes</strong></span>
-          <span>Flow model <strong>LWR density waves</strong></span>
-          <span>Startup loss <strong>3-state Markov</strong></span>
-          <span>Control mode <strong>shadow replay first</strong></span>
+          <span>Network scope <strong>two-route synthetic sector</strong></span>
+          <span>Flow model <strong>LWR-inspired density view</strong></span>
+          <span>Startup loss <strong>expected-state filter</strong></span>
+          <span>Control mode <strong>one node + synthetic neighbors</strong></span>
         </div>
 
         <div class="scenario-console" aria-label="Replay scenario controls">
@@ -130,7 +132,7 @@
                 flow, critical density, and jam density determine where a queue
                 will grow next.
               </p>
-              <div class="pill">LWR conservation law</div>
+              <div class="pill">LWR-inspired calibration target</div>
             </div>
           </article>
           <article class="concept-card">
@@ -150,8 +152,8 @@
             <div>
               <h3>Recommendations stay explainable</h3>
               <p>
-                Every candidate phase is scored against pressure, wait time,
-                discharge loss, and downstream risk before it becomes a
+                The current candidate action is scored against pressure, wait
+                time, and synthetic downstream context risk before it becomes a
                 shadow-mode recommendation.
               </p>
               <div class="pill">Operator-reviewed replay</div>
@@ -159,7 +161,7 @@
           </article>
         </div>
 
-        <div class="sim-row">
+        <div class="sim-row demo-focused">
           <div class="canvas-panel">
             <div class="panel-title">
               <span class="live-dot"></span>
@@ -187,7 +189,10 @@
               <div class="legend-item"><div class="leg-dot yellow"></div> Transition</div>
             </div>
           </div>
+        </div>
 
+        <details class="technical-artifact">
+          <summary>Open technical artifact</summary>
           <aside class="dashboard">
             <div class="db-card">
               <div class="db-card-title">PATC signal state</div>
@@ -278,24 +283,23 @@
               </div>
             </div>
           </aside>
-        </div>
 
-        <div class="viz-section">
+          <div class="viz-section">
           <article class="viz-card">
             <h3>Markov chain state machine</h3>
             <p class="viz-sub">
-              Stochastic startup dynamics for each vehicle. Highlighted node
-              shows the current state used to estimate movement probability.
+              Expected-state startup dynamics for each route. Highlighted node
+              shows the dominant state used to estimate movement probability.
             </p>
             <canvas id="markovCanvas" width="560" height="260"></canvas>
           </article>
 
           <article class="viz-card">
-            <h3>LWR fundamental diagram Q(rho)</h3>
+            <h3>LWR-inspired fundamental diagram Q(rho)</h3>
             <p class="viz-sub">
               Free-flow rises to capacity at critical density. Congested flow
               drops toward jam density. Colored points show Pi_m-corrected
-              expected discharge.
+              expected discharge; field work calibrates the curve.
             </p>
             <canvas id="lwrCanvas" width="560" height="260"></canvas>
           </article>
@@ -319,17 +323,17 @@
           </article>
 
           <article class="viz-card">
-            <h3>Rolling horizon view - H = 6 slots</h3>
+            <h3>30-second projection view - H = 6 slots</h3>
             <p class="viz-sub">
-              Heuristic green-share recommendation across the next 30-second
-              horizon. Blue is N/S, orange is E/W, grey is lost time.
+              Heuristic projection across the next 30-second horizon. Blue is
+              N/S, orange is E/W, grey is lost time.
             </p>
             <canvas id="mpcCanvas" width="560" height="220"></canvas>
           </article>
-        </div>
+          </div>
 
-        <div class="kpi-section">
-          <h3>Trace-backed primary targets and secondary modeled estimates</h3>
+          <div class="kpi-section">
+          <h3>Synthetic hypothesis targets and secondary modeled estimates</h3>
           <p class="kpi-sub">
             Delay and residual queue are the primary replay targets. CO2, fuel,
             and stops stay secondary modeled estimates until field labels and a
@@ -362,7 +366,8 @@
               <div class="kpi-note">Primary replay target</div>
             </div>
           </div>
-        </div>
+          </div>
+        </details>
       </section>
 
       <section id="evidence" class="section evidence">
@@ -379,12 +384,12 @@
           <article>
             <span>State variables</span>
             <strong>rho, q, Pi_m, wait, spillback risk</strong>
-            <p>Density and flow follow the LWR fundamental diagram; Pi_m discounts discharge during idle and acceleration after a red phase.</p>
+            <p>Density and flow are visualized with an LWR-inspired fundamental diagram; Pi_m discounts discharge during idle and acceleration after a red phase.</p>
           </article>
           <article>
             <span>Objective</span>
             <strong>Reduce sector delay without starving cross movement</strong>
-            <p>Each recommendation scores queue pressure, downstream capacity, startup loss, minimum green, pedestrian windows, and fallback constraints.</p>
+            <p>The current replay scores queue pressure, wait, synthetic downstream risk, and minimum green; the field pilot adds pedestrian, emergency, stale-data, and operator fallback constraints.</p>
           </article>
           <article>
             <span>Baseline</span>
@@ -423,32 +428,33 @@
         </div>
         <div class="pilot-path">
           <article><strong>First-choice corridor</strong><span>Silk Board to HSR/Bomanahalli sector: 4-6 signals, mixed traffic, frequent spillback, and strong commuter pain.</span></article>
-          <article><strong>M1 request package</strong><span>One-page BTP observation request: no-install manual-count SOP, two weekday peaks, one weekend slot, one rain/night repeat, and 30-day raw-data retention.</span></article>
-          <article><strong>Data posture</strong><span>Aggregate counts, queues, phase timing, and movement traces. No face, plate, or identity pipeline in the pilot scope.</span></article>
+          <article><strong>M1 permission path</strong><span>BTP Traffic Management Centre or jurisdictional traffic station first; BBMP/DULT coordination only if the corridor requires it.</span></article>
+          <article><strong>Observation unit</strong><span>Site-hours, not observer-hours: two-person windows are labeled as one site-hour and audited with inter-rater QA.</span></article>
+          <article><strong>Data posture</strong><span>No raw video by default. Clip-assisted labeling is disabled for school-release windows; raw pre-blur clips never leave the capture device; privacy complaints trigger immediate deletion.</span></article>
           <article><strong>Fallback rules</strong><span>Minimum greens, pedestrian windows, emergency preemption, stale-data stop, and manual operator priority.</span></article>
         </div>
       </section>
 
       <section id="plan" class="section plan">
         <div class="section-head compact">
-          <p class="eyebrow">Reviewer path</p>
-          <h2>Problem, proof, plan, and budget in one pass.</h2>
+          <p class="eyebrow">Pilot readiness</p>
+          <h2>Website, replay, trace, field plan, and budget tie together.</h2>
           <p>
-            A reviewer should be able to understand the wedge in 90 seconds:
-            inspect the replay, see one recommendation, understand the civic
-            safety boundary, then open the one-page build plan.
+            A traffic stakeholder or funder should be able to inspect the replay,
+            see one recommendation, understand the civic safety boundary, then
+            open the one-page build plan.
           </p>
         </div>
-        <div class="reviewer-flow">
-          <article><span>01</span><strong>Problem</strong><p>Linked queues fail as a sector, not as isolated junctions.</p></article>
-          <article><span>02</span><strong>Artifact</strong><p>Replay shows density, Pi_m, signal phase, and downstream risk.</p></article>
-          <article><span>03</span><strong>Recommendation</strong><p>Each action has reason, confidence, fallback, and before/after trace.</p></article>
-          <article><span>04</span><strong>Pilot plan</strong><p>One sector, 12 months, replay validation, authority-ready package.</p></article>
+        <div class="pilot-flow">
+          <article><span>01</span><strong>Website</strong><p>Company story, product wedge, and current status without founder names.</p></article>
+          <article><span>02</span><strong>Replay</strong><p>Two-route synthetic sector demo with one controlled node and downstream context.</p></article>
+          <article><span>03</span><strong>Trace</strong><p>Hand-authored synthetic fixture that exposes formulas, baseline, and caveats.</p></article>
+          <article><span>04</span><strong>Pilot plan</strong><p>One sector, 12 months, replay validation, civic packet, and budget gates.</p></article>
         </div>
-        <a class="pdf-link" href="output/pdf/patc_timeline_cost.pdf">Open one-page timeline and budget PDF</a>
+        <a class="pdf-link" href="output/pdf/patc_timeline_cost.pdf">View pilot one-pager</a>
       </section>
 
-      <section class="section company">
+      <section id="company" class="section company">
         <div class="section-head">
           <p class="eyebrow">Company</p>
           <h2>Prove it in Bengaluru traffic. Reuse it across any congested corridor.</h2>
@@ -465,15 +471,19 @@
           <article><strong>Operator-grade replay</strong><span>Every recommendation needs a reason, confidence score, fallback trigger, and exportable validation trace.</span></article>
         </div>
         <div class="traction-strip">
-          <span>Receipt: <a href="https://kowshiksiva5.github.io/patc-osv/">live demo</a>, <a href="https://github.com/kowshiksiva5/patc-osv">repo</a>, and generated PDF packet dated Apr 30, 2026</span>
-          <span>Next receipt: first 40+ observation hours and labeled replay dataset</span>
+          <span>Current receipt: live replay, generated trace, pilot one-pager, and M1 request draft dated Apr 30, 2026</span>
+          <span>Next receipt: logged BTP/jurisdictional intimation, first 40-60 clean site-hours, and labeled replay dataset</span>
           <span>Rejected assumption: more green time alone solves spillback</span>
           <span>Unfair angle: mechanical flow intuition applied to traffic pressure and discharge</span>
         </div>
         <div class="team-fit">
           <article><strong>Mechanical systems owner</strong><span>Owns flow-model framing, validation discipline, corridor observation design, test protocol, and physical-world failure modes.</span></article>
           <article><strong>Software/data owner</strong><span>Owns simulation, dashboard, automation, dataset structure, replay exports, and weekly product iteration.</span></article>
-          <article><strong>Field cadence</strong><span>Names stay in the application packet; public site tracks ownership, two observation windows per week, and first 40+ hours by M3.</span></article>
+          <article><strong>Field cadence</strong><span>M1 starts at two windows per week. M2-M5 ramps to 6-8 two-hour site windows per week, with 40-60 clean site-hours by M3.</span></article>
+        </div>
+        <div id="pilot-contact" class="pilot-contact">
+          <strong>Contact status</strong>
+          <span>Use the named contacts in the private application packet; public intake will be added after the first civic intimation is logged.</span>
         </div>
       </section>
     </main>
@@ -482,6 +492,8 @@
       <img src="assets/logo.svg" alt="" />
       <span>PATC</span>
       <p>Adaptive signal intelligence for congested city sectors.</p>
+      <a href="#proof">View pilot readiness</a>
+      <a href="output/pdf/patc_timeline_cost.pdf">Pilot one-pager</a>
     </footer>
 
     <script src="assets/app.js"></script>

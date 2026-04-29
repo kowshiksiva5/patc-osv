@@ -12,6 +12,15 @@ def pressure_score(density: float, wait_frames: int, context_risk: float) -> flo
     return density * (1 + wait_frames / 60) * (1 + context_risk * 0.35)
 
 
+def illustrative_candidate_ranking(ew_score: float, ns_score: float) -> list[dict[str, object]]:
+    return [
+        {"action": "hold_fixed_time", "priority": round(ew_score * 0.72, 2), "expected_queue_m": 118, "expected_delay_s": 74, "rejection_reason": "baseline"},
+        {"action": "switch_to_ns", "priority": round(ns_score * 0.84, 2), "expected_queue_m": 124, "expected_delay_s": 78, "rejection_reason": "lower current pressure"},
+        {"action": "extend_ew_green_4s", "priority": round(ew_score * 0.91, 2), "expected_queue_m": 100, "expected_delay_s": 67, "rejection_reason": "smaller queue reduction"},
+        {"action": "extend_ew_green_8s", "priority": round(ew_score, 2), "expected_queue_m": 82, "expected_delay_s": 56, "selection_reason": "largest synthetic queue reduction within fallback bounds"},
+    ]
+
+
 def build_trace() -> dict[str, object]:
     frame_samples = [
         {"frame": 0, "ew_density": 64, "ns_density": 38, "ew_wait_frames": 90, "context_risk_ew": 0.42},
@@ -32,6 +41,8 @@ def build_trace() -> dict[str, object]:
         "trace_id": "PATC-SIM-0430-PEAK-SPILLBACK-001",
         "generated_by": "scripts/export_sample_trace.py",
         "generated_at_ist": "2026-04-30T02:20:00+05:30",
+        "source": "hand_authored_synthetic_fixture_not_live_sim_export",
+        "source_revision_note": "reproducible from scripts/export_sample_trace.py in the published repository",
         "status": "synthetic_concept_trace_not_field_result",
         "scenario": "peak_spillback",
         "seed": "patc-peak-spillback-v1",
@@ -50,6 +61,13 @@ def build_trace() -> dict[str, object]:
             "ns_score": round(ns_score, 2),
             "ew_to_ns_ratio": round(ew_score / ns_score, 2),
         },
+        "baseline_definition": {
+            "baseline": "fixed_time_plan_in_synthetic_peak_spillback_fixture",
+            "comparison": "selected synthetic 8s E/W extension against fixed-time baseline",
+            "not_operational_advice": True,
+        },
+        "illustrative_candidate_ranking": illustrative_candidate_ranking(ew_score, ns_score),
+        "score_semantics": "higher synthetic pressure priority, not predicted utility or optimized objective",
         "recommendation": {
             "action": "extend_ew_green",
             "extension_seconds": extension_seconds,

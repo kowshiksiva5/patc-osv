@@ -746,8 +746,10 @@ function drawMarkov(ctx){
     ctx.textAlign='left';
   }
 
-  arrow(stX[0],stY,stX[1],stY,'p=1-e^-λ₁dt','λ₁=1.45/s');
-  arrow(stX[1],stY,stX[2],stY,'p=1-e^-λ₂dt','λ₂=0.90/s');
+  const liveLam1=(scenario.lambda1*tuning.friction).toFixed(2);
+  const liveLam2=(scenario.lambda2*tuning.friction).toFixed(2);
+  arrow(stX[0],stY,stX[1],stY,'p=1-e^-λ₁dt',`λ₁=${liveLam1}/s`);
+  arrow(stX[1],stY,stX[2],stY,'p=1-e^-λ₂dt',`λ₂=${liveLam2}/s`);
 
   // Self-loop labels
   ctx.fillStyle=C.text2; ctx.font='9px IBM Plex Mono'; ctx.textAlign='center';

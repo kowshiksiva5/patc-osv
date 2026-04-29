@@ -2,6 +2,8 @@
   "trace_id": "PATC-SIM-0430-PEAK-SPILLBACK-001",
   "generated_by": "scripts/export_sample_trace.py",
   "generated_at_ist": "2026-04-30T02:20:00+05:30",
+  "source": "hand_authored_synthetic_fixture_not_live_sim_export",
+  "source_revision_note": "reproducible from scripts/export_sample_trace.py in the published repository",
   "status": "synthetic_concept_trace_not_field_result",
   "scenario": "peak_spillback",
   "seed": "patc-peak-spillback-v1",
@@ -42,6 +44,42 @@
     "ns_score": 63.59,
     "ew_to_ns_ratio": 6.03
   },
+  "baseline_definition": {
+    "baseline": "fixed_time_plan_in_synthetic_peak_spillback_fixture",
+    "comparison": "selected synthetic 8s E/W extension against fixed-time baseline",
+    "not_operational_advice": true
+  },
+  "illustrative_candidate_ranking": [
+    {
+      "action": "hold_fixed_time",
+      "priority": 276.25,
+      "expected_queue_m": 118,
+      "expected_delay_s": 74,
+      "rejection_reason": "baseline"
+    },
+    {
+      "action": "switch_to_ns",
+      "priority": 53.42,
+      "expected_queue_m": 124,
+      "expected_delay_s": 78,
+      "rejection_reason": "lower current pressure"
+    },
+    {
+      "action": "extend_ew_green_4s",
+      "priority": 349.15,
+      "expected_queue_m": 100,
+      "expected_delay_s": 67,
+      "rejection_reason": "smaller queue reduction"
+    },
+    {
+      "action": "extend_ew_green_8s",
+      "priority": 383.68,
+      "expected_queue_m": 82,
+      "expected_delay_s": 56,
+      "selection_reason": "largest synthetic queue reduction within fallback bounds"
+    }
+  ],
+  "score_semantics": "higher synthetic pressure priority, not predicted utility or optimized objective",
   "recommendation": {
     "action": "extend_ew_green",
     "extension_seconds": 8,

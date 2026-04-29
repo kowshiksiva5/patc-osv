@@ -330,9 +330,9 @@
         </div>
         <div class="metric-row">
           <div class="metric"><strong>4-6</strong><span>connected signals in the first sector model</span></div>
-          <div class="metric"><strong>120-180</strong><span>observation hours across traffic conditions</span></div>
-          <div class="metric"><strong>80-120</strong><span>labeled sessions for queue and flow signals</span></div>
-          <div class="metric"><strong>300-500</strong><span>scenario tests before pilot readiness</span></div>
+          <div class="metric"><strong>180-240</strong><span>clean site-hours across traffic conditions</span></div>
+          <div class="metric"><strong>120-160</strong><span>labeled sessions for queue and flow signals</span></div>
+          <div class="metric"><strong>500-700</strong><span>scenario tests before pilot readiness</span></div>
         </div>
       </section>
 
@@ -344,7 +344,7 @@
             <div class="flow-bars" aria-hidden="true">
               <span></span><span></span><span></span><span></span><span></span>
             </div>
-            <h3>LWR density field</h3>
+            <h3>LWR-inspired density field</h3>
             <p>
               Treat traffic like a moving density wave across constrained links,
               so queue growth and shockwave movement become measurable.
@@ -368,8 +368,8 @@
             </div>
             <h3>Rolling horizon view</h3>
             <p>
-              The recommender scores the near-future consequence of a timing
-              change instead of reacting only to the present queue count.
+              The current candidate action is projected against near-future
+              queue pressure instead of reacting only to the present count.
             </p>
             <div class="formula">score = queue + delay - throughput</div>
           </article>
@@ -423,28 +423,28 @@
       </section>
 
       <section id="sec-impact">
-        <p class="eyebrow">Impact hypothesis</p>
-        <h2>Success is measured against corridor-level outcomes.</h2>
+        <p class="eyebrow">Outcome priorities</p>
+        <h2>These are validation priorities, not measured effects.</h2>
         <div class="impact-bars">
           <div class="impact-row">
             <strong>Average delay</strong>
             <div class="bar"><span style="width: 72%"></span></div>
-            <span>lower</span>
+            <span>priority</span>
           </div>
           <div class="impact-row">
             <strong>Residual queues</strong>
             <div class="bar"><span style="width: 64%"></span></div>
-            <span>lower</span>
+            <span>priority</span>
           </div>
           <div class="impact-row">
             <strong>Empty green time</strong>
             <div class="bar"><span style="width: 58%"></span></div>
-            <span>lower</span>
+            <span>priority</span>
           </div>
           <div class="impact-row">
             <strong>Operator trust</strong>
             <div class="bar"><span style="width: 78%"></span></div>
-            <span>higher</span>
+            <span>priority</span>
           </div>
         </div>
       </section>
