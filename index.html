@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PATC | Probabilistic Adaptive Traffic Control</title>
+    <meta
+      name="description"
+      content="Two builders are developing an uncertainty-aware adaptive traffic control layer for Indian intersections, starting in shadow mode before live signal control."
+    />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="PATC home">
+        <span class="brand-mark"></span>
+        <span>PATC</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#system">System</a>
+        <a href="#story">Story</a>
+        <a href="#build-log">Build log</a>
+        <a href="#plan">Plan</a>
+        <a href="#application">OSV</a>
+      </nav>
+      <a class="nav-action" href="output/pdf/patc_osv_action_plan.pdf">PDF</a>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-label="PATC overview">
+        <canvas id="trafficCanvas" aria-hidden="true"></canvas>
+        <div class="hero-copy">
+          <p class="eyebrow">Bangalore-born traffic control</p>
+          <h1>Traffic signals should know when they are uncertain.</h1>
+          <p class="hero-lede">
+            PATC is a probabilistic adaptive signal layer that observes queues,
+            models uncertainty, simulates the next few cycles, and recommends
+            safer green-time decisions before touching live road infrastructure.
+          </p>
+        <div class="hero-actions">
+          <a href="#video">Watch 60-sec pitch</a>
+          <a href="#application">Read the OSV answers</a>
+          <a href="#build-log">View build log</a>
+          <a href="output/pdf/patc_osv_action_plan.pdf">Download plan</a>
+        </div>
+        </div>
+        <aside class="hero-panel" aria-label="Prototype UI mock">
+          <p>Prototype UI mock</p>
+          <dl>
+            <div>
+              <dt>Recommendation</dt>
+              <dd>Extend east-west green</dd>
+            </div>
+            <div>
+              <dt>Confidence</dt>
+              <dd><span id="confidenceValue">82%</span></dd>
+            </div>
+            <div>
+              <dt>Reason</dt>
+              <dd>Queue spillback risk rising</dd>
+            </div>
+          </dl>
+          <small>Illustrative interface state, not live city data.</small>
+        </aside>
+      </section>
+
+      <section class="signal-strip" aria-label="Why now">
+        <div>
+          <span>41m 06s</span>
+          <p>Bengaluru morning rush-hour time for 10 km reported by TomTom in 2025.</p>
+        </div>
+        <div>
+          <span>Shadow first</span>
+          <p>Observe, recommend, and compare before any live signal actuation.</p>
+        </div>
+        <div>
+          <span>1 junction</span>
+          <p>The first proof is narrow: one junction, one dataset, one defensible report.</p>
+        </div>
+      </section>
+
+      <section id="system" class="section split">
+        <div>
+          <p class="eyebrow">What the builders are proving</p>
+          <h2>An adaptive decision layer, not a magic traffic light.</h2>
+          <p>
+            Most signal upgrades start by counting vehicles. PATC starts with a harder
+            question: what will happen if this phase changes now, and how confident are
+            we in that answer?
+          </p>
+        </div>
+        <div class="process" aria-label="PATC process">
+          <div><strong>Input</strong><span>Queue, phase, arrival, weather/noise context</span></div>
+          <div><strong>Uncertainty</strong><span>Confidence score, noisy-data handling, fallback trigger</span></div>
+          <div><strong>Simulator</strong><span>One-junction queue prediction under changing arrivals</span></div>
+          <div><strong>Recommendation</strong><span>Explainable green-time action with safety constraints</span></div>
+        </div>
+      </section>
+
+      <section id="story" class="section story">
+        <p class="eyebrow">Founder backstory</p>
+        <h2>Two engineers got stuck in the same broken control loop.</h2>
+        <div class="timeline">
+          <div><strong>1. Bangalore commute pain</strong><span>They kept seeing empty greens, overflowing approaches, and rigid cycles that ignored live demand.</span></div>
+          <div><strong>2. Naive idea rejected</strong><span>Early thinking was “count vehicles better.” They learned count is not control.</span></div>
+          <div><strong>3. Field reality hit</strong><span>Rain, glare, occlusion, downstream blockage, and operator trust matter as much as algorithms.</span></div>
+          <div><strong>4. Shadow-mode insight</strong><span>Before live control, the system should observe, recommend, explain, and compare.</span></div>
+        </div>
+        <div class="story-grid">
+          <article>
+            <h3>The validation founder</h3>
+            <p>
+              A mechanical engineer from IIT Hyderabad, now working in a heavy-industry
+              role, brings testing discipline from industrial systems where validation,
+              vendor coordination, and capital decisions around large deployments cannot
+              be hand-waved.
+            </p>
+            <p>
+              His instinct was to treat traffic as a safety-critical control system:
+              define the baseline, name the failure modes, test in simulation, then
+              move toward field readiness only after repeatable evidence.
+            </p>
+          </article>
+          <article>
+            <h3>The execution founder</h3>
+            <p>
+              An electronics and software engineer with roughly three years of project
+              execution experience owns the sensing, embedded prototype, controller
+              logic, and operator dashboard.
+            </p>
+            <p>
+              His early lesson was blunt: vehicle detection is not traffic control.
+              Counting cars is easier than making a safe timing decision under rain,
+              glare, occlusion, phase history, and downstream blockage.
+            </p>
+          </article>
+        </div>
+        <blockquote>
+          “The first version should earn trust in shadow mode. Public infrastructure
+          should not be controlled by a black box that cannot explain itself.”
+        </blockquote>
+      </section>
+
+      <section id="build-log" class="section evidence">
+        <p class="eyebrow">Six-month position</p>
+        <h2>Six-month build log.</h2>
+        <p class="section-lede">
+          Claim-safe artifacts from the current workstream. Each item should be linked
+          to a note, screenshot, notebook, or demo before the final application is submitted.
+        </p>
+        <div class="evidence-list">
+          <div>
+            <span>01</span>
+            <p>Problem diary from Bangalore junctions: empty-green waste, long queue buildup, rain effects, pedestrian interruptions, and downstream blocking.</p>
+          </div>
+          <div>
+            <span>02</span>
+            <p>One-junction dataset: video or manual observations annotated for phase timing, queue length, wait time, and unusual events.</p>
+          </div>
+          <div>
+            <span>03</span>
+            <p>SUMO baseline comparing fixed-time behavior against variable arrivals and sensor-noise scenarios.</p>
+          </div>
+          <div>
+            <span>04</span>
+            <p>Probabilistic controller notebook that chooses timing from uncertain demand, not just raw vehicle count.</p>
+          </div>
+          <div>
+            <span>05</span>
+            <p>Shadow-mode dashboard showing current phase, estimated queue, confidence, recommended action, and safety constraints.</p>
+          </div>
+          <div>
+            <span>06</span>
+            <p>Mock signal controller or low-voltage relay board proving phase transitions without touching live traffic infrastructure.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="plan" class="section roadmap">
+        <p class="eyebrow">OSV fellowship year</p>
+        <h2>One year to become field-ready.</h2>
+        <ol>
+          <li><strong>Months 1-2</strong><span>Lock one Bangalore junction candidate, build baseline dataset, document fixed-time waste and failure modes.</span></li>
+          <li><strong>Months 3-4</strong><span>Calibrate a one-junction simulator that predicts queue growth under uncertain arrivals and compares timing recommendations against fixed-time baselines.</span></li>
+          <li><strong>Months 5-6</strong><span>Launch shadow-mode dashboard: observe, recommend, explain, and compare against the current signal plan.</span></li>
+          <li><strong>Months 7-9</strong><span>Run statistical validation across synthetic and observed scenarios; publish a measurable one-junction report.</span></li>
+          <li><strong>Months 10-12</strong><span>Build embedded prototype, hardware-in-loop demo, and traffic-department-ready pilot protocol.</span></li>
+        </ol>
+      </section>
+
+      <section id="video" class="section video">
+        <p class="eyebrow">Under-1-minute pitch</p>
+        <h2>The video should feel like two builders explaining a hard public system.</h2>
+        <p>
+          Shoot at a real Bangalore junction, then cut to the prototype dashboard and
+          simulator. Keep it under 60 seconds; target 55 seconds so export timing does
+          not cross the form limit.
+        </p>
+        <a href="#application">Open the final script</a>
+      </section>
+
+      <section id="application" class="section application">
+        <p class="eyebrow">OSV application core</p>
+        <h2>Answers that match the team and the project.</h2>
+        <details open>
+          <summary>What are you working on?</summary>
+          <p>
+            We are building PATC, a traffic signal control layer that observes live
+            queues, models uncertainty, and recommends green-time changes before a
+            junction wastes another signal cycle.
+          </p>
+          <p>
+            The first product is a shadow-mode system for one Bangalore junction:
+            it watches the current signal plan, predicts near-future queue pressure,
+            and produces explainable timing recommendations with confidence and fallback rules.
+          </p>
+        </details>
+        <details>
+          <summary>Why this team?</summary>
+          <p>
+            The team combines two skills that traffic pilots usually need and rarely
+            get together: industrial validation discipline and embedded/software execution.
+            One founder brings IIT Hyderabad mechanical engineering and heavy-industry
+            validation/testing experience; the other can build the sensor-controller-dashboard stack.
+          </p>
+          <p>
+            The novel part is not claiming “AI traffic lights.” The novel part is
+            uncertainty-aware control: PATC makes a recommendation, explains the evidence,
+            shows confidence, and remains useful in shadow mode before it earns live control.
+          </p>
+        </details>
+        <details>
+          <summary>One-year success</summary>
+          <p>
+            Success in one year is a working shadow pilot for one junction: live or
+            replayed traffic observation, a calibrated simulator, a dashboard that traffic
+            engineers can inspect, a mock controller, and a report showing where the current
+            signal plan wastes green time or creates queue spillback.
+          </p>
+          <p>
+            Beyond our wildest dreams, PATC becomes the adaptive layer cities can test
+            safely before procurement: a standard way to move Indian intersections from
+            fixed schedules to explainable, probabilistic control.
+          </p>
+        </details>
+        <details>
+          <summary>Failure mode</summary>
+          <p>
+            This fails if it becomes another impressive traffic demo that no operator
+            trusts. Specific risks are bad data access, camera failure in rain/night,
+            local optimization that worsens the next junction, slow government pilots,
+            and an interface that feels like a black box.
+          </p>
+          <p>
+            Our mitigation is to begin in shadow mode, publish baselines, keep manual
+            override, show confidence on every recommendation, and prove one measurable
+            junction before claiming citywide impact.
+          </p>
+        </details>
+        <details>
+          <summary>Under-1-minute video script</summary>
+          <p>
+            Bangalore traffic looks chaotic, but many signal failures are simple:
+            one road is empty, another is overflowing, and the light still follows a
+            plan that cannot see the present.
+          </p>
+          <p>
+            We are building PATC, a probabilistic adaptive traffic control layer.
+            It observes queues, estimates uncertainty, simulates the next few cycles,
+            and recommends safer green-time changes before touching live infrastructure.
+          </p>
+          <p>
+            Our team combines industrial validation discipline with embedded and software
+            execution. That matters because traffic control is not just a model; it is a
+            public system that must earn trust.
+          </p>
+          <p>
+            In the fellowship year, we will prove one Bangalore junction in shadow mode:
+            a dataset, a simulator, a dashboard, a mock controller, and a measurable report.
+            We are not building a magic traffic light. We are building traffic control that
+            knows when it does not know.
+          </p>
+        </details>
+      </section>
+
+      <section class="section sources">
+        <p class="eyebrow">Sources and technical basis</p>
+        <h2>Problem sources</h2>
+        <ul>
+          <li><a href="https://www.tomtom.com/traffic-index/city/bengaluru">TomTom Traffic Index: Bengaluru 2025 rush-hour travel time</a> - accessed April 29, 2026</li>
+        </ul>
+        <h2>Technical references</h2>
+        <ul>
+          <li><a href="https://sumo.dlr.de/docs/TraCI/index.html">SUMO TraCI documentation</a></li>
+          <li><a href="https://osqp.org/docs/">OSQP solver documentation</a></li>
+          <li><a href="https://www.nema.org/docs/default-source/standards-document-library/ntcip-1202v03-contents-and-scope.pdf?sfvrsn=4f465da9_1">NTCIP 1202 v03 scope</a> - reference only; Indian deployment requires local controller and authority validation.</li>
+        </ul>
+      </section>
+    </main>
+
+    <div class="mobile-cta" aria-label="Mobile quick actions">
+      <a href="#video">Pitch</a>
+      <a href="output/pdf/patc_osv_action_plan.pdf">Plan</a>
+      <a href="#story">Founders</a>
+    </div>
+
+    <script src="assets/app.js"></script>
+  </body>
+</html>
