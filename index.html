@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PATC | Adaptive Signal Intelligence</title>
+    <title>PATC | Probabilistic Adaptive Traffic Control</title>
     <meta
       name="description"
-      content="PATC builds adaptive signal intelligence for city sectors, starting with Bengaluru mixed traffic and scaling through shadow-mode recommendations."
+      content="PATC is a shadow-mode adaptive traffic intelligence product for coordinated city sectors, starting with Bengaluru mixed traffic."
     />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="assets/styles.css" />
@@ -18,10 +18,10 @@
         <span>PATC</span>
       </a>
       <nav aria-label="Primary navigation">
-        <a href="#product">Product</a>
-        <a href="#model">Model</a>
+        <a href="#simulation">Simulation</a>
+        <a href="#evidence">Evidence</a>
         <a href="#proof">Proof</a>
-        <a href="#company">Company</a>
+        <a href="#plan">Plan</a>
       </nav>
     </header>
 
@@ -29,219 +29,377 @@
       <section class="hero" aria-label="PATC overview">
         <canvas id="trafficCanvas" aria-hidden="true"></canvas>
         <div class="hero-shade"></div>
-        <div class="hero-grid">
-          <div class="hero-copy">
-            <p class="eyebrow">Probabilistic adaptive traffic control</p>
-            <h1>Adaptive signal intelligence for city sectors, starting in Bengaluru.</h1>
-            <p class="hero-lede">
-              PATC watches linked junctions as one flow system. It estimates
-              density waves, startup loss, downstream blockage, and near-future
-              demand before recommending reviewable signal changes.
+        <div class="hero-copy">
+          <p class="eyebrow">Probabilistic adaptive traffic control</p>
+          <h1>Make every signal in a busy sector think together.</h1>
+          <p class="hero-lede">
+            PATC starts as a synthetic replay demo today, then turns field
+            counts and signal observations into corridor pressure, queue
+            spillback, startup loss, and operator-reviewed signal moves.
+          </p>
+          <div class="hero-actions">
+            <a href="#simulation">Explore the replay</a>
+            <a href="#proof">Check the pilot path</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="reviewer-packet" aria-label="Reviewer packet">
+        <a href="#simulation"><span>Current artifact</span><strong>Interactive concept replay</strong></a>
+        <a href="#evidence"><span>What is real today</span><strong>Synthetic replay + PDF packet</strong></a>
+        <a href="#proof"><span>What OSV funds</span><strong>Field-labeled sector validation</strong></a>
+        <a href="output/pdf/patc_timeline_cost.pdf"><span>One-page plan</span><strong>Open budget PDF</strong></a>
+      </section>
+
+      <section class="recommendation-sample" aria-label="Sample operator recommendation">
+        <div>
+          <p class="eyebrow">Sample operator recommendation</p>
+          <h2>Illustrative target: extend E/W green by 8 seconds when residual queue is predicted to drop from 118m to 82m.</h2>
+        </div>
+        <div class="sample-grid">
+          <span><strong>Reason</strong> Synthetic downstream context pressure is rising faster than N/S discharge recovery.</span>
+          <span><strong>Confidence</strong> 0.78 from concept replay; field confidence requires labeled density and discharge observations.</span>
+          <span><strong>Fallback</strong> Hold fixed-time plan if pedestrian window is active, emergency preemption fires, or data is stale for 2 cycles.</span>
+          <span><strong>Expected effect</strong> Concept-trace target: residual queue 118m -> 82m and average delay 74s -> 56s against fixed-time baseline.</span>
+          <span><strong>Trace math</strong> Delay improves 24% and residual queue improves 31% in the synthetic trace; both require M6 field validation.</span>
+          <span><strong>Metric provenance</strong> Synthetic trace PATC-SIM-0430-PEAK-SPILLBACK-001; <a href="output/trace/patc_sample_recommendation.json">open JSON trace</a>.</span>
+          <span><strong>M1 request</strong> <a href="output/pdf/patc_m1_btp_request.pdf">Open BTP observation request draft</a>; status: not sent.</span>
+        </div>
+      </section>
+
+      <section id="simulation" class="section simulation-lab">
+        <div class="section-head">
+          <p class="eyebrow">Interactive sector replay</p>
+          <h2>Synthetic sector replay toward a coordinated operating layer.</h2>
+          <p>
+            The demo estimates how density waves may move through a linked
+            sector, accounts for startup delay after red, and exposes every
+            recommendation as a replay that an operator can audit after field
+            ingestion is added.
+          </p>
+        </div>
+
+        <div class="artifact-meta" aria-label="Simulation model metadata">
+          <span>Network scope <strong>sector map + active nodes</strong></span>
+          <span>Flow model <strong>LWR density waves</strong></span>
+          <span>Startup loss <strong>3-state Markov</strong></span>
+          <span>Control mode <strong>shadow replay first</strong></span>
+        </div>
+
+        <div class="scenario-console" aria-label="Replay scenario controls">
+          <div>
+            <p class="console-kicker">Change the traffic story</p>
+            <h3 id="scenarioTitle">Peak spillback from a saturated approach</h3>
+            <p id="scenarioCopy">
+              One approach discharges, but the next road is already full. PATC
+              detects pressure before the downstream queue blocks the sector.
             </p>
-            <div class="hero-actions">
-              <a href="#product">Try the sector cockpit</a>
-              <a href="assets/patc_city_simulation.html" target="_blank" rel="noreferrer">Open simulation lab</a>
+          </div>
+          <div class="scenario-buttons" role="group" aria-label="Scenario selector">
+            <button type="button" class="scenario-btn active" data-scenario="peak" aria-pressed="true">Peak spillback</button>
+            <button type="button" class="scenario-btn" data-scenario="rain" aria-pressed="false">Rain slowdown</button>
+            <button type="button" class="scenario-btn" data-scenario="event" aria-pressed="false">Event surge</button>
+            <button type="button" class="scenario-btn" data-scenario="school" aria-pressed="false">School release</button>
+          </div>
+          <div class="tuning-controls" aria-label="Simulation tuning controls">
+            <label>
+              <span>Demand</span>
+              <input id="demandRange" type="range" min="70" max="150" value="112" />
+              <strong id="demandReadout">112%</strong>
+            </label>
+            <label>
+              <span>Discharge</span>
+              <input id="frictionRange" type="range" min="65" max="115" value="90" />
+              <strong id="frictionReadout">90%</strong>
+            </label>
+            <label>
+              <span>Safety bias</span>
+              <input id="safetyRange" type="range" min="80" max="135" value="108" />
+              <strong id="safetyReadout">108%</strong>
+            </label>
+          </div>
+        </div>
+
+        <div id="model" class="concept-strip">
+          <article class="concept-card">
+            <div class="concept-token">FLOW</div>
+            <div>
+              <h3>Traffic behaves like constrained flow</h3>
+              <p>
+                The model treats a sector like a moving pressure field: free
+                flow, critical density, and jam density determine where a queue
+                will grow next.
+              </p>
+              <div class="pill">LWR conservation law</div>
+            </div>
+          </article>
+          <article class="concept-card">
+            <div class="concept-token">Pi_m</div>
+            <div>
+              <h3>Green does not mean instant movement</h3>
+              <p>
+                Each stopped stream moves through idle, acceleration, and flow.
+                PATC discounts discharge while vehicles are still recovering
+                from red.
+              </p>
+              <div class="pill">Movement probability</div>
+            </div>
+          </article>
+          <article class="concept-card">
+            <div class="concept-token">H=6</div>
+            <div>
+              <h3>Recommendations stay explainable</h3>
+              <p>
+                Every candidate phase is scored against pressure, wait time,
+                discharge loss, and downstream risk before it becomes a
+                shadow-mode recommendation.
+              </p>
+              <div class="pill">Operator-reviewed replay</div>
+            </div>
+          </article>
+        </div>
+
+        <div class="sim-row">
+          <div class="canvas-panel">
+            <div class="panel-title">
+              <span class="live-dot"></span>
+              Coordinated sector replay - shadow-mode signal recommendations
+            </div>
+            <canvas id="cityCanvas" width="620" height="430"></canvas>
+            <div class="replay-stats" aria-label="Live replay statistics">
+              <span><strong id="networkLoad">0%</strong> sector pressure</span>
+              <span><strong id="queueRisk">low</strong> spillback risk</span>
+              <span><strong id="activeScenario">peak</strong> scenario</span>
+            </div>
+            <div class="ctrl-row">
+              <button class="btn" id="btnPause">Pause</button>
+              <button class="btn" id="btnRestart">Restart</button>
+              <span class="speed-label">Speed:</span>
+              <button class="btn active" id="btn1x" onclick="setSpeed(1,this)">1x</button>
+              <button class="btn" id="btn2x" onclick="setSpeed(2,this)">2x</button>
+              <button class="btn" id="btn05x" onclick="setSpeed(0.5,this)">0.5x</button>
+            </div>
+            <div class="legend-row">
+              <div class="legend-item"><div class="leg-line cyan"></div> Vehicle A route</div>
+              <div class="legend-item"><div class="leg-line orange"></div> Vehicle B route</div>
+              <div class="legend-item"><div class="leg-dot green"></div> N/S green</div>
+              <div class="legend-item"><div class="leg-dot red"></div> E/W red</div>
+              <div class="legend-item"><div class="leg-dot yellow"></div> Transition</div>
             </div>
           </div>
 
-          <aside class="status-console" aria-label="Shadow-mode system snapshot">
-            <div class="console-top">
-              <span class="live-dot"></span>
-              <strong>Shadow-mode sector</strong>
+          <aside class="dashboard">
+            <div class="db-card">
+              <div class="db-card-title">PATC signal state</div>
+              <div class="sig-phases">
+                <div class="sig-phase" id="sigNS">
+                  <div class="sig-arrow">N/S</div>
+                  <div class="sig-label">phase</div>
+                  <div class="sig-dur" id="nsTimer">-</div>
+                </div>
+                <div class="sig-phase" id="sigEW">
+                  <div class="sig-arrow">E/W</div>
+                  <div class="sig-label">phase</div>
+                  <div class="sig-dur" id="ewTimer">-</div>
+                </div>
+              </div>
+              <div class="cycle-line">
+                Cycle <span id="cycleCount">0</span> | Next <span id="switchCountdown">-</span>
+              </div>
             </div>
-            <dl>
-              <div><dt>First wedge</dt><dd>4-6 linked signals</dd></div>
-              <div><dt>Decision mode</dt><dd>Recommend, inspect, reject</dd></div>
-              <div><dt>Cockpit stack</dt><dd>Queue + Pi_m + horizon</dd></div>
-              <div><dt>Demo replay</dt><dd id="confidenceValue">84%</dd></div>
-            </dl>
-            <p>Bengaluru is the proving ground. The architecture is built for any mixed-traffic sector where queues interact across junctions.</p>
+
+            <div class="db-card">
+              <div class="db-card-title">Vehicle A <span class="cyan-text">cyan</span></div>
+              <div class="car-row">
+                <div class="car-row-head">
+                  <div class="car-name cyan-text">VEH-A</div>
+                  <div class="car-state-badge" id="aStateBadge">Idle</div>
+                </div>
+                <div class="metric-grid">
+                  <div class="metric-item">
+                    <div class="m-label">Density rho</div>
+                    <div class="m-val"><span id="aDensity">0</span> veh/km</div>
+                    <div class="m-bar"><div class="m-fill cyan-fill" id="aDensityBar"></div></div>
+                  </div>
+                  <div class="metric-item">
+                    <div class="m-label">Pi_m</div>
+                    <div class="m-val"><span id="aPim">0.00</span></div>
+                    <div class="m-bar"><div class="m-fill green-fill" id="aPimBar"></div></div>
+                  </div>
+                  <div class="metric-item">
+                    <div class="m-label">Wait</div>
+                    <div class="m-val"><span id="aWait">0.0</span>s</div>
+                  </div>
+                  <div class="metric-item">
+                    <div class="m-label">Progress</div>
+                    <div class="m-val"><span id="aProgress">0</span>%</div>
+                    <div class="m-bar"><div class="m-fill cyan-fill" id="aProgressBar"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="db-card">
+              <div class="db-card-title">Vehicle B <span class="orange-text">orange</span></div>
+              <div class="car-row">
+                <div class="car-row-head">
+                  <div class="car-name orange-text">VEH-B</div>
+                  <div class="car-state-badge" id="bStateBadge">Idle</div>
+                </div>
+                <div class="metric-grid">
+                  <div class="metric-item">
+                    <div class="m-label">Density rho</div>
+                    <div class="m-val"><span id="bDensity">0</span> veh/km</div>
+                    <div class="m-bar"><div class="m-fill orange-fill" id="bDensityBar"></div></div>
+                  </div>
+                  <div class="metric-item">
+                    <div class="m-label">Pi_m</div>
+                    <div class="m-val"><span id="bPim">0.00</span></div>
+                    <div class="m-bar"><div class="m-fill green-fill" id="bPimBar"></div></div>
+                  </div>
+                  <div class="metric-item">
+                    <div class="m-label">Wait</div>
+                    <div class="m-val"><span id="bWait">0.0</span>s</div>
+                  </div>
+                  <div class="metric-item">
+                    <div class="m-label">Progress</div>
+                    <div class="m-val"><span id="bProgress">0</span>%</div>
+                    <div class="m-bar"><div class="m-fill orange-fill" id="bProgressBar"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="db-card log-card">
+              <div class="db-card-title">PATC decision log</div>
+              <div class="patc-log" id="patcLog">
+                <div class="log-entry"><span class="log-ts">[00.0s]</span> <span class="log-ev">System initialised.</span></div>
+                <div class="log-entry"><span class="log-ts">[00.0s]</span> <span class="log-ev">Initial phase: E/W GREEN</span></div>
+              </div>
+            </div>
           </aside>
         </div>
-      </section>
 
-      <section id="product" class="section product">
-        <div class="section-head">
-          <p class="eyebrow">Product surface</p>
-          <h2>A sector cockpit, not a single-junction timer.</h2>
-          <p>
-            The artifact exposed the right raw signals: density, movement
-            probability, phase history, rolling horizon, decision log, and simulation
-            targets. PATC turns those into an operator-readable product.
+        <div class="viz-section">
+          <article class="viz-card">
+            <h3>Markov chain state machine</h3>
+            <p class="viz-sub">
+              Stochastic startup dynamics for each vehicle. Highlighted node
+              shows the current state used to estimate movement probability.
+            </p>
+            <canvas id="markovCanvas" width="560" height="260"></canvas>
+          </article>
+
+          <article class="viz-card">
+            <h3>LWR fundamental diagram Q(rho)</h3>
+            <p class="viz-sub">
+              Free-flow rises to capacity at critical density. Congested flow
+              drops toward jam density. Colored points show Pi_m-corrected
+              expected discharge.
+            </p>
+            <canvas id="lwrCanvas" width="560" height="260"></canvas>
+          </article>
+
+          <article class="viz-card viz-full">
+            <h3>Signal phase timeline - 60-second history</h3>
+            <p class="viz-sub">
+              Scrolling phase history for the current simulation. Green bands are
+              active phases; yellow is transition; red is stopped time.
+            </p>
+            <canvas id="timelineCanvas" width="1160" height="120"></canvas>
+          </article>
+
+          <article class="viz-card">
+            <h3>Pi_m movement probability gauges</h3>
+            <p class="viz-sub">
+              Real-time probability of movement for each simulated vehicle,
+              correcting discharge for startup latency.
+            </p>
+            <canvas id="pimCanvas" width="560" height="220"></canvas>
+          </article>
+
+          <article class="viz-card">
+            <h3>Rolling horizon view - H = 6 slots</h3>
+            <p class="viz-sub">
+              Heuristic green-share recommendation across the next 30-second
+              horizon. Blue is N/S, orange is E/W, grey is lost time.
+            </p>
+            <canvas id="mpcCanvas" width="560" height="220"></canvas>
+          </article>
+        </div>
+
+        <div class="kpi-section">
+          <h3>Trace-backed primary targets and secondary modeled estimates</h3>
+          <p class="kpi-sub">
+            Delay and residual queue are the primary replay targets. CO2, fuel,
+            and stops stay secondary modeled estimates until field labels and a
+            baseline comparison make them auditable.
           </p>
-        </div>
-
-        <div class="cockpit">
-          <div class="scenario-panel">
-            <p class="panel-label">Scenario</p>
-            <button class="scenario-button active" type="button" data-scenario="surge">Office surge</button>
-            <button class="scenario-button" type="button" data-scenario="rain">Rain slowdown</button>
-            <button class="scenario-button" type="button" data-scenario="blockage">Downstream blockage</button>
-            <label class="demand-control" for="demandSlider">
-              Demand pressure
-              <input id="demandSlider" type="range" min="40" max="95" value="72" />
-            </label>
-            <div class="recommendation">
-              <span>Current recommendation</span>
-              <strong id="recommendationText">Hold east-west 8s, meter north release</strong>
+          <div class="kpi-grid">
+            <div class="kpi-item">
+              <div class="kpi-labels"><span class="kpi-name">Avg. intersection delay</span><span class="kpi-pct">↓ 24%</span></div>
+              <div class="kpi-bar-bg"><div class="kpi-bar-fill" data-target="24"></div></div>
+              <div class="kpi-note">Primary replay target, not field result</div>
+            </div>
+            <div class="kpi-item secondary">
+              <div class="kpi-labels"><span class="kpi-name">CO2 emissions</span><span class="kpi-pct">directional</span></div>
+              <div class="kpi-bar-bg"><div class="kpi-bar-fill" data-target="0"></div></div>
+              <div class="kpi-note">Secondary modeled estimate</div>
+            </div>
+            <div class="kpi-item secondary">
+              <div class="kpi-labels"><span class="kpi-name">Fuel consumption</span><span class="kpi-pct">directional</span></div>
+              <div class="kpi-bar-bg"><div class="kpi-bar-fill" data-target="0"></div></div>
+              <div class="kpi-note">Secondary modeled estimate</div>
+            </div>
+            <div class="kpi-item secondary">
+              <div class="kpi-labels"><span class="kpi-name">Stops per vehicle</span><span class="kpi-pct">directional</span></div>
+              <div class="kpi-bar-bg"><div class="kpi-bar-fill" data-target="0"></div></div>
+              <div class="kpi-note">Secondary modeled estimate</div>
+            </div>
+            <div class="kpi-item">
+              <div class="kpi-labels"><span class="kpi-name">Residual queue length</span><span class="kpi-pct">↓ 31%</span></div>
+              <div class="kpi-bar-bg"><div class="kpi-bar-fill" data-target="31"></div></div>
+              <div class="kpi-note">Primary replay target</div>
             </div>
           </div>
-
-          <div class="sector-card">
-            <div class="sector-card-head">
-              <div>
-                <p class="panel-label">Bengaluru sector replay</p>
-                <h3>Five connected junctions, one coordinated decision.</h3>
-              </div>
-              <span id="phaseValue">E/W green</span>
-            </div>
-
-            <div class="sector-map" aria-label="Animated sector map">
-              <svg viewBox="0 0 920 430" role="img">
-                <title>Sector-level road network with coordinated junctions</title>
-                <path class="road road-wide" d="M55 315 C190 250 280 230 415 238 C565 248 650 185 865 125" />
-                <path class="road road-thin" d="M135 85 C185 160 240 205 355 246 C500 300 620 308 808 356" />
-                <path class="road road-thin" d="M248 365 C310 275 384 226 486 174 C574 129 638 88 743 58" />
-                <path class="route route-a" d="M70 310 C210 238 338 230 470 242 C612 254 705 176 852 132" />
-                <path class="route route-b" d="M140 88 C204 176 284 220 396 250 C540 289 654 314 805 354" />
-                <g class="junctions">
-                  <circle cx="170" cy="260" r="16" />
-                  <circle cx="320" cy="238" r="16" />
-                  <circle cx="470" cy="242" r="16" />
-                  <circle cx="610" cy="205" r="16" />
-                  <circle cx="755" cy="160" r="16" />
-                </g>
-                <g class="queue queue-hot">
-                  <rect x="382" y="218" width="120" height="12" rx="6" />
-                  <rect x="525" y="190" width="92" height="12" rx="6" />
-                  <rect x="650" y="166" width="78" height="12" rx="6" />
-                </g>
-                <g class="vehicles">
-                  <rect class="veh veh-a" x="0" y="-5" width="24" height="10" rx="4" />
-                  <rect class="veh veh-b" x="0" y="-5" width="24" height="10" rx="4" />
-                </g>
-              </svg>
-              <div class="map-chips" aria-label="Live sector outputs">
-                <span>Rec <strong id="mapRecommendationText">Hold east-west</strong></span>
-                <span>Density <strong id="densityChip">72 veh/km</strong></span>
-                <span>Pi_m <strong id="pimChip">0.68</strong></span>
-                <span>Queue <strong id="queueChip">118 m</strong></span>
-              </div>
-            </div>
-
-            <div class="junction-stack" aria-label="Computed junction state">
-              <span data-junction="0">J1 <strong>clear</strong></span>
-              <span data-junction="1">J2 <strong>watch</strong></span>
-              <span data-junction="2">J3 <strong>dense</strong></span>
-              <span data-junction="3">J4 <strong>dense</strong></span>
-              <span data-junction="4">J5 <strong>clear</strong></span>
-            </div>
-
-            <div class="telemetry-grid">
-              <article>
-                <span>Density &rho;</span>
-                <strong id="densityValue">72 veh/km</strong>
-                <div class="bar"><i id="densityBar"></i></div>
-              </article>
-              <article>
-                <span>Movement &Pi;<sub>m</sub></span>
-                <strong id="pimValue">0.68</strong>
-                <div class="bar"><i id="pimBar"></i></div>
-              </article>
-              <article>
-                <span>Residual queue</span>
-                <strong id="queueValue">118 m</strong>
-                <div class="bar"><i id="queueBar"></i></div>
-              </article>
-              <article>
-                <span>Rolling window</span>
-                <strong>6 x 5s</strong>
-                <div class="mini-horizon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-              </article>
-            </div>
-          </div>
-
-          <div class="decision-card">
-            <p class="panel-label">Inspectable decision log</p>
-            <ol id="decisionLog">
-              <li>Density wave detected across junctions 2-4.</li>
-              <li>Pi_m recovering after startup delay.</li>
-              <li>Recommend offset shift before downstream queue locks.</li>
-            </ol>
-          </div>
-        </div>
-
-        <div class="artifact-strip" aria-label="Concepts adapted from the simulation artifact">
-          <span>Flow concept <strong>LWR-inspired</strong></span>
-          <span>Startup loss <strong>Pi_m proxy</strong></span>
-          <span>Rolling window <strong>H=6 target</strong></span>
-          <span>Demand pressure <strong>adaptive input</strong></span>
         </div>
       </section>
 
-      <section id="model" class="section model">
-        <div class="section-head">
-          <p class="eyebrow">Technical engine</p>
-          <h2>The mechanical intuition is the product edge.</h2>
+      <section id="evidence" class="section evidence">
+        <div class="section-head compact">
+          <p class="eyebrow">Technical evidence</p>
+          <h2>What the model proves, and what it still has to earn.</h2>
           <p>
-            Traffic behaves like constrained flow: density builds, discharge
-            drops near saturation, and one blocked link sends pressure backward.
-            PATC combines that physical view with probabilistic startup and
-            rolling recommendation.
+            The current canvas is a concept replay, not a claimed field result.
+            The pilot exists to replace hand-tuned assumptions with calibrated
+            Bengaluru observations and repeatable baseline comparisons.
           </p>
         </div>
-
-        <div class="model-grid">
-          <article class="diagram-card">
-            <h3>LWR flow-density diagram</h3>
-            <p>Use the triangular fundamental diagram correctly: free-flow rises to capacity, then congested flow falls toward jam density.</p>
-            <svg class="lwr-diagram" viewBox="0 0 520 300" role="img">
-              <title>LWR triangular fundamental diagram</title>
-              <path class="axis" d="M58 236 H478 M58 236 V42" />
-              <path class="free-region" d="M58 236 L205 70 L205 236 Z" />
-              <path class="jam-region" d="M205 70 L478 236 L205 236 Z" />
-              <path class="lwr-line" d="M58 236 L205 70 L478 236" />
-              <path class="critical" d="M205 70 V236" />
-              <circle class="point cyan" cx="162" cy="118" r="7" />
-              <circle class="point orange" cx="304" cy="130" r="7" />
-              <text x="92" y="92">free flow: q = vf.rho</text>
-              <text x="292" y="92">congested: q = w(rhoj-rho)</text>
-              <text x="188" y="257">rho_c</text>
-              <text x="438" y="257">rho_j</text>
-              <text x="24" y="80">q_max</text>
-              <text x="188" y="42">capacity</text>
-              <text x="180" y="286">density rho</text>
-              <text x="10" y="150" transform="rotate(-90 10 150)">flow q</text>
-            </svg>
+        <div class="evidence-grid">
+          <article>
+            <span>State variables</span>
+            <strong>rho, q, Pi_m, wait, spillback risk</strong>
+            <p>Density and flow follow the LWR fundamental diagram; Pi_m discounts discharge during idle and acceleration after a red phase.</p>
           </article>
-
-          <article class="diagram-card">
-            <h3>Markov movement model</h3>
-            <p>Stopped vehicles do not start as a block. Idle -> accelerating -> flow estimates real discharge after the light changes.</p>
-            <div class="markov" aria-label="Markov state machine">
-              <div class="state idle"><strong>Idle</strong><span>waiting</span></div>
-              <i>&lambda;1</i>
-              <div class="state accel"><strong>Accelerating</strong><span>startup loss</span></div>
-              <i>&lambda;2</i>
-              <div class="state flow"><strong>Flow</strong><span>discharging</span></div>
-            </div>
-            <div class="matrix">
-              <span>Pi_m(k) = alpha.P(accel) + P(flow)</span>
-              <span>q_eff = Pi_m.Q(rho)</span>
-            </div>
+          <article>
+            <span>Objective</span>
+            <strong>Reduce sector delay without starving cross movement</strong>
+            <p>Each recommendation scores queue pressure, downstream capacity, startup loss, minimum green, pedestrian windows, and fallback constraints.</p>
           </article>
-
-          <article class="diagram-card">
-            <h3>Rolling prediction horizon</h3>
-            <p>A six-slot view shows how near-term queue pressure can shift recommended green splits or offsets.</p>
-            <div class="mpc-bars" aria-label="Rolling horizon bars">
-              <span style="height: 48%"><b>now</b></span>
-              <span style="height: 72%"><b>+5s</b></span>
-              <span style="height: 64%"><b>+10s</b></span>
-              <span style="height: 44%"><b>+15s</b></span>
-              <span style="height: 82%"><b>+20s</b></span>
-              <span style="height: 58%"><b>+25s</b></span>
-            </div>
+          <article>
+            <span>Baseline</span>
+            <strong>Fixed-time and actuated comparison</strong>
+            <p>Every replay should produce a before/after trace: current plan, recommended phase, expected effect, confidence, and failure reason.</p>
+          </article>
+          <article>
+            <span>Calibration</span>
+            <strong>Field labels before field control</strong>
+            <p>Queue length, discharge rate, spillback, empty-green, phase state, and weather/event tags become the acceptance dataset.</p>
+          </article>
+          <article>
+            <span>Current limit</span>
+            <strong>Synthetic context pressure</strong>
+            <p>Neighbor-node pressure in the demo is synthetic until replaced with measured queues, occupancy, and downstream capacity labels.</p>
           </article>
         </div>
       </section>
@@ -249,63 +407,73 @@
       <section id="proof" class="section proof">
         <div class="section-head compact">
           <p class="eyebrow">Validation path</p>
-          <h2>Earn trust in shadow mode before touching control hardware.</h2>
+          <h2>Start with replay. Earn trust before control.</h2>
+          <p>
+            PATC is intentionally a shadow-mode decision-support layer first.
+            The pilot should run observed replay across a 4-6 signal sector
+            through peak, off-peak, rain, weekend, school, event, and seasonal
+            variation before any deployment request.
+          </p>
         </div>
         <div class="proof-grid">
-          <article><span>Observed</span><h3>Current status</h3><p>Founder-led commute observations and manual signal watching identified the cross-junction failure: cleared upstream green can still feed a blocked downstream road.</p></article>
-          <article><span>Modeled</span><h3>Current artifact</h3><p>Native sector mock plus technical simulation cover density, startup-loss proxy, queue pressure, phase history, and rolling recommendation logic.</p></article>
-          <article><span>Simulated</span><h3>Hypothesis test</h3><p>Scenario targets are not field results. They must be replayed against fixed-time baselines, actuated timing, rain, weekend, and office-surge periods.</p></article>
-          <article><span>Next proof</span><h3>Pilot gate</h3><p>Secure a 4-6 signal shadow replay with observed hours, scenario tests, fallback rules, validation memo, and operator-review dashboard.</p></article>
+          <article><span>Observed</span><h3>Cross-junction failure</h3><p>One upstream signal can clear while the next road stays saturated. The system is built around that linked-sector failure mode.</p></article>
+          <article><span>Modeled</span><h3>Flow plus startup loss</h3><p>The product tracks density, discharge, Pi_m, phase timing, wait, and pressure instead of treating every junction as isolated.</p></article>
+          <article><span>Simulated</span><h3>Hypothesis targets</h3><p>The percentage numbers are simulation targets that must be validated against fixed-time and actuated baselines.</p></article>
+          <article><span>Pilot gate</span><h3>Authority-ready replay</h3><p>Run peak, off-peak, rain, weekend, school, holiday, event, and seasonal variation before any deployment request.</p></article>
         </div>
-        <div class="impact-row" aria-label="Scenario target metrics from artifact">
-          <span><strong>35%</strong> delay target</span>
-          <span><strong>27%</strong> CO2 target</span>
-          <span><strong>31%</strong> fuel target</span>
-          <span><strong>26%</strong> stops target</span>
-          <span><strong>29%</strong> residual queue target</span>
-        </div>
-        <div class="pilot-gate">
-          <div>
-            <p class="eyebrow">Bengaluru pilot path</p>
-            <h3>Replay-only until permission, proof, and safety gates exist.</h3>
-          </div>
-          <ul>
-            <li>Candidate sector: 4-6 connected signals with visible upstream/downstream queue interaction.</li>
-            <li>Data boundary: observation, replay, and dashboard recommendations only; no controller writes.</li>
-            <li>Validation matrix: peak/off-peak, weekday/weekend, rain/no-rain, school/holiday, event/anomaly, and seasonal variation.</li>
-            <li>Handoff: baseline comparison, fallback rules, operator notes, and pilot-readiness memo.</li>
-          </ul>
+        <div class="pilot-path">
+          <article><strong>First-choice corridor</strong><span>Silk Board to HSR/Bomanahalli sector: 4-6 signals, mixed traffic, frequent spillback, and strong commuter pain.</span></article>
+          <article><strong>M1 request package</strong><span>One-page BTP observation request: no-install manual-count SOP, two weekday peaks, one weekend slot, one rain/night repeat, and 30-day raw-data retention.</span></article>
+          <article><strong>Data posture</strong><span>Aggregate counts, queues, phase timing, and movement traces. No face, plate, or identity pipeline in the pilot scope.</span></article>
+          <article><strong>Fallback rules</strong><span>Minimum greens, pedestrian windows, emergency preemption, stale-data stop, and manual operator priority.</span></article>
         </div>
       </section>
 
-      <section id="company" class="section company">
-        <div class="company-copy">
-          <p class="eyebrow">Company</p>
-          <h2>Two childhood friends turned a daily traffic wound into a flow problem.</h2>
+      <section id="plan" class="section plan">
+        <div class="section-head compact">
+          <p class="eyebrow">Reviewer path</p>
+          <h2>Problem, proof, plan, and budget in one pass.</h2>
           <p>
-            Kowshik Motepalli and Sidvik Basa grew up seeing the same Bengaluru
-            traffic failures, then started asking why one cleared signal still
-            leaves the next road locked. Kowshik brings AI/software depth:
-            simulation, data workflow, decision logic, and product interface.
-            Sidvik brings mechanical engineering judgment: flow through
-            bottlenecks, discharge, validation, testing discipline, and the
-            instinct to measure before claiming.
-          </p>
-          <p>
-            Together, they are turning lived commute pain, field observation,
-            simulation, and flow intuition into shadow-mode intelligence for
-            mixed-traffic city sectors. If it works in Bengaluru, the same sector
-            model can travel to any city where queues interact across junctions.
+            A reviewer should be able to understand the wedge in 90 seconds:
+            inspect the replay, see one recommendation, understand the civic
+            safety boundary, then open the one-page build plan.
           </p>
         </div>
-        <div class="company-panel">
-          <h3>What PATC is not claiming</h3>
-          <ul>
-            <li>No live signal takeover on day one.</li>
-            <li>No isolated-junction timer story.</li>
-            <li>No static timing plan pretending traffic is static.</li>
-          </ul>
-          <a href="assets/patc_city_simulation.html" target="_blank" rel="noreferrer">Open full technical simulation</a>
+        <div class="reviewer-flow">
+          <article><span>01</span><strong>Problem</strong><p>Linked queues fail as a sector, not as isolated junctions.</p></article>
+          <article><span>02</span><strong>Artifact</strong><p>Replay shows density, Pi_m, signal phase, and downstream risk.</p></article>
+          <article><span>03</span><strong>Recommendation</strong><p>Each action has reason, confidence, fallback, and before/after trace.</p></article>
+          <article><span>04</span><strong>Pilot plan</strong><p>One sector, 12 months, replay validation, authority-ready package.</p></article>
+        </div>
+        <a class="pdf-link" href="output/pdf/patc_timeline_cost.pdf">Open one-page timeline and budget PDF</a>
+      </section>
+
+      <section class="section company">
+        <div class="section-head">
+          <p class="eyebrow">Company</p>
+          <h2>Prove it in Bengaluru traffic. Reuse it across any congested corridor.</h2>
+          <p>
+            Bengaluru is the proving ground because the traffic is dense,
+            heterogeneous, and unforgiving. Once PATC can explain and improve a
+            messy local sector in replay, the same operating layer can be rolled
+            out to other congested corridors.
+          </p>
+        </div>
+        <div class="boundary-grid">
+          <article><strong>Shadow-mode recommendations</strong><span>The product earns trust through replay, evidence, and operator review before live control.</span></article>
+          <article><strong>Linked-sector coordination</strong><span>The core wedge is coordinating interacting queues across multiple signals, not optimizing one pole in isolation.</span></article>
+          <article><strong>Operator-grade replay</strong><span>Every recommendation needs a reason, confidence score, fallback trigger, and exportable validation trace.</span></article>
+        </div>
+        <div class="traction-strip">
+          <span>Receipt: <a href="https://kowshiksiva5.github.io/patc-osv/">live demo</a>, <a href="https://github.com/kowshiksiva5/patc-osv">repo</a>, and generated PDF packet dated Apr 30, 2026</span>
+          <span>Next receipt: first 40+ observation hours and labeled replay dataset</span>
+          <span>Rejected assumption: more green time alone solves spillback</span>
+          <span>Unfair angle: mechanical flow intuition applied to traffic pressure and discharge</span>
+        </div>
+        <div class="team-fit">
+          <article><strong>Mechanical systems owner</strong><span>Owns flow-model framing, validation discipline, corridor observation design, test protocol, and physical-world failure modes.</span></article>
+          <article><strong>Software/data owner</strong><span>Owns simulation, dashboard, automation, dataset structure, replay exports, and weekly product iteration.</span></article>
+          <article><strong>Field cadence</strong><span>Names stay in the application packet; public site tracks ownership, two observation windows per week, and first 40+ hours by M3.</span></article>
         </div>
       </section>
     </main>
@@ -317,5 +485,6 @@
     </footer>
 
     <script src="assets/app.js"></script>
+    <script src="assets/simulation.js"></script>
   </body>
 </html>
