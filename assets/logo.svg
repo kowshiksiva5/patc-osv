@@ -1,8 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="PATC logo">
-  <rect width="96" height="96" rx="20" fill="#05080d"/>
-  <path d="M20 63c13-29 34 8 56-25" fill="none" stroke="#36d2e2" stroke-width="7" stroke-linecap="round"/>
-  <circle cx="25" cy="60" r="9" fill="#28d17c"/>
-  <circle cx="49" cy="51" r="9" fill="#ffd24a"/>
-  <circle cx="72" cy="38" r="9" fill="#ff5d52"/>
-  <path d="M25 60h47" stroke="#eef6ff" stroke-opacity=".2" stroke-width="3" stroke-linecap="round"/>
+  <rect width="96" height="96" rx="18" fill="#04070b"/>
+  <path d="M16 62 C30 48 43 47 56 50 C68 53 76 48 84 36" fill="none" stroke="#35d4e5" stroke-width="8" stroke-linecap="round"/>
+  <path d="M18 30 C34 40 45 50 55 66 C61 76 68 80 80 78" fill="none" stroke="#ff9b2f" stroke-width="7" stroke-linecap="round" opacity=".92"/>
+  <circle cx="27" cy="54" r="8" fill="#29d681"/>
+  <circle cx="52" cy="50" r="8" fill="#ffd34f"/>
+  <circle cx="72" cy="43" r="8" fill="#ff5a57"/>
+  <path d="M25 54 H74" stroke="#edf7ff" stroke-opacity=".18" stroke-width="3" stroke-linecap="round"/>
 </svg>

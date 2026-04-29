@@ -366,12 +366,12 @@
             <div class="horizon" aria-hidden="true">
               <span>now</span><i></i><span>+5s</span><i></i><span>+20s</span>
             </div>
-            <h3>MPC horizon</h3>
+            <h3>Rolling horizon view</h3>
             <p>
               The recommender scores the near-future consequence of a timing
               change instead of reacting only to the present queue count.
             </p>
-            <div class="formula">min J = queue + delay - throughput</div>
+            <div class="formula">score = queue + delay - throughput</div>
           </article>
         </div>
       </section>
@@ -397,7 +397,7 @@
 
       <section>
         <p class="eyebrow">Validation</p>
-        <h2>Prove the model before touching live control.</h2>
+        <h2>Prove the model before any controller integration.</h2>
         <div class="grid two">
           <article class="card">
             <h3>Shadow replay</h3>

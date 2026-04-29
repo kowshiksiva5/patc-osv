@@ -1,6 +1,6 @@
 # PATC Company Site
 
-Static public company site for PATC, including an embedded shadow-mode city simulation artifact and a generated one-page timeline/cost PDF used outside the public site.
+Static public company site for PATC. The homepage is a native product surface for sector-level adaptive traffic intelligence, with a linked shadow-mode simulation artifact and a generated one-page timeline/cost PDF used outside the public site.
 
 ## Run Locally
 

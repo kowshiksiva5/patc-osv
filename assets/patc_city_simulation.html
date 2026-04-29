@@ -198,8 +198,8 @@ footer{
     <div class="hdr-meta">
       <div class="meta-chip">LWR Model <span>Active</span></div>
       <div class="meta-chip">Markov Chain <span>3-State</span></div>
-      <div class="meta-chip">MPC Horizon <span>H=6</span></div>
-      <div class="meta-chip">Poisson λ <span>Adaptive</span></div>
+      <div class="meta-chip">Rolling Horizon <span>H=6</span></div>
+      <div class="meta-chip">Demand pressure <span>Scenario input</span></div>
     </div>
   </div>
 </header>
@@ -230,10 +230,10 @@ footer{
   <div class="concept-card">
     <div class="icon">⚡</div>
     <div>
-      <h3>Model Predictive Control</h3>
-      <p>Every N꜀=5s, a Quadratic Program minimises J = Σ[w꜀·ρᵢ² + wᵈ·dᵢ − wₜ·q_eff,ᵢ] over 
-         H=6 future steps, allocating optimal green durations g* to each approach phase.</p>
-      <div class="pill">Eq 4.1 — QP Optimisation</div>
+      <h3>Rolling Recommendation Horizon</h3>
+      <p>Every N꜀=5s, a pressure-based shadow recommender scores density, wait, startup loss,
+         and downstream queue risk across H=6 future steps before suggesting phase timing.</p>
+      <div class="pill">Demo model — horizon scoring</div>
     </div>
   </div>
 </div>
@@ -374,7 +374,7 @@ footer{
   <!-- LWR Fundamental Diagram -->
   <div class="viz-card">
     <h3>LWR Fundamental Diagram  Q(ρ)</h3>
-    <p class="viz-sub">Triangular flow-density relationship. Operating points track each approach in real-time.
+    <p class="viz-sub">Triangular flow-density relationship. Points show expected discharge proxies for each approach.
        Free-flow regime: q = vf·ρ. Congested: q = w·(ρⱼ − ρ).</p>
     <canvas id="lwrCanvas" width="560" height="260"></canvas>
   </div>
@@ -383,7 +383,7 @@ footer{
   <div class="viz-card viz-full">
     <h3>Signal Phase Timeline  ·  Scrolling 60-Second History</h3>
     <p class="viz-sub">Simulation Gantt chart of PATC-recommended green allocations. 
-       Green bars = active phase. Red = halted. Width encodes PATC-computed optimal duration per cycle.</p>
+       Green bars = active phase. Red = halted. Width encodes PATC-recommended duration per cycle.</p>
     <canvas id="timelineCanvas" width="1160" height="120"></canvas>
   </div>
 
@@ -395,11 +395,11 @@ footer{
     <canvas id="pimCanvas" width="560" height="220"></canvas>
   </div>
 
-  <!-- MPC Prediction Horizon -->
+  <!-- Rolling Horizon -->
   <div class="viz-card">
-    <h3>MPC Prediction Horizon  ·  H = 6 Steps</h3>
-    <p class="viz-sub">Optimised green allocation across the next 6 control steps (30s horizon). 
-       Solved as QP every N꜀=5s. Blue = N/S, Orange = E/W, Lost time in grey.</p>
+    <h3>Rolling Horizon View  ·  H = 6 Slots</h3>
+    <p class="viz-sub">Heuristic green-share recommendation across the next 6 control steps (30s horizon).
+       Recomputed every N꜀=5s. Blue = N/S, Orange = E/W, Lost time in grey.</p>
     <canvas id="mpcCanvas" width="560" height="220"></canvas>
   </div>
 
@@ -407,8 +407,8 @@ footer{
 
 <!-- ═══ PERFORMANCE KPIs ═══ -->
 <div class="kpi-section">
-  <h3>Simulation Targets vs. Fixed-Time Baseline</h3>
-  <p class="kpi-sub">Scenario targets from PATC Πₘ-corrected green allocation, Poisson demand anticipation, and MPC rolling optimisation.</p>
+  <h3>Scenario Targets vs. Fixed-Time Baseline</h3>
+  <p class="kpi-sub">Hypothesis targets from Πₘ-corrected discharge, demand anticipation, and rolling horizon recommendations.</p>
   <div class="kpi-grid">
     <div class="kpi-item">
       <div class="kpi-labels"><span class="kpi-name">Avg. Intersection Delay</span><span class="kpi-pct">↓ 35%</span></div>
@@ -433,7 +433,7 @@ footer{
     <div class="kpi-item">
       <div class="kpi-labels"><span class="kpi-name">Residual Queue Length</span><span class="kpi-pct">↓ 29%</span></div>
       <div class="kpi-bar-bg"><div class="kpi-bar-fill" style="width:0%" data-target="29"></div></div>
-      <div class="kpi-note">MPC horizon prevents queue accumulation</div>
+      <div class="kpi-note">Rolling horizon exposes queue accumulation</div>
     </div>
   </div>
 </div>
@@ -442,7 +442,7 @@ footer{
 
 <footer>
   PATC-TRP-2025-001 · v1.0 · ITS Division · All mathematical models grounded in LWR (1955), Daganzo CTM (1994), Webster (1958) ·
-  Shadow-mode simulation for technical exploration; not a live-control claim.
+  Shadow-mode simulation for technical exploration; not a deployment claim.
 </footer>
 
 <script>
@@ -484,7 +484,7 @@ const TL_MAX = 600; // frames of history
 const tlHistory = []; // {frame, phase}
 let lastTlPhase = null;
 
-// MPC horizon state
+// Rolling horizon state
 let mpcHorizon = Array(6).fill(null).map(()=>({ns:0.4,ew:0.4,lost:0.2}));
 let mpcUpdateTimer = 0;
 
@@ -528,6 +528,7 @@ class Car {
     this.delay=this.startDelay;
     this.waitFrames=0; this.totalDelay=0;
     this.mState=2; this.mTimer=0; this.piM=1.0; // start in flow
+    this.pi=[0,0,1];
     this.trail=[]; this.justReleased=false;
     this.stopPos=null;
   }
@@ -537,12 +538,12 @@ class Car {
   get density(){
     if(this.arrived) return 0;
     if(this.stopped){
-      // Increasing density as vehicles queue behind
       return Math.min(180, 22 + this.waitFrames*0.35);
     }
-    if(this.segIdx < KEY_SEG) return 12 + Math.random()*3;
-    if(this.segIdx === KEY_SEG) return 8 + Math.random()*2;
-    return 4 + Math.random()*2;
+    const pulse = (Math.sin(frame*0.045 + this.startDelay*0.07 + this.segIdx) + 1) * 0.5;
+    if(this.segIdx < KEY_SEG) return 12 + pulse*4;
+    if(this.segIdx === KEY_SEG) return 8 + pulse*3;
+    return 4 + pulse*2;
   }
   update(signal){
     if(this.arrived) return;
@@ -561,6 +562,7 @@ class Car {
       if(!this.stopped){
         this.stopped=true;
         this.mState=0; this.piM=0;
+        this.pi=[1,0,0];
         this.stopPos={...this.pos};
         this.waitFrames=0;
       }
@@ -571,19 +573,30 @@ class Car {
     if(this.stopped && (myGreen || !atApproach)){
       this.stopped=false;
       this.justReleased=true;
-      this.mState=1; this.mTimer=0;
-      this.piM=0.55;
+      this.mState=0; this.mTimer=0;
+      this.pi=[1,0,0];
+      this.piM=0;
     }
 
     // Markov update
-    if(this.mState===0){ this.piM=0; }
-    else if(this.mState===1){
+    if(this.mState===0 || this.mState===1){
       this.mTimer++;
-      const lam2=0.035;
-      if(Math.random()<lam2||this.mTimer>55){ this.mState=2; this.mTimer=0; }
-      this.piM=Math.min(1, 0.55+this.mTimer*0.009);
+      const dt=1/30;
+      const lam1=1.45, lam2=0.9;
+      const p1=1-Math.exp(-lam1*dt);
+      const p2=1-Math.exp(-lam2*dt);
+      const [idle, accel, flow]=this.pi;
+      const nextIdle=idle*(1-p1);
+      const nextAccel=accel*(1-p2)+idle*p1;
+      const nextFlow=Math.min(1, flow+accel*p2);
+      const total=nextIdle+nextAccel+nextFlow || 1;
+      this.pi=[nextIdle/total,nextAccel/total,nextFlow/total];
+      this.piM=Math.min(1, 0.65*this.pi[1]+this.pi[2]);
+      this.mState=this.pi.indexOf(Math.max(...this.pi));
+      if(this.piM>0.93 || this.mTimer>120){ this.mState=2; this.pi=[0,0,1]; this.piM=1; this.mTimer=0; }
     } else {
       this.mState=2; this.piM=1.0;
+      this.pi=[0,0,1];
     }
 
     const baseSpd = 0.011;
@@ -628,7 +641,7 @@ function updateSignal(carA,carB){
     return;
   }
 
-  // PATC optimisation check every 30 frames
+  // PATC recommendation check every 30 frames
   if(sig.timer%30===0) patcOptimise(carA,carB);
 
   if(sig.timer>=sig.greenDuration) startTransition();
@@ -639,10 +652,10 @@ function patcOptimise(carA,carB){
   const nsScore = carA.density*(1+carA.waitFrames/60);
   const ewScore = carB.density*(1+carB.waitFrames/60);
   if(sig.phase==='NS' && ewScore>nsScore*1.6){
-    pushLog(`PATC: E/W demand surge (ρ=${carB.density.toFixed(0)} veh/km), early switch.`, C.orange);
+    pushLog(`PATC: E/W pressure surge (ρ=${carB.density.toFixed(0)} veh/km), recommend early switch.`, C.orange);
     startTransition();
   } else if(sig.phase==='EW' && nsScore>ewScore*1.6){
-    pushLog(`PATC: N/S demand surge (ρ=${carA.density.toFixed(0)} veh/km), early switch.`, C.cyan);
+    pushLog(`PATC: N/S pressure surge (ρ=${carA.density.toFixed(0)} veh/km), recommend early switch.`, C.cyan);
     startTransition();
   }
 }
@@ -663,7 +676,7 @@ function doSwitch(carA,carB){
   const wBonus=Math.min(140,serving.waitFrames*0.7);
   sig.greenDuration=Math.max(sig.minGreen, Math.min(sig.maxGreen, base+dBonus+wBonus));
 
-  pushLog(`Phase → ${sig.phase} GREEN | Optimal g*=${(sig.greenDuration/30).toFixed(1)}s | Πₘ=${serving.piM.toFixed(2)}`, C.green);
+  pushLog(`Phase → ${sig.phase} GREEN | recommended g=${(sig.greenDuration/30).toFixed(1)}s | Πₘ=${serving.piM.toFixed(2)}`, C.green);
   updateMPC(carA,carB);
 }
 
@@ -961,13 +974,13 @@ function drawMarkov(ctx){
     ctx.textAlign='left';
   }
 
-  arrow(stX[0],stY,stX[1],stY,'λ₁','p=λ₁','λ₁=0.04/s');
-  arrow(stX[1],stY,stX[2],stY,'λ₂','p=λ₂','λ₂=0.035/s');
+  arrow(stX[0],stY,stX[1],stY,'λ₁','p=1-e^-λ₁dt','λ₁=1.45/s');
+  arrow(stX[1],stY,stX[2],stY,'λ₂','p=1-e^-λ₂dt','λ₂=0.90/s');
 
   // Self-loops label
   ctx.fillStyle=C.text2; ctx.font='9px IBM Plex Mono'; ctx.textAlign='center';
-  ctx.fillText('(1−λ₁)', stX[0], stY-SR-12);
-  ctx.fillText('(1−λ₂)', stX[1], stY-SR-12);
+  ctx.fillText('1-p₁', stX[0], stY-SR-12);
+  ctx.fillText('1-p₂', stX[1], stY-SR-12);
   ctx.fillText('absorbing', stX[2], stY-SR-12);
 
   // Draw state circles — both cars
@@ -1011,12 +1024,12 @@ function drawMarkov(ctx){
   ctx.fillStyle=C.text2; ctx.font='9px IBM Plex Mono';
   ctx.fillText('Transition Matrix P:', W-155,26);
   ctx.fillStyle=C.cyan; ctx.font='9px IBM Plex Mono';
-  ctx.fillText('⎡ 1-λ₁  λ₁  0 ⎤', W-155, 44);
-  ctx.fillText('⎢  0  1-λ₂ λ₂ ⎥', W-155, 58);
+  ctx.fillText('⎡1-p₁  p₁   0⎤', W-155, 44);
+  ctx.fillText('⎢  0  1-p₂ p₂⎥', W-155, 58);
   ctx.fillText('⎣  0    0   1 ⎦', W-155, 72);
   ctx.fillStyle=C.text2;
   ctx.fillText('Upper-triangular (I→A→F)', W-155, 90);
-  ctx.fillText(`λ₁=0.04  λ₂=0.035`, W-155, 104);
+  ctx.fillText(`dt=1/30s`, W-155, 104);
 
   ctx.textAlign='center';
   ctx.fillStyle=C.text2; ctx.font='10px IBM Plex Mono';
