@@ -18,4 +18,4 @@ Use a Python environment with `reportlab` installed, then run:
 python3 scripts/build_action_plan_pdf.py
 ```
 
-The generated timeline/cost PDF is written to `output/pdf/patc_osv_action_plan.pdf`.
+The generated timeline/cost PDF is written to `output/pdf/patc_timeline_cost.pdf`.

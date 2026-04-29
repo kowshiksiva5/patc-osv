@@ -12,7 +12,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "output" / "pdf" / "patc_osv_action_plan.pdf"
+OUTPUT = ROOT / "output" / "pdf" / "patc_timeline_cost.pdf"
 ARIAL = Path("/System/Library/Fonts/Supplemental/Arial.ttf")
 ARIAL_BOLD = Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf")
 
