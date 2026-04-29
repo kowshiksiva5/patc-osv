@@ -37,7 +37,7 @@ def build_pdf() -> None:
         leftMargin=0.36 * inch,
         topMargin=0.32 * inch,
         bottomMargin=0.3 * inch,
-        title="PATC OSV One-Year Action Plan",
+        title="PATC One-Year Timeline and Cost",
         author="PATC",
     )
 
@@ -71,22 +71,23 @@ def build_pdf() -> None:
     )
 
     story = [
-        para("One-Year Action Plan: Timeline and Cost", title),
-        para("<b>Completion target.</b> A field-ready shadow-mode signal coordination pilot for one Bengaluru sector: sector traffic observations, annotated dataset, calibrated corridor simulator, recommendation dashboard, mock signal-controller demo, and validation report. This is the proof step before any live-road control rollout.", body),
-        para("12-month timeline", section),
+        para("One-Year Timeline and Cost", title),
+        para("<b>Target.</b> Convert PATC from early observations and concept work into a validated shadow-mode adaptive traffic-control prototype for one Bengaluru corridor/sector: field data, labeled dataset, calibrated simulation, recommendation engine, dashboard, mock controller, safety notes, and pilot-readiness package.", body),
+        para("12-month build schedule", section),
     ]
 
     plan_rows = [
-        ["Months 1-3", "Select one Bengaluru sector route with connected signals; collect/manual-label traffic observations across peak, off-peak, rain, school/office cycles, and possible seasonal variation."],
-        ["Months 4-5", "Document signal phases, empty-green waste, queue spillback across connected roads, pedestrian conflicts, discharge rates, and fixed-time baseline behavior."],
-        ["Months 6-7", "Build corridor simulator and queue-estimation prototype with confidence scores; model density, discharge, queue waves, blockage, and sensor-noise cases."],
-        ["Months 8-9", "Build probabilistic coordination engine: queue-wave estimate, timing/offset recommendation, reason, expected effect, confidence score, and fallback trigger."],
-        ["Months 10-11", "Run extended shadow tests against fixed-time baseline; refine using demand variation, rain/night robustness, camera-noise tests, seasonal changes, and failure logs."],
-        ["Month 12", "Produce validation report, pilot-readiness package, safety/fallback documentation, deployment checklist, stakeholder briefing, and repeatable rollout template."],
+        ["M1", "Select one corridor/sector with 4-6 connected signals; define target metrics, observation protocol, baseline plans, and stakeholder interview list."],
+        ["M1-3", "Collect 120-180 field observation hours across peak, off-peak, rain/night, weekday/weekend, school/office cycles, and seasonal variation."],
+        ["M2-4", "Label 80-120 observation/video sessions: queue length, discharge rate, spillback, empty-green, phase state, pedestrian conflict, anomaly tags."],
+        ["M3-5", "Complete 25-35 stakeholder interviews with commuters, traffic police/operators where accessible, local businesses, civic/ITS reviewers."],
+        ["M4-7", "Build estimator and simulator: queue pressure, arrival forecast, discharge model, confidence score, SUMO corridor model, fixed-time baseline."],
+        ["M7-10", "Build and validate shadow recommender: timing/offset action, reason, expected effect, fallback trigger; run 300-500 scenario tests."],
+        ["M10-12", "Package pilot readiness: dashboard, mock controller, safety/fallback playbook, validation report, stakeholder deck, next-year pilot memo."],
     ]
     table = Table(
         [[para(a, title), para(b, body)] for a, b in plan_rows],
-        colWidths=[1.12 * inch, 6.74 * inch],
+        colWidths=[0.68 * inch, 6.87 * inch],
         hAlign="LEFT",
     )
     table.setStyle(
@@ -96,10 +97,10 @@ def build_pdf() -> None:
                 ("FONTSIZE", (0, 0), (-1, -1), 11),
                 ("LEADING", (0, 0), (-1, -1), 16.5),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("LEFTPADDING", (0, 0), (-1, -1), 3),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 3),
                 ("LINEBELOW", (0, 0), (-1, -2), 0.25, colors.HexColor("#D5CEC0")),
             ]
         )
@@ -107,22 +108,24 @@ def build_pdf() -> None:
     story.append(table)
     story.extend(
         [
-            para("Cost overview", section),
+            para("Cost overview - $100k requested", section),
         ]
     )
 
     cost_rows = [
-        ["Founder execution runway", "$55k", "If awarded full fellowship funding: runway for Kowshik full-time execution and Sidvik's structured field, validation, safety, and deployment support."],
-        ["Traffic data and labeling", "$12k", "Junction visits, video/manual counts, annotation, and repeat observations across peak, rain, and night cases."],
-        ["Prototype hardware", "$10k", "Cameras, edge device, mock controller, relay board, mounts, power/network test equipment."],
-        ["Simulation and cloud", "$8k", "SUMO experiments, storage, dashboard hosting, experiment tracking, backups, and compute."],
-        ["Pilot preparation", "$7k", "Local travel, stakeholder meetings, operator workflow, and pilot-readiness package."],
-        ["Safety/admin", "$5k", "Fallback documentation, validation review, legal/admin, and deployment-readiness materials."],
-        ["Contingency", "$3k", "Hardware replacement, extra observations, data gaps, and stakeholder-demo costs."],
+        ["Builder runway", "$38k", "12 months lean full-time build focus and structured technical/field execution support."],
+        ["Field data collection", "$14k", "120-180 observation hours, local travel, junction visits, repeat rain/night/peak coverage."],
+        ["Labeling and dataset QA", "$12k", "80-120 labeled sessions with queue, flow, spillback, phase, pedestrian, anomaly labels."],
+        ["Simulation/model engineering", "$10k", "SUMO setup, calibration, scenario generation, experiment tracking, validation tooling."],
+        ["Prototype/demo setup", "$9k", "Mock-controller sandbox, replay tools, demo dashboard integration, capture workflow, local test setup."],
+        ["Stakeholder/pilot prep", "$7k", "25-35 interviews, demos, operator workflow, documentation, local coordination."],
+        ["Cloud/dashboard", "$4k", "Hosting, backups, video/data storage, dashboard/demo environment."],
+        ["Safety/legal/review", "$3k", "Safety/fallback review, deployment-readiness notes, consent/admin material."],
+        ["Contingency", "$3k", "Extra data gaps, repeat observations, unexpected field/demo costs."],
     ]
     cost_table = Table(
         [[para(a, title), para(b, title), para(c, body)] for a, b, c in cost_rows],
-        colWidths=[2.05 * inch, 0.72 * inch, 5.09 * inch],
+        colWidths=[2.0 * inch, 0.58 * inch, 4.97 * inch],
         hAlign="LEFT",
     )
     cost_table.setStyle(
@@ -132,10 +135,10 @@ def build_pdf() -> None:
                 ("FONTSIZE", (0, 0), (-1, -1), 11),
                 ("LEADING", (0, 0), (-1, -1), 16.5),
                 ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                ("TOPPADDING", (0, 0), (-1, -1), 4),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("LEFTPADDING", (0, 0), (-1, -1), 3),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 3),
                 ("LINEBELOW", (0, 0), (-1, -2), 0.25, colors.HexColor("#D5CEC0")),
             ]
         )

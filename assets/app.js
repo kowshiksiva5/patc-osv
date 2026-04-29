@@ -1,15 +1,33 @@
 const canvas = document.getElementById("trafficCanvas");
 const confidenceValue = document.getElementById("confidenceValue");
+const heroMode = document.getElementById("heroMode");
+const heroRisk = document.getElementById("heroRisk");
+const observedState = document.getElementById("observedState");
+const recommendationText = document.getElementById("recommendationText");
+const queueMetric = document.getElementById("queueMetric");
+const delayMetric = document.getElementById("delayMetric");
+const phaseMetric = document.getElementById("phaseMetric");
+const confidenceMetric = document.getElementById("confidenceMetric");
+const rainSlider = document.getElementById("rainSlider");
+const surgeSlider = document.getElementById("surgeSlider");
+const boardWave = document.querySelector(".board-wave");
 const ctx = canvas.getContext("2d");
 
 let width = 0;
 let height = 0;
 let tick = 0;
 
-const vehicles = Array.from({ length: 78 }, (_, index) => ({
-  route: index % 3,
+const state = {
+  mode: "patc",
+  scenario: "normal",
+  rain: 22,
+  surge: 35,
+};
+
+const vehicles = Array.from({ length: 96 }, (_, index) => ({
+  lane: index % 4,
   offset: Math.random(),
-  speed: 0.0015 + Math.random() * 0.0034,
+  speed: 0.0013 + Math.random() * 0.003,
   color: ["#ffd24a", "#28d17c", "#ff5d52", "#36d2e2"][index % 4],
 }));
 
@@ -20,6 +38,18 @@ function resize() {
   canvas.width = Math.floor(width * ratio);
   canvas.height = Math.floor(height * ratio);
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+}
+
+function pressure() {
+  const scenarioBoost = { normal: 0, rain: 18, surge: 24, blocked: 34 }[state.scenario];
+  const modeRelief = { fixed: -4, actuated: 4, patc: 16 }[state.mode];
+  return Math.max(8, Math.min(96, 28 + state.rain * 0.22 + state.surge * 0.34 + scenarioBoost - modeRelief));
+}
+
+function confidence() {
+  const base = state.mode === "patc" ? 88 : state.mode === "actuated" ? 73 : 61;
+  const uncertainty = state.rain * 0.08 + (state.scenario === "blocked" ? 8 : 0);
+  return Math.max(52, Math.round(base - uncertainty + Math.sin(tick * 0.02) * 3));
 }
 
 function sectorPoints() {
@@ -53,11 +83,8 @@ function drawPath(points, widthPx, color) {
   ctx.lineJoin = "round";
   ctx.beginPath();
   points.forEach((point, index) => {
-    if (index === 0) {
-      ctx.moveTo(point.x, point.y);
-    } else {
-      ctx.lineTo(point.x, point.y);
-    }
+    if (index === 0) ctx.moveTo(point.x, point.y);
+    else ctx.lineTo(point.x, point.y);
   });
   ctx.stroke();
 }
@@ -65,7 +92,6 @@ function drawPath(points, widthPx, color) {
 function drawBackground(points) {
   ctx.fillStyle = "#05080d";
   ctx.fillRect(0, 0, width, height);
-
   ctx.strokeStyle = "rgba(238,246,255,0.04)";
   ctx.lineWidth = 1;
   for (let x = -80; x < width + 80; x += 84) {
@@ -74,14 +100,14 @@ function drawBackground(points) {
     ctx.lineTo(x + height * 0.32, height);
     ctx.stroke();
   }
-
   drawPath(points, 76, "rgba(238,246,255,0.08)");
   drawPath(points, 42, "rgba(22,33,45,0.94)");
-  drawPath(points, 2, "rgba(255,210,74,0.45)");
+  drawPath(points, 2, "rgba(255,210,74,0.42)");
+}
 
+function drawFeeders(points) {
   points.forEach((point, index) => {
-    const arm = index % 2 === 0 ? 90 : -90;
-    const radians = (Math.PI / 180) * arm;
+    const radians = (Math.PI / 180) * (index % 2 === 0 ? 90 : -90);
     ctx.strokeStyle = "rgba(238,246,255,0.08)";
     ctx.lineWidth = 34;
     ctx.beginPath();
@@ -91,28 +117,26 @@ function drawBackground(points) {
   });
 }
 
-function drawCoordination(points) {
-  const pulse = Math.sin(tick * 0.028) * 0.5 + 0.5;
-  drawPath(points.slice(1), 18, `rgba(255,93,82,${0.12 + pulse * 0.16})`);
-  drawPath(points.slice(0, 3), 8, `rgba(54,210,226,${0.16 + pulse * 0.24})`);
-
-  ctx.fillStyle = "rgba(255,210,74,0.1)";
+function drawRisk(points) {
+  const p = pressure() / 100;
+  drawPath(points.slice(1), 14 + p * 20, `rgba(255,93,82,${0.08 + p * 0.24})`);
+  drawPath(points.slice(0, 3), 8, `rgba(54,210,226,${0.14 + (1 - p) * 0.24})`);
+  ctx.fillStyle = `rgba(255,210,74,${0.06 + p * 0.14})`;
   ctx.beginPath();
-  ctx.ellipse(points[2].x, points[2].y, 190 + pulse * 80, 82 + pulse * 36, 0.74, 0, Math.PI * 2);
+  ctx.ellipse(points[2].x, points[2].y, 160 + p * 150, 74 + p * 56, 0.74, 0, Math.PI * 2);
   ctx.fill();
 }
 
 function drawSignals(points) {
-  const active = Math.floor(tick / 120) % points.length;
+  const active = Math.floor(tick / 110) % points.length;
   points.forEach((point, index) => {
-    ctx.fillStyle = index === active ? "#ffd24a" : "#28d17c";
+    ctx.fillStyle = index === active ? "#ffd24a" : index === points.length - 1 && pressure() > 65 ? "#ff5d52" : "#28d17c";
     ctx.shadowBlur = index === active ? 28 : 16;
     ctx.shadowColor = ctx.fillStyle;
     ctx.beginPath();
     ctx.arc(point.x, point.y, 15, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
-
     ctx.strokeStyle = "rgba(238,246,255,0.42)";
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -122,9 +146,9 @@ function drawSignals(points) {
 }
 
 function drawVehicles(points) {
+  const slowdown = 1 - pressure() / 170;
   vehicles.forEach((vehicle) => {
-    const speedPenalty = vehicle.route === 1 ? 0.72 : 1;
-    const progress = (vehicle.offset + tick * vehicle.speed * speedPenalty) % 1;
+    const progress = (vehicle.offset + tick * vehicle.speed * slowdown) % 1;
     const point = interpolate(points, progress);
     ctx.save();
     ctx.translate(point.x, point.y);
@@ -138,15 +162,29 @@ function drawVehicles(points) {
 }
 
 function drawLabels(points) {
-  if (width < 700) {
-    return;
-  }
-
+  if (width < 700) return;
   ctx.font = "700 12px Arial";
   ctx.fillStyle = "rgba(248,251,255,0.72)";
-  points.forEach((point, index) => {
-    ctx.fillText(`S${index + 1}`, point.x + 20, point.y - 18);
-  });
+  points.forEach((point, index) => ctx.fillText(`S${index + 1}`, point.x + 20, point.y - 18));
+}
+
+function updateMetrics() {
+  const p = Math.round(pressure());
+  const c = confidence();
+  const risk = p > 72 ? "High" : p > 44 ? "Medium" : "Low";
+  const action = state.mode === "patc" ? (p > 70 ? "S3 +22s" : "S2 +18s") : state.mode === "actuated" ? "Extend active" : "No change";
+  const observed = state.scenario === "blocked" ? "Downstream discharge blocked" : state.scenario === "rain" ? "Rain slowing discharge" : "Queue forming near S2";
+  const rec = state.mode === "patc" ? "Coordinate upstream hold and downstream clearance" : state.mode === "actuated" ? "Extend detected green locally" : "Maintain fixed cycle";
+  queueMetric.textContent = `${p}`;
+  delayMetric.textContent = risk;
+  phaseMetric.textContent = action;
+  confidenceMetric.textContent = `${c}%`;
+  confidenceValue.textContent = `${c}%`;
+  heroMode.textContent = state.mode.toUpperCase();
+  heroRisk.textContent = risk;
+  observedState.textContent = observed;
+  recommendationText.textContent = rec;
+  boardWave.style.setProperty("--wave-width", `${Math.max(20, Math.min(82, p))}%`);
 }
 
 function draw() {
@@ -154,18 +192,33 @@ function draw() {
   const points = sectorPoints();
   ctx.clearRect(0, 0, width, height);
   drawBackground(points);
-  drawCoordination(points);
+  drawFeeders(points);
+  drawRisk(points);
   drawVehicles(points);
   drawSignals(points);
   drawLabels(points);
-
-  if (confidenceValue) {
-    const confidence = 78 + Math.round((Math.sin(tick * 0.018) * 0.5 + 0.5) * 9);
-    confidenceValue.textContent = `${confidence}%`;
-  }
+  updateMetrics();
   requestAnimationFrame(draw);
 }
 
+function bindControls() {
+  document.querySelectorAll("[data-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.mode = button.dataset.mode;
+      document.querySelectorAll("[data-mode]").forEach((item) => item.classList.toggle("active", item === button));
+    });
+  });
+  document.querySelectorAll("[data-scenario]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.scenario = button.dataset.scenario;
+      document.querySelectorAll("[data-scenario]").forEach((item) => item.classList.toggle("active", item === button));
+    });
+  });
+  rainSlider.addEventListener("input", () => { state.rain = Number(rainSlider.value); });
+  surgeSlider.addEventListener("input", () => { state.surge = Number(surgeSlider.value); });
+}
+
 window.addEventListener("resize", resize);
+bindControls();
 resize();
 draw();

@@ -1,6 +1,6 @@
 # PATC Company Site
 
-Static public company site for PATC, including a dark corridor-coordination product visual and the OSV-required one-page action-plan PDF.
+Static public company site for PATC, including an interactive corridor demo and a generated one-page timeline/cost PDF used outside the public site.
 
 ## Run Locally
 
@@ -18,4 +18,4 @@ Use a Python environment with `reportlab` installed, then run:
 python3 scripts/build_action_plan_pdf.py
 ```
 
-The generated action plan is written to `output/pdf/patc_osv_action_plan.pdf`.
+The generated timeline/cost PDF is written to `output/pdf/patc_osv_action_plan.pdf`.
