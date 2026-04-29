@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PATC | Adaptive Traffic Intelligence</title>
+    <title>PATC | Corridor Signal Intelligence</title>
     <meta
       name="description"
-      content="PATC builds adaptive traffic intelligence for cities where traffic changes faster than fixed signal plans can respond."
+      content="PATC builds shadow-mode signal coordination software for connected city roads, starting with Bengaluru sectors where queue waves spill across roads."
     />
     <link rel="icon" href="data:," />
     <link rel="stylesheet" href="assets/styles.css" />
@@ -31,17 +31,18 @@
       <section class="hero" aria-label="PATC company overview">
         <canvas id="trafficCanvas" aria-hidden="true"></canvas>
         <div class="hero-copy">
-          <p class="eyebrow">Adaptive traffic intelligence</p>
-          <h1>Traffic signals should respond to reality, not yesterday's schedule.</h1>
+          <p class="eyebrow">Corridor signal coordination</p>
+          <h1>Traffic lights should see queue waves before they become gridlock.</h1>
           <p class="hero-lede">
-            PATC helps cities observe live traffic, estimate uncertainty, simulate
-            timing options, and recommend safer signal decisions before congestion
-            spills across the network.
+            PATC is building a shadow-mode coordination layer for connected Bengaluru
+            roads. It treats traffic like flow: density, discharge, queue waves,
+            and downstream spillback, then recommends timing decisions operators
+            can inspect before trusting.
           </p>
           <div class="hero-actions">
             <a href="#platform">See the platform</a>
+            <a href="output/pdf/patc_osv_action_plan.pdf">View action plan</a>
             <a href="#proof">Why Bengaluru first</a>
-            <a href="#contact">Talk to the founders</a>
           </div>
         </div>
         <aside class="hero-panel" aria-label="Platform snapshot">
@@ -49,7 +50,7 @@
           <dl>
             <div>
               <dt>Action</dt>
-              <dd>Extend east-west green</dd>
+              <dd>Coordinate next two signals</dd>
             </div>
             <div>
               <dt>Confidence</dt>
@@ -60,7 +61,7 @@
               <dd>Return to safe plan</dd>
             </div>
           </dl>
-          <small>Prototype interface state for product explanation.</small>
+          <small>Simulated prototype state for product explanation.</small>
         </aside>
       </section>
 
@@ -68,40 +69,46 @@
         <div class="product-panel">
           <div class="product-topbar">
             <span></span>
-            <p>Shadow dashboard</p>
+            <p>Sector shadow dashboard</p>
           </div>
-          <div class="junction-card">
-            <div class="lane lane-hot"></div>
-            <div class="lane lane-safe"></div>
-            <div class="lane lane-warn"></div>
-            <div class="signal-node"></div>
+          <div class="corridor-card">
+            <div class="corridor-road"></div>
+            <div class="feeder feeder-one"></div>
+            <div class="feeder feeder-two"></div>
+            <div class="feeder feeder-three"></div>
+            <div class="queue queue-hot"></div>
+            <div class="queue queue-safe"></div>
+            <div class="sector-node node-one"></div>
+            <div class="sector-node node-two"></div>
+            <div class="sector-node node-three"></div>
           </div>
           <div class="product-log">
-            <div><strong>Queue estimate</strong><span>East approach building; west clear</span></div>
-            <div><strong>Confidence</strong><span>82 percent, rain/noise penalty applied</span></div>
-            <div><strong>Recommendation</strong><span>Extend east-west green by one safe interval</span></div>
+            <div><strong>Sector view</strong><span>Three linked signals, one queue wave forming</span></div>
+            <div><strong>Flow state</strong><span>Density rising; downstream discharge slowing</span></div>
+            <div><strong>Recommendation</strong><span>Adjust offset before spillback reaches the next signal</span></div>
             <div><strong>Fallback</strong><span>Return to existing timing plan if confidence drops</span></div>
           </div>
         </div>
         <div class="product-copy">
-          <p class="eyebrow">What PATC sells</p>
-          <h2>A traffic decision layer operators can inspect before trusting.</h2>
+          <p class="eyebrow">What PATC proves first</p>
+          <h2>A corridor cockpit for multiple signals, not a single-light tool.</h2>
           <p>
             The first product is not autonomous signal control. It is a shadow-mode
-            dashboard that estimates queues, shows confidence, simulates timing
-            options, explains the recommendation, and records a validation trail.
+            dashboard that watches a sector, estimates queue pressure across
+            connected roads, simulates timing and offset choices, explains the
+            recommendation, and records a validation trail.
           </p>
         </div>
       </section>
 
       <section class="signal-strip" aria-label="PATC positioning">
         <div>
-          <span>1 city</span>
+          <span>1 sector</span>
           <p>Bengaluru is the first proof ground because the founders live the problem.</p>
         </div>
         <div>
-          <span>Built for transfer</span>
-          <p>Bengaluru is the first validation setting; other cities come only after local calibration and evidence.</p>
+          <span>Linked signals</span>
+          <p>The core problem is coordination between signals when queues spill from one road into the next.</p>
         </div>
         <div>
           <span>Shadow first</span>
@@ -112,30 +119,31 @@
       <section id="platform" class="section split">
         <div>
           <p class="eyebrow">The platform</p>
-          <h2>A decision layer for traffic signals that know when they do not know.</h2>
+          <h2>A signal layer that treats traffic like flow through constrained channels.</h2>
           <p>
             Most traffic-signal upgrades begin with better detection. PATC begins with
-            safer decisions. Detection is only one input; the platform also models queue
-            pressure, downstream blockage, confidence, and fallback behavior.
+            safer coordination. Detection is only one input; the platform also models
+            density, discharge rates, queue-wave growth, downstream blockage,
+            confidence, and fallback behavior.
           </p>
         </div>
         <div class="process" aria-label="PATC platform flow">
-          <div><strong>Observe</strong><span>Traffic phase, queue growth, approach demand, weather/noise context</span></div>
-          <div><strong>Estimate</strong><span>Uncertainty, confidence, discharge rate, spillback risk</span></div>
-          <div><strong>Simulate</strong><span>Compare timing options against the current signal plan</span></div>
-          <div><strong>Recommend</strong><span>Explainable green-time action with human override and fallback rules</span></div>
+          <div><strong>Observe</strong><span>Signal phase, queue growth, approach demand, seasonal and weather context</span></div>
+          <div><strong>Model flow</strong><span>Density, discharge, conservation, queue waves, and spillback risk</span></div>
+          <div><strong>Coordinate</strong><span>Compare timing and offset options across connected signals</span></div>
+          <div><strong>Recommend</strong><span>Explainable action with confidence, human override, and fallback rules</span></div>
         </div>
       </section>
 
       <section id="proof" class="section proof">
         <p class="eyebrow">Why Bengaluru first</p>
-        <h2>A hard first testbed for adaptive signal decisions.</h2>
+        <h2>A hard first testbed for sector-level signal coordination.</h2>
         <div class="proof-layout">
           <p>
-            Bengaluru is not the whole market. It is the stress test. Dense junctions,
+            Bengaluru is not the whole market. It is the stress test. Dense roads,
             irregular arrivals, rain, glare, lane indiscipline, blocked turns, and
-            downstream spillback make it a strong proving ground for adaptive traffic
-            intelligence.
+            downstream spillback make it a strong proving ground for coordinating
+            multiple signals under uncertainty.
           </p>
           <div class="metric">
             <span>41m 06s</span>
@@ -148,38 +156,39 @@
         <p class="eyebrow">Deployment path</p>
         <h2>Built to earn trust before control.</h2>
         <ol>
-          <li><strong>Shadow mode</strong><span>Watch recorded or simulated signal plans first; use live observation only after authority-approved access.</span></li>
-          <li><strong>Operator dashboard</strong><span>Show the queue estimate, confidence, reason, expected effect, and fallback condition.</span></li>
-          <li><strong>Mock controller</strong><span>Prove phase logic on safe hardware before any road-side integration.</span></li>
-          <li><strong>Pilot protocol</strong><span>Move toward municipal pilots only after the system produces a repeatable validation report.</span></li>
+          <li><strong>Shadow mode</strong><span>Watch recorded or simulated sector traffic first; use live observation only after authority-approved access.</span></li>
+          <li><strong>Operator dashboard</strong><span>Show queue waves, confidence, reason, expected effect, and fallback condition.</span></li>
+          <li><strong>Mock controller</strong><span>Prove timing and offset logic on safe hardware before any road-side integration.</span></li>
+          <li><strong>Pilot protocol</strong><span>Move toward municipal pilots only after seasonal tests produce a repeatable validation report.</span></li>
         </ol>
       </section>
 
       <section id="team" class="section team">
         <p class="eyebrow">Founders</p>
-        <h2>Founders building PATC from software execution, traffic-system modeling, and field-validation discipline.</h2>
+        <h2>An AI/electronics engineer and a mechanical engineer turning traffic flow into an inspectable product.</h2>
         <div class="team-grid">
           <article>
             <h3>Kowshik Motepalli</h3>
             <p>
-              Kowshik leads product, software, and systems execution: sensing pipeline,
-              simulator, recommendation engine, dashboard, and public demo surface.
+              Kowshik leads the AI, electronics, software, simulator, recommendation
+              engine, dashboard, and public product surface.
             </p>
             <a href="https://www.linkedin.com/in/kowshik-motepalli/">LinkedIn</a>
           </article>
           <article>
             <h3>Sidvik Basa</h3>
             <p>
-              Sidvik works at BHEL and brings mechanical engineering, testing,
-              field validation, safety, and deployment discipline from heavy industry.
+              Sidvik works at BHEL and brings mechanical engineering intuition:
+              traffic as flow, density, conservation, bottlenecks, discharge rates,
+              queue waves, and field validation discipline.
             </p>
             <a href="https://www.linkedin.com/in/sidvikbasa/">LinkedIn</a>
           </article>
         </div>
         <blockquote>
-          The company started as two friends arguing about why signals waste green
-          time. The answer became a safer traffic-control stack: observe first,
-          recommend next, control only after proof.
+          The company started as two friends arguing about why one signal can waste
+          green while the next road is choking. The answer became a safer coordination
+          stack: model flow first, recommend next, control only after proof.
         </blockquote>
       </section>
 
@@ -187,10 +196,10 @@
         <p class="eyebrow">For city, research, and deployment conversations</p>
         <h2>Talk to PATC about validation, pilots, or technical review.</h2>
         <p>
-          PATC is preparing a Bengaluru-first shadow-mode pilot: one junction,
-          one dataset, one simulator, one dashboard, and one validation report.
-          The goal is not to claim citywide deployment on day one. The goal is to
-          prove repeatable junction-level validation.
+          PATC is preparing a Bengaluru-first shadow-mode pilot for a small sector
+          of connected signals. The goal is not to claim citywide deployment on day
+          one. The goal is to prove repeatable coordination logic using sector
+          observations and seasonal testing.
         </p>
         <div class="contact-actions">
           <a href="https://www.linkedin.com/in/kowshik-motepalli/">Start via Kowshik</a>

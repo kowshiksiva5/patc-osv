@@ -6,11 +6,11 @@ let width = 0;
 let height = 0;
 let tick = 0;
 
-const cars = Array.from({ length: 54 }, (_, index) => ({
-  lane: index % 4,
+const vehicles = Array.from({ length: 78 }, (_, index) => ({
+  route: index % 3,
   offset: Math.random(),
-  speed: 0.0018 + Math.random() * 0.004,
-  color: ["#f6c945", "#2f9c6b", "#d84d3f", "#fffaf0"][index % 4],
+  speed: 0.0015 + Math.random() * 0.0034,
+  color: ["#ffd24a", "#28d17c", "#ff5d52", "#36d2e2"][index % 4],
 }));
 
 function resize() {
@@ -22,103 +22,142 @@ function resize() {
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 }
 
-function carRect(car) {
-  const centerX = width * 0.66;
-  const centerY = height * 0.52;
-  const roadW = Math.max(150, Math.min(width, height) * 0.27);
-  const p = (car.offset + tick * car.speed) % 1;
-  const queueSlowdown = Math.max(0.35, Math.sin(tick * 0.015 + car.lane) * 0.5 + 0.5);
-
-  if (car.lane === 0) {
-    return [centerX - roadW * 0.18, height * (1.05 - p * queueSlowdown), 13, 25, 0];
-  }
-  if (car.lane === 1) {
-    return [centerX + roadW * 0.1, height * (p * queueSlowdown - 0.05), 13, 25, 0];
-  }
-  if (car.lane === 2) {
-    return [width * (1.04 - p), centerY - roadW * 0.16, 27, 13, 1];
-  }
-  return [width * (p - 0.04), centerY + roadW * 0.08, 27, 13, 1];
-}
-
-function drawRoads(centerX, centerY, roadW) {
-  ctx.fillStyle = "#1d272d";
-  ctx.fillRect(centerX - roadW / 2, 0, roadW, height);
-  ctx.fillRect(0, centerY - roadW / 2, width, roadW);
-
-  ctx.strokeStyle = "rgba(255,250,240,0.27)";
-  ctx.lineWidth = 2;
-  ctx.setLineDash([18, 18]);
-  ctx.beginPath();
-  ctx.moveTo(centerX, 0);
-  ctx.lineTo(centerX, height);
-  ctx.moveTo(0, centerY);
-  ctx.lineTo(width, centerY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  ctx.strokeStyle = "rgba(246,201,69,0.55)";
-  ctx.lineWidth = 4;
-  ctx.strokeRect(centerX - roadW / 2, centerY - roadW / 2, roadW, roadW);
-}
-
-function drawSignals(centerX, centerY, roadW) {
-  const phase = Math.floor(tick / 130) % 4;
-  const positions = [
-    [centerX - roadW * 0.66, centerY - roadW * 0.66],
-    [centerX + roadW * 0.56, centerY + roadW * 0.56],
-    [centerX + roadW * 0.56, centerY - roadW * 0.66],
-    [centerX - roadW * 0.66, centerY + roadW * 0.56],
+function sectorPoints() {
+  const startX = width < 700 ? width * 0.18 : width * 0.48;
+  return [
+    { x: startX, y: height * 0.24 },
+    { x: width * 0.62, y: height * 0.39 },
+    { x: width * 0.76, y: height * 0.55 },
+    { x: width * 0.9, y: height * 0.71 },
   ];
+}
 
-  positions.forEach(([x, y], index) => {
-    ctx.fillStyle = "rgba(23,33,43,0.82)";
-    ctx.fillRect(x, y, 30, 70);
-    ["#d84d3f", "#f6c945", "#2f9c6b"].forEach((color, light) => {
-      const isGreen = phase === index && light === 2;
-      const isYellow = (tick % 130) > 105 && phase === index && light === 1;
-      const isRed = phase !== index && light === 0;
-      ctx.fillStyle = isGreen || isYellow || isRed ? color : "rgba(255,250,240,0.18)";
-      ctx.beginPath();
-      ctx.arc(x + 15, y + 15 + light * 20, 6, 0, Math.PI * 2);
-      ctx.fill();
-    });
+function interpolate(points, progress) {
+  const segmentCount = points.length - 1;
+  const scaled = progress * segmentCount;
+  const index = Math.min(segmentCount - 1, Math.floor(scaled));
+  const local = scaled - index;
+  const from = points[index];
+  const to = points[index + 1];
+  return {
+    angle: Math.atan2(to.y - from.y, to.x - from.x),
+    x: from.x + (to.x - from.x) * local,
+    y: from.y + (to.y - from.y) * local,
+  };
+}
+
+function drawPath(points, widthPx, color) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = widthPx;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    if (index === 0) {
+      ctx.moveTo(point.x, point.y);
+    } else {
+      ctx.lineTo(point.x, point.y);
+    }
+  });
+  ctx.stroke();
+}
+
+function drawBackground(points) {
+  ctx.fillStyle = "#05080d";
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.strokeStyle = "rgba(238,246,255,0.04)";
+  ctx.lineWidth = 1;
+  for (let x = -80; x < width + 80; x += 84) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + height * 0.32, height);
+    ctx.stroke();
+  }
+
+  drawPath(points, 76, "rgba(238,246,255,0.08)");
+  drawPath(points, 42, "rgba(22,33,45,0.94)");
+  drawPath(points, 2, "rgba(255,210,74,0.45)");
+
+  points.forEach((point, index) => {
+    const arm = index % 2 === 0 ? 90 : -90;
+    const radians = (Math.PI / 180) * arm;
+    ctx.strokeStyle = "rgba(238,246,255,0.08)";
+    ctx.lineWidth = 34;
+    ctx.beginPath();
+    ctx.moveTo(point.x - Math.cos(radians) * 120, point.y - Math.sin(radians) * 120);
+    ctx.lineTo(point.x + Math.cos(radians) * 120, point.y + Math.sin(radians) * 120);
+    ctx.stroke();
   });
 }
 
-function drawQueueHeat(centerX, centerY, roadW) {
-  const pulse = Math.sin(tick * 0.025) * 0.5 + 0.5;
-  const gradient = ctx.createRadialGradient(centerX, centerY, roadW * 0.2, centerX, centerY, roadW * (1.8 + pulse));
-  gradient.addColorStop(0, "rgba(216,77,63,0.28)");
-  gradient.addColorStop(0.55, "rgba(246,201,69,0.14)");
-  gradient.addColorStop(1, "rgba(47,156,107,0)");
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
+function drawCoordination(points) {
+  const pulse = Math.sin(tick * 0.028) * 0.5 + 0.5;
+  drawPath(points.slice(1), 18, `rgba(255,93,82,${0.12 + pulse * 0.16})`);
+  drawPath(points.slice(0, 3), 8, `rgba(54,210,226,${0.16 + pulse * 0.24})`);
+
+  ctx.fillStyle = "rgba(255,210,74,0.1)";
+  ctx.beginPath();
+  ctx.ellipse(points[2].x, points[2].y, 190 + pulse * 80, 82 + pulse * 36, 0.74, 0, Math.PI * 2);
+  ctx.fill();
 }
 
-function drawCars() {
-  cars.forEach((car) => {
-    const [x, y, w, h] = carRect(car);
-    ctx.fillStyle = car.color;
+function drawSignals(points) {
+  const active = Math.floor(tick / 120) % points.length;
+  points.forEach((point, index) => {
+    ctx.fillStyle = index === active ? "#ffd24a" : "#28d17c";
+    ctx.shadowBlur = index === active ? 28 : 16;
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle = "rgba(238,246,255,0.42)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 28, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+}
+
+function drawVehicles(points) {
+  vehicles.forEach((vehicle) => {
+    const speedPenalty = vehicle.route === 1 ? 0.72 : 1;
+    const progress = (vehicle.offset + tick * vehicle.speed * speedPenalty) % 1;
+    const point = interpolate(points, progress);
+    ctx.save();
+    ctx.translate(point.x, point.y);
+    ctx.rotate(point.angle);
     ctx.globalAlpha = 0.82;
-    ctx.fillRect(x, y, w, h);
-    ctx.globalAlpha = 1;
+    ctx.fillStyle = vehicle.color;
+    ctx.fillRect(-11, -5, 22, 10);
+    ctx.restore();
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawLabels(points) {
+  if (width < 700) {
+    return;
+  }
+
+  ctx.font = "700 12px Arial";
+  ctx.fillStyle = "rgba(248,251,255,0.72)";
+  points.forEach((point, index) => {
+    ctx.fillText(`S${index + 1}`, point.x + 20, point.y - 18);
   });
 }
 
 function draw() {
   tick += 1;
+  const points = sectorPoints();
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#263238";
-  ctx.fillRect(0, 0, width, height);
-
-  const centerX = width * 0.66;
-  const centerY = height * 0.52;
-  const roadW = Math.max(150, Math.min(width, height) * 0.27);
-  drawRoads(centerX, centerY, roadW);
-  drawQueueHeat(centerX, centerY, roadW);
-  drawCars();
-  drawSignals(centerX, centerY, roadW);
+  drawBackground(points);
+  drawCoordination(points);
+  drawVehicles(points);
+  drawSignals(points);
+  drawLabels(points);
 
   if (confidenceValue) {
     const confidence = 78 + Math.round((Math.sin(tick * 0.018) * 0.5 + 0.5) * 9);

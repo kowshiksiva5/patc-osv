@@ -72,17 +72,17 @@ def build_pdf() -> None:
 
     story = [
         para("One-Year Action Plan: Timeline and Cost", title),
-        para("<b>Completion target.</b> A field-ready shadow-mode traffic intelligence pilot: one Bengaluru junction as the first controlled testbed, one annotated dataset, calibrated simulator, recommendation dashboard, mock signal-controller demo, and validation report. This is the proof step before any live-road control rollout.", body),
+        para("<b>Completion target.</b> A field-ready shadow-mode signal coordination pilot for one Bengaluru sector: sector traffic observations, annotated dataset, calibrated corridor simulator, recommendation dashboard, mock signal-controller demo, and validation report. This is the proof step before any live-road control rollout.", body),
         para("12-month timeline", section),
     ]
 
     plan_rows = [
-        ["Months 1-2", "Select one Bengaluru junction, collect/manual-label traffic observations, and document signal phases, empty-green waste, queue spillback, rain/night issues, and pedestrian conflicts."],
-        ["Months 3-4", "Build fixed-time baseline simulator and queue-estimation prototype with confidence scores; test changing arrivals, blockage, and sensor-noise cases."],
-        ["Months 5-6", "Build probabilistic timing recommendation engine: queue estimate, confidence score, timing recommendation, reason, expected effect, and fallback trigger."],
-        ["Months 7-8", "Build shadow-mode dashboard and mock signal-controller demo; compare recommendations against observed signal cycles with no live-road authority or signal-control dependency."],
-        ["Months 9-10", "Run shadow tests, compare against fixed-time baseline, and refine using demand variation, camera-noise tests, rain/night robustness, and failure logs."],
-        ["Months 11-12", "Produce validation report, pilot-readiness package, safety/fallback documentation, deployment checklist, stakeholder briefing, and repeatable rollout template for more junctions and other cities."],
+        ["Months 1-3", "Select one Bengaluru sector route with connected signals; collect/manual-label traffic observations across peak, off-peak, rain, school/office cycles, and possible seasonal variation."],
+        ["Months 4-5", "Document signal phases, empty-green waste, queue spillback across connected roads, pedestrian conflicts, discharge rates, and fixed-time baseline behavior."],
+        ["Months 6-7", "Build corridor simulator and queue-estimation prototype with confidence scores; model density, discharge, queue waves, blockage, and sensor-noise cases."],
+        ["Months 8-9", "Build probabilistic coordination engine: queue-wave estimate, timing/offset recommendation, reason, expected effect, confidence score, and fallback trigger."],
+        ["Months 10-11", "Run extended shadow tests against fixed-time baseline; refine using demand variation, rain/night robustness, camera-noise tests, seasonal changes, and failure logs."],
+        ["Month 12", "Produce validation report, pilot-readiness package, safety/fallback documentation, deployment checklist, stakeholder briefing, and repeatable rollout template."],
     ]
     table = Table(
         [[para(a, title), para(b, body)] for a, b in plan_rows],
@@ -141,12 +141,6 @@ def build_pdf() -> None:
         )
     )
     story.append(cost_table)
-    story.append(
-        para(
-            "<b>Budget assumption.</b> The full $100k fellowship compresses a year of validation. A smaller grant would fund a narrower data/prototype slice but would not buy the same full-time execution runway.",
-            body,
-        )
-    )
 
     doc.build(story)
 
