@@ -93,20 +93,7 @@ const scenarios = {
     bias: ["east", "east", "west", "feeder", "south"],
     downstream: 1.3,
     spacing: 0.58,
-  },
-  rain: {
-    title: "Rain slowdown",
-    copy: "Lower discharge and cautious starts make every green less efficient.",
-    bias: ["south", "north", "east", "west", "south"],
-    downstream: 1.0,
-    spacing: 0.68,
-  },
-  event: {
-    title: "Event surge",
-    copy: "A short wave enters from one side and competes with residual queues.",
-    bias: ["west", "west", "feeder", "east", "south"],
-    downstream: 1.15,
-    spacing: 0.48,
+    primaryPhase: "EW",
   },
   school: {
     title: "School release",
@@ -114,5 +101,6 @@ const scenarios = {
     bias: ["south", "feeder", "north", "east", "feeder"],
     downstream: 0.95,
     spacing: 0.62,
+    primaryPhase: "EW",
   },
 };

@@ -15,7 +15,6 @@ const state = {
   frameIndex: 0,
   lastTs: 0,
   resetHandle: null,
-  issueEvents: 0,
   recommendation: "Collecting replay state",
 };
 const modeCopy = {
@@ -26,12 +25,12 @@ const modeCopy = {
   },
   fixed: {
     label: "Fixed-time baseline",
-    effect: "Rigid cycle breakdowns",
-    overlay: "Rigid cycle feeds blocked links and creates stop-start waves",
+    effect: "Rigid timing",
+    overlay: "Fixed cycle ignores sector pressure",
   },
 };
 function vehicleTargetCount() {
-  return state.mode === "fixed" ? 34 : 26;
+  return 30;
 }
 function isFixedMode() {
   return state.mode === "fixed";
@@ -99,8 +98,7 @@ function createVehicle(index) {
   const scenario = currentScenario();
   const key = scenario.bias[index % scenario.bias.length];
   const kind = index % 5 === 0 || index % 7 === 0 ? "bike" : "car";
-  const clumpFactor = isFixedMode() ? 0.76 : 1.22;
-  const speedFactor = isFixedMode() ? 0.9 : 1.04;
+  const demandSpacing = Math.max(0.42, 1.48 - controlValue("demand") * 0.38);
   return {
     id: state.nextId++,
     kind,
@@ -108,22 +106,28 @@ function createVehicle(index) {
     route: routes[key],
     lane: index % 2,
     progress: 0,
-    delay: index * scenario.spacing * clumpFactor * (1.35 - controlValue("demand") * 0.28),
-    speed: ((kind === "bike" ? 0.041 : 0.035) + (index % 4) * 0.004) * speedFactor,
+    delay: index * scenario.spacing * demandSpacing,
+    speed: (kind === "bike" ? 0.041 : 0.035) + (index % 4) * 0.004,
     wait: 0,
+    delayCost: 0,
     stops: 0,
     complete: false,
     blocked: false,
+    blockReason: "",
   };
 }
 function resetReplay() {
   const scenario = currentScenario();
   junctions.forEach((j, i) => {
-    j.phase = i === 2 && scenario.title !== "Peak spillback" ? "NS" : "EW";
+    if (isFixedMode()) {
+      j.phase = i === 0 ? "EW" : "NS";
+      j.timer = i * 0.8;
+      return;
+    }
+    j.phase = scenario.primaryPhase === "NS" && j.id === "J2" ? "NS" : "EW";
     j.timer = i * 1.5;
   });
   state.nextId = 1;
-  state.issueEvents = 0;
   state.vehicles = Array.from({ length: vehicleTargetCount() }, (_, index) => createVehicle(index));
   setPaused(false);
   updateScenarioText();
@@ -148,18 +152,33 @@ function pressure(junctionId, phase) {
     return total + Math.max(0, 1.4 - distance * 13) + vehicle.wait * 0.18;
   }, 0);
 }
+function arrivalPressure(junctionId, phase) {
+  return state.vehicles.reduce((total, vehicle) => {
+    if (vehicle.complete || vehicle.delay > 0 || vehicle.route.phase !== phase) return total;
+    const stop = nextStop(vehicle);
+    if (!stop || stop.id !== junctionId) return total;
+    const distance = Math.max(0, stop.p - vehicle.progress);
+    return total + Math.max(0, 1.25 - distance * 4.8);
+  }, 0);
+}
 function updateSignals(dt) {
   junctions.forEach((junction) => {
     junction.timer += dt;
     const downstreamRisk = downstreamPenalty(junction.id);
-    const ew = isFixedMode() ? pressure(junction.id, "EW") : pressure(junction.id, "EW") - downstreamRisk;
-    const ns = pressure(junction.id, "NS");
-    const minGreen = (isFixedMode() ? 3.9 : 5.1) * controlValue("safety");
-    const maxGreen = isFixedMode() ? 7.2 : 12.2;
+    const ewLive = pressure(junction.id, "EW");
+    const nsLive = pressure(junction.id, "NS");
+    const ewDemand = ewLive + arrivalPressure(junction.id, "EW");
+    const nsDemand = nsLive + arrivalPressure(junction.id, "NS");
+    const ewBias = currentScenario().primaryPhase === "EW" ? 1.1 : 1;
+    const nsBias = currentScenario().primaryPhase === "NS" && junction.id === "J2" ? 1.35 : 1;
+    const ew = isFixedMode() ? ewLive : Math.max(0, ewDemand * ewBias - downstreamRisk * 0.1);
+    const ns = isFixedMode() ? nsLive : nsDemand * nsBias;
+    const minGreen = (isFixedMode() ? 4.0 : 4.2) * controlValue("safety");
+    const maxGreen = isFixedMode() ? 10.8 : 14.2;
     const target = ew >= ns ? "EW" : "NS";
-    const urgent = Math.max(ew, ns) > Math.min(ew, ns) * 1.18 + 1.35;
+    const urgent = Math.max(ew, ns) > Math.min(ew, ns) * 1.08 + 0.85;
     const shouldPatcSwitch = !isFixedMode() && target !== junction.phase && urgent && junction.timer > minGreen;
-    const shouldFixedSwitch = isFixedMode() && junction.timer > 6.4;
+    const shouldFixedSwitch = isFixedMode() && junction.timer > 10.2;
     if (shouldPatcSwitch || shouldFixedSwitch || junction.timer > maxGreen) {
       junction.phase = junction.phase === "EW" ? "NS" : "EW";
       junction.timer = 0;
@@ -180,26 +199,26 @@ function blockedBySignal(vehicle, dt) {
   const projected = vehicle.progress + vehicle.speed * controlValue("discharge") * dt;
   return projected >= stop.p && junction.phase !== vehicle.route.phase;
 }
-function blockedByRigidCycle(vehicle, projected) {
-  if (!isFixedMode() || vehicle.route.phase !== "EW") return false;
-  const stop = nextStop(vehicle);
-  if (!stop || stop.id === "J1") return false;
-  const nearStop = projected >= stop.p - 0.012 && vehicle.progress < stop.p + 0.008;
-  const pressureWave = pressure(stop.id, "EW") > 2.1 || controlValue("demand") > 1.06;
-  const pulse = Math.sin(state.frameIndex / 24 + vehicle.id * 0.71) > -0.22;
-  return nearStop && pressureWave && pulse;
-}
-function blockedByExitQueue(vehicle, projected) {
-  if (!isFixedMode() || vehicle.route.phase !== "EW") return false;
-  return projected > 0.88 && vehicle.id % 8 === 0;
-}
-function leaderGap(vehicle, projected) {
-  return state.vehicles.reduce((min, other) => {
-    if (other === vehicle || other.complete || other.delay > 0) return min;
-    if (other.routeKey !== vehicle.routeKey || other.lane !== vehicle.lane) return min;
+function leaderInfo(vehicle, projected) {
+  return state.vehicles.reduce((closest, other) => {
+    if (other === vehicle || other.complete || other.delay > 0) return closest;
+    if (other.routeKey !== vehicle.routeKey || other.lane !== vehicle.lane) return closest;
     const gap = other.progress - projected;
-    return gap > 0 ? Math.min(min, gap) : min;
-  }, 1);
+    if (gap <= 0 || gap >= closest.gap) return closest;
+    return { gap, vehicle: other };
+  }, { gap: 1, vehicle: null });
+}
+function queueSpacingBlocked(vehicle, leader) {
+  if (!leader || leader.gap >= 0.028) return false;
+  return distanceToStop(vehicle) < 0.18;
+}
+function followingProgress(vehicle, projected, leader) {
+  if (!leader.vehicle || leader.gap >= 0.028) return projected;
+  return Math.max(vehicle.progress, Math.min(projected, leader.vehicle.progress - 0.028));
+}
+function distanceToStop(vehicle) {
+  const stop = nextStop(vehicle);
+  return stop ? stop.p - vehicle.progress : 1;
 }
 function physicalConflict(vehicle, projected) {
   const stop = nextStop(vehicle);
@@ -235,26 +254,26 @@ function updateVehicle(vehicle, dt) {
     vehicle.delay -= dt;
     return;
   }
-  const rain = state.scenarioKey === "rain" ? 0.76 : 1;
-  const velocity = vehicle.speed * controlValue("discharge") * rain;
+  const startup = startupFactor(vehicle);
+  const velocity = vehicle.speed * controlValue("discharge") * startup;
   const projected = Math.min(1, vehicle.progress + velocity * dt);
-  const rigidBlocked = blockedByRigidCycle(vehicle, projected);
-  const exitBlocked = blockedByExitQueue(vehicle, projected);
-  const blocked = blockedBySignal(vehicle, dt)
-    || rigidBlocked
-    || exitBlocked
-    || leaderGap(vehicle, projected) < 0.032
-    || physicalConflict(vehicle, projected);
+  const signalBlocked = blockedBySignal(vehicle, dt);
+  const conflictBlocked = physicalConflict(vehicle, projected);
+  const leader = leaderInfo(vehicle, projected);
+  const spacingBlocked = queueSpacingBlocked(vehicle, leader);
+  const blocked = signalBlocked || conflictBlocked || spacingBlocked;
   vehicle.blocked = blocked;
+  vehicle.blockReason = signalBlocked ? "signal" : conflictBlocked ? "conflict" : spacingBlocked ? "spacing" : "";
   if (blocked) {
-    if ((rigidBlocked || exitBlocked) && state.frameIndex % 18 === 0) {
-      state.issueEvents = Math.min(24, state.issueEvents + 1);
+    if (signalBlocked || conflictBlocked || distanceToStop(vehicle) < 0.14) {
+      vehicle.wait += dt;
+      vehicle.delayCost += dt;
+      if (vehicle.wait - vehicle.stops > 1) vehicle.stops += 1;
     }
-    vehicle.wait += dt;
-    if (vehicle.wait - vehicle.stops > 1) vehicle.stops += 1;
     return;
   }
-  vehicle.progress = projected;
+  vehicle.delayCost += (1 - startup) * dt;
+  vehicle.progress = followingProgress(vehicle, projected, leader);
   if (vehicle.progress >= 1) {
     vehicle.progress = 1;
     vehicle.complete = true;
@@ -270,16 +289,24 @@ function step(dt) {
   if (state.vehicles.every((vehicle) => vehicle.complete)) setPaused(true);
 }
 function updateRecommendation() {
-  const ranked = junctions.map((j) => ({ j, ew: pressure(j.id, "EW"), ns: pressure(j.id, "NS") }));
-  ranked.sort((a, b) => Math.max(b.ew, b.ns) - Math.max(a.ew, a.ns));
+  if (state.vehicles.every((vehicle) => vehicle.complete)) {
+    state.recommendation = "Replay complete";
+    return;
+  }
+  const ranked = pressureRanked();
   const top = ranked[0];
   const phase = top.ew >= top.ns ? "EW" : "NS";
   if (isFixedMode()) {
-    state.recommendation = `${top.j.id}: rigid timer; downstream spillback risk`;
+    state.recommendation = `${top.j.id}: fixed cycle, ${phase} queue`;
     return;
   }
   const risk = downstreamPenalty(top.j.id) > 1.6 ? "protect downstream gap" : `${phase === top.j.phase ? "hold" : "prepare"} ${phase}`;
   state.recommendation = `${top.j.id}: ${risk}`;
+}
+function pressureRanked() {
+  const ranked = junctions.map((j) => ({ j, ew: pressure(j.id, "EW"), ns: pressure(j.id, "NS") }));
+  ranked.sort((a, b) => Math.max(b.ew, b.ns) - Math.max(a.ew, a.ns));
+  return ranked;
 }
 function drawPath(points, width, color) {
   ctx.strokeStyle = color;
@@ -384,23 +411,25 @@ function drawPatcCoordination() {
   drawBadge(710, 92, modeCopy.patc.overlay, colors.green);
 }
 function drawFixedIssues() {
-  [
-    [612, 266, "spillback"],
-    [800, 238, "blocked exit"],
-    [460, 386, "stop-start wave"],
-  ].forEach(([x, y, label], index) => {
+  const hotspots = pressureRanked().filter((item) => Math.max(item.ew, item.ns) > 2.4).slice(0, 3);
+  if (hotspots.length === 0) {
+    drawBadge(690, 92, "fixed cycle, no prediction", colors.amber);
+    return;
+  }
+  hotspots.forEach(({ j, ew, ns }, index) => {
+    const label = Math.max(ew, ns) > 8 ? "spillback risk" : "red-light queue";
     const pulse = 0.45 + Math.sin(state.frameIndex / 18 + index) * 0.15;
     ctx.fillStyle = `rgba(255,99,88,${pulse})`;
     ctx.strokeStyle = "rgba(255,177,42,0.72)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(x, y - 18);
-    ctx.lineTo(x + 18, y + 16);
-    ctx.lineTo(x - 18, y + 16);
+    ctx.moveTo(j.x, j.y - 32);
+    ctx.lineTo(j.x + 20, j.y + 4);
+    ctx.lineTo(j.x - 20, j.y + 4);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    drawBadge(x + 24, y - 24, label, colors.red);
+    drawBadge(j.x + 24, j.y - 36, label, colors.red);
   });
 }
 function drawBadge(x, y, label, color) {
@@ -435,7 +464,7 @@ function drawVehicles() {
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.angle);
-    ctx.fillStyle = vehicle.blocked ? colors.red : vehicle.route.color;
+    ctx.fillStyle = vehicleColor(vehicle);
     ctx.shadowColor = ctx.fillStyle;
     ctx.shadowBlur = vehicle.kind === "bike" ? 5 : 9;
     if (vehicle.kind === "bike") {
@@ -453,6 +482,12 @@ function drawVehicles() {
     }
     ctx.restore();
   });
+}
+function vehicleColor(vehicle) {
+  if (vehicle.blockReason === "conflict") return colors.red;
+  if (vehicle.blockReason === "signal" && isFixedMode() && vehicle.wait > 2.8) return colors.red;
+  if (vehicle.blockReason === "signal") return colors.amber;
+  return vehicle.route.color;
 }
 function drawDashboardOverlay() {
   const complete = state.vehicles.filter((vehicle) => vehicle.complete).length;
@@ -474,19 +509,36 @@ function completionPercent() {
 }
 function updatePanel() {
   const active = state.vehicles.filter((vehicle) => !vehicle.complete && vehicle.delay <= 0).length;
-  const avgDelay = state.vehicles.reduce((sum, vehicle) => sum + vehicle.wait, 0) / state.vehicles.length;
+  const avgDelay = state.vehicles.reduce((sum, vehicle) => sum + vehicle.delayCost, 0) / state.vehicles.length;
   const maxPressure = Math.max(...junctions.flatMap((j) => [pressure(j.id, "EW"), pressure(j.id, "NS")]));
-  const breakdowns = isFixedMode()
-    ? Math.min(24, Math.max(state.issueEvents, state.vehicles.filter((vehicle) => vehicle.blocked && vehicle.wait > 0.7).length))
-    : 0;
+  const breakdowns = severeStopCount();
   document.querySelector(".replay-shell").classList.toggle("fixed-mode", isFixedMode());
   document.getElementById("completionValue").textContent = `${completionPercent()}%`;
-  document.getElementById("activeValue").textContent = `${active}`;
+  document.getElementById("activeValue").textContent = `${active}/${state.vehicles.length}`;
   document.getElementById("delayValue").textContent = `${avgDelay.toFixed(1)}s`;
   document.getElementById("breakdownValue").textContent = `${breakdowns}`;
-  document.getElementById("modeEffectValue").textContent = modeCopy[state.mode].effect;
-  document.getElementById("pressureValue").textContent = maxPressure > 42 ? "High" : maxPressure > 18 ? "Medium" : "Low";
+  document.getElementById("modeEffectValue").textContent = modeEffectText(avgDelay, breakdowns);
+  document.getElementById("pressureValue").textContent = maxPressure > 8 ? "High" : maxPressure > 2.5 ? "Medium" : "Low";
   document.getElementById("recommendationValue").textContent = state.recommendation;
+}
+function severeStopCount() {
+  return state.vehicles.filter((vehicle) => vehicle.delayCost > 15).length;
+}
+function modeEffectText(avgDelay, breakdowns) {
+  if (state.vehicles.every((vehicle) => vehicle.complete)) {
+    return isFixedMode() ? "Completed with higher delay" : "Clean replay";
+  }
+  if (breakdowns > 0) return isFixedMode() ? "Queue instability" : "Recovering queue";
+  return modeCopy[state.mode].effect;
+}
+function startupFactor(vehicle) {
+  const stop = nextStop(vehicle);
+  if (!stop || stop.p - vehicle.progress > 0.05) return 1;
+  const junction = junctions.find((item) => item.id === stop.id);
+  const startupWindow = isFixedMode() ? 4.0 : 1.2;
+  const base = isFixedMode() ? 0.12 : 0.65;
+  if (junction.phase !== vehicle.route.phase || junction.timer > startupWindow) return 1;
+  return base + (junction.timer / startupWindow) * (1 - base);
 }
 function render() {
   state.frameIndex += 1;
@@ -498,7 +550,7 @@ function render() {
   updatePanel();
 }
 function frame(ts) {
-  const dt = Math.min(0.05, (ts - state.lastTs) / 1000 || 0.016) * state.speed * 4;
+  const dt = Math.min(0.05, (ts - state.lastTs) / 1000 || 0.016) * state.speed * 3;
   state.lastTs = ts;
   if (!state.paused) step(dt);
   render();

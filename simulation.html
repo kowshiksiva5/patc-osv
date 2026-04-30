@@ -48,8 +48,6 @@
             <p class="eyebrow">Scenario</p>
             <div class="scenario-buttons" role="group" aria-label="Scenario selector">
               <button type="button" class="scenario-btn active" data-scenario="peak">Peak spillback</button>
-              <button type="button" class="scenario-btn" data-scenario="rain">Rain slowdown</button>
-              <button type="button" class="scenario-btn" data-scenario="event">Event surge</button>
               <button type="button" class="scenario-btn" data-scenario="school">School release</button>
             </div>
           </div>
@@ -76,9 +74,9 @@
             <p id="scenarioCopy">Office traffic releases into a saturated downstream link.</p>
             <dl class="metric-list">
               <div><dt>Completion</dt><dd id="completionValue">0%</dd></div>
-              <div><dt>Active vehicles</dt><dd id="activeValue">0</dd></div>
+              <div><dt>Active / total</dt><dd id="activeValue">0/30</dd></div>
               <div><dt>Average delay</dt><dd id="delayValue">0s</dd></div>
-              <div><dt>Breakdowns</dt><dd id="breakdownValue">0</dd></div>
+              <div><dt>Severe stops</dt><dd id="breakdownValue">0</dd></div>
               <div><dt>Mode effect</dt><dd id="modeEffectValue">Coordinating waves</dd></div>
               <div><dt>Queue pressure</dt><dd id="pressureValue">Low</dd></div>
               <div><dt>Recommendation</dt><dd id="recommendationValue">Collecting replay state</dd></div>
