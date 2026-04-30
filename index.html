@@ -6,10 +6,11 @@
     <title>PATC | Probabilistic Adaptive Traffic Control</title>
     <meta
       name="description"
-      content="PATC is Probabilistic Adaptive Traffic Control: a replay-first traffic signal intelligence system for smoother city corridors."
+      content="PATC is a replay-first adaptive signal intelligence company building predictive traffic control for congested city corridors."
     />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="assets/site.css" />
+    <link rel="stylesheet" href="assets/home.css" />
   </head>
   <body>
     <header class="site-header">
@@ -24,133 +25,203 @@
         <a href="simulation.html">Simulation</a>
         <a href="math.html">Math</a>
         <a href="output/pdf/patc_timeline_cost.pdf">PDF</a>
+        <a href="contact.html">Contact</a>
       </nav>
     </header>
 
     <main>
-      <section class="hero home-hero">
+      <section class="hero product-hero">
         <div class="hero-copy">
-          <p class="eyebrow">Public traffic problem</p>
-          <h1>Traffic lights should understand waves, not just count cars.</h1>
+          <p class="eyebrow">Built first for Bengaluru traffic</p>
+          <h1>Signals should coordinate the next traffic wave, not just react to the queue.</h1>
           <p class="hero-lede">
-            Every red light is not just a timer problem. Drivers hesitate, queues
-            travel backward, and vehicles arrive in uneven waves. Static signal
-            plans miss that physics, so cities lose time, fuel, and clean air.
+            PATC is building a predictive decision layer for connected junctions.
+            It observes a corridor, estimates where pressure will move next, and
+            recommends safer green windows in shadow mode before any live signal
+            control is requested.
           </p>
           <div class="hero-actions">
-            <a class="primary-action" href="simulation.html">Open sector replay</a>
-            <a class="secondary-action" href="math.html">See the model</a>
+            <a class="primary-action" href="simulation.html">Explore corridor replay</a>
+            <a class="secondary-action" href="math.html">Read the technical model</a>
+            <a class="secondary-action" href="output/pdf/patc_timeline_cost.pdf">Open pilot plan</a>
           </div>
         </div>
 
-        <div class="traffic-card" aria-label="PATC corridor concept">
-          <div class="street-grid">
-            <span class="road road-h h1"></span>
-            <span class="road road-h h2"></span>
-            <span class="road road-v v1"></span>
-            <span class="road road-v v2"></span>
-            <span class="signal green s1"></span>
-            <span class="signal red s2"></span>
-            <span class="vehicle cyan car1"></span>
-            <span class="vehicle amber car2"></span>
-            <span class="wave w1"></span>
-            <span class="wave w2"></span>
+        <div class="hero-console" aria-label="Bengaluru corridor signal concept">
+          <div class="console-topline">
+            <span>HSR / Silk Board sector</span>
+            <strong>Shadow mode</strong>
           </div>
-          <div class="traffic-caption">
-            <strong>Goal</strong>
-            <span>Predict the next wave and recommend safer green windows before live control.</span>
+          <div class="corridor-visual">
+            <span class="corridor-road main-road"></span>
+            <span class="corridor-road feeder-road f1"></span>
+            <span class="corridor-road feeder-road f2"></span>
+            <span class="corridor-road feeder-road f3"></span>
+            <span class="corridor-signal c1"></span>
+            <span class="corridor-signal c2"></span>
+            <span class="corridor-signal c3"></span>
+            <span class="corridor-signal c4"></span>
+            <span class="queue-band q1"></span>
+            <span class="queue-band q2"></span>
+            <span class="car-dot car-a"></span>
+            <span class="car-dot car-b"></span>
+            <span class="car-dot car-c"></span>
+          </div>
+          <div class="console-grid">
+            <div><span>Recommend</span><strong>Hold J2 EW + 7s</strong></div>
+            <div><span>Reason</span><strong>Downstream block risk falling</strong></div>
+            <div><span>Fallback</span><strong>Pedestrian and stale-data rules</strong></div>
           </div>
         </div>
       </section>
 
-      <section class="problem-band">
-        <article>
-          <span>Problem</span>
-          <h2>Green time is wasted when the next link is already blocked.</h2>
+      <section class="evidence-band" aria-label="Bengaluru traffic evidence">
+        <div>
+          <p class="eyebrow">Why this matters</p>
+          <h2>Bengaluru is a live stress test for every mixed-traffic city.</h2>
+        </div>
+        <div class="evidence-grid">
+          <article>
+            <strong>168 hours</strong>
+            <span>rush-hour time lost per driver in TomTom's 2025 Bengaluru estimate</span>
+            <a href="https://www.tomtom.com/traffic-index/city/bengaluru">TomTom 2025</a>
+          </article>
+          <article>
+            <strong>45m 27s</strong>
+            <span>evening rush-hour time for a 10 km drive in Bengaluru</span>
+            <a href="https://www.tomtom.com/traffic-index/city/bengaluru">TomTom city page</a>
+          </article>
+          <article>
+            <strong>20-33%</strong>
+            <span>reported travel-time reduction on three Bengaluru ATCS corridors</span>
+            <a href="https://www.newindianexpress.com/cities/bengaluru/2024/Nov/25/traffic-down-by-20-per-cent-at-75-key-junctions-are-ai-signals-helping">ATCS report</a>
+          </article>
+          <article>
+            <strong>Rs 20k cr</strong>
+            <span>public estimate of Bengaluru's annual productivity loss from congestion</span>
+            <a href="https://economictimes.indiatimes.com/news/india/bengaluru-paying-rs-20000-crore-in-lost-productivity-due-to-congestion-on-roads-says-it-minister-priyank-kharge/articleshow/113915488.cms">Economic Times</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="section split-section">
+        <div>
+          <p class="eyebrow">Problem</p>
+          <h2>One green can make the next junction worse.</h2>
+        </div>
+        <div class="rich-copy">
           <p>
-            A signal can turn green and still fail the corridor if the downstream
-            queue has nowhere to go. PATC focuses on this sector-level failure,
-            not one isolated junction.
+            In corridors like HSR, Silk Board, and Bommanahalli, the failure is
+            often coordination. A signal releases traffic into a downstream link
+            that is already blocked. Vehicles stop again, the queue moves
+            backward, and the next signal inherits a worse problem.
           </p>
-        </article>
-        <article>
-          <span>Why now</span>
-          <h2>Replay makes safer experimentation possible.</h2>
           <p>
-            The first version runs in shadow mode: it watches, predicts, and
-            compares recommendations against fixed-time and actuated baselines
-            before asking anyone to change a live signal.
+            PATC treats traffic like flow: density, discharge, startup loss,
+            spillback, weather, and event waves. The first product is not an
+            uncontrolled AI switch. It is a measured replay system that proves
+            when an adaptive action helps and when it should fall back.
           </p>
-        </article>
+        </div>
       </section>
 
       <section class="section">
-        <div class="section-head compact">
-          <p class="eyebrow">Public benefit</p>
-          <h2>What people should feel if this works.</h2>
+        <div class="section-head">
+          <p class="eyebrow">Product</p>
+          <h2>A decision layer for connected signal sectors.</h2>
         </div>
-        <div class="benefit-grid">
+        <div class="process-grid">
           <article>
             <span>01</span>
-            <strong>Fewer avoidable stops</strong>
-            <p>Less stop-start motion across linked signals, especially where one blocked link causes a cascade.</p>
+            <h3>Observe</h3>
+            <p>Temporary cameras, field notes, phase logs, weather, events, and manual labels create the first trusted sector dataset.</p>
           </article>
           <article>
             <span>02</span>
-            <strong>Less idle waste</strong>
-            <p>Lower delay should reduce fuel burn and emissions once field baselines prove the effect.</p>
+            <h3>Estimate</h3>
+            <p>Traffic-wave math and AI measurement estimate queues, discharge, startup loss, and downstream blocking risk.</p>
           </article>
           <article>
             <span>03</span>
-            <strong>Operator trust</strong>
-            <p>Every recommendation needs a reason, confidence score, fallback, and replay trace.</p>
+            <h3>Replay</h3>
+            <p>The model compares fixed-time behavior with candidate timing choices before recommending anything operational.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <h3>Recommend</h3>
+            <p>Operators see an action, reason, confidence score, safety constraints, and a replay trace for audit.</p>
           </article>
         </div>
       </section>
 
+      <section class="section benefit-section">
+        <div class="section-head">
+          <p class="eyebrow">Public benefit</p>
+          <h2>The city benefit is not a faster demo. It is less wasted life at red lights.</h2>
+        </div>
+        <div class="benefit-grid">
+          <article>
+            <strong>For commuters</strong>
+            <p>Fewer unnecessary stops, shorter queue cascades, and less time burned in avoidable signal delay.</p>
+          </article>
+          <article>
+            <strong>For traffic police</strong>
+            <p>Replay-backed recommendations reduce manual guesswork and make each timing change explainable.</p>
+          </article>
+          <article>
+            <strong>For cities</strong>
+            <p>Existing infrastructure gets a better coordination layer before expensive civil works are considered.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section safety-panel">
+        <div>
+          <p class="eyebrow">Safety boundary</p>
+          <h2>No black-box live control.</h2>
+        </div>
+        <p>
+          Year one is observe, calibrate, replay, and shadow-test. Minimum greens,
+          pedestrian windows, emergency priority, stale-data stops, downstream
+          blockage checks, privacy limits, and manual override are hard constraints.
+        </p>
+      </section>
+
       <section class="section link-section">
-        <div class="section-head compact">
-          <p class="eyebrow">Explore PATC</p>
-          <h2>Go deeper into the replay, model, and pilot plan.</h2>
+        <div class="section-head">
+          <p class="eyebrow">Explore</p>
+          <h2>See the system from three levels.</h2>
         </div>
         <div class="page-links">
           <a href="simulation.html">
-            <span>Sector replay</span>
-            <strong>Change demand, discharge, safety bias, and traffic scenarios.</strong>
-            <p>See how corridor pressure changes when waves arrive unevenly.</p>
+            <span>Simulation</span>
+            <strong>Multi-junction corridor replay with vehicles, lanes, queues, and recommendations.</strong>
           </a>
           <a href="math.html">
-            <span>Math and model</span>
-            <strong>See the traffic-wave model, probability layer, and controller logic.</strong>
-            <p>Includes source footnotes for the technical terms.</p>
+            <span>Math</span>
+            <strong>Traffic-wave model, startup filter, probabilistic estimator, and safety objective.</strong>
           </a>
           <a href="output/pdf/patc_timeline_cost.pdf">
-            <span>Pilot one-pager</span>
-            <strong>Timeline, cost, and field plan in PDF form.</strong>
-            <p>Use this for the structured fellowship attachment.</p>
+            <span>Pilot plan</span>
+            <strong>Realistic HSR sector timeline, equipment, data, labeling, budget, and validation gates.</strong>
           </a>
         </div>
       </section>
 
-      <section class="section safety-strip">
-        <div>
-          <p class="eyebrow">Safety boundary</p>
-          <h2>No black-box live control.</h2>
-          <p>
-            PATC starts as a replay and recommendation layer. Live control only
-            makes sense after operator review, pedestrian protection, minimum
-            greens, emergency priority, stale-data stops, and manual override.
-          </p>
-        </div>
+      <section class="source-strip" aria-label="Evidence sources">
+        <span>Evidence basis</span>
+        <a href="https://www.tomtom.com/traffic-index/city/bengaluru">TomTom Bengaluru Traffic Index</a>
+        <a href="https://www.newindianexpress.com/cities/bengaluru/2024/Nov/25/traffic-down-by-20-per-cent-at-75-key-junctions-are-ai-signals-helping">Bengaluru ATCS report</a>
+        <a href="https://economictimes.indiatimes.com/news/india/bengaluru-paying-rs-20000-crore-in-lost-productivity-due-to-congestion-on-roads-says-it-minister-priyank-kharge/articleshow/113915488.cms">Economic Times productivity estimate</a>
       </section>
     </main>
 
     <footer>
       <span>PATC</span>
-      <p>Probabilistic Adaptive Traffic Control for congested city sectors.</p>
+      <p>Probabilistic Adaptive Traffic Control for connected city corridors.</p>
       <a href="simulation.html">Simulation</a>
       <a href="math.html">Math</a>
-      <a href="output/pdf/patc_timeline_cost.pdf">PDF</a>
+      <a href="contact.html">Contact</a>
     </footer>
   </body>
 </html>

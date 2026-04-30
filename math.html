@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PATC Math | Probabilistic Adaptive Traffic Control</title>
+    <title>PATC Math | Technical Model</title>
     <meta
       name="description"
-      content="The math behind PATC: traffic waves, demand, discharge, startup loss, spillback, and safety-constrained control."
+      content="The math behind PATC: traffic waves, startup loss, probabilistic state estimation, constrained optimization, and validation."
     />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="assets/site.css" />
@@ -25,125 +25,158 @@
         <a href="index.html">Home</a>
         <a href="simulation.html">Simulation</a>
         <a href="output/pdf/patc_timeline_cost.pdf">PDF</a>
+        <a href="contact.html">Contact</a>
       </nav>
     </header>
 
     <main>
       <section class="hero page-hero">
         <div class="hero-copy">
-          <p class="eyebrow">Behind the traffic math</p>
-          <h1>The model turns queues into pressure, uncertainty, and safe actions.</h1>
+          <p class="eyebrow">Behind the math</p>
+          <h1>From traffic waves to safe signal recommendations.</h1>
           <p class="hero-lede">
-            The homepage stays public-facing. This page holds the deeper model:
-            traffic wave physics, stochastic arrivals, startup loss, optimization,
-            auditability, and the references behind the terms.
+            PATC combines traffic-flow physics, probabilistic state estimation,
+            and constrained optimization. The goal is not to make an opaque AI
+            controller. The goal is to make every recommendation replayable,
+            bounded, and explainable.
+          </p>
+        </div>
+      </section>
+
+      <section class="section split-section">
+        <div>
+          <p class="eyebrow">Model frame</p>
+          <h2>Traffic is treated as a moving density field.</h2>
+        </div>
+        <div class="rich-copy">
+          <p>
+            A road link changes state when arrivals, discharge, startup loss,
+            and downstream capacity are not balanced. Bengaluru-style mixed
+            traffic makes this stochastic: rain, buses, two-wheelers, lane
+            friction, pedestrians, and office surges change the same junction
+            from one window to the next.
+          </p>
+          <p>
+            The model therefore estimates the current state and predicts a short
+            horizon. Only after the state is estimated does PATC ask what math
+            can do for the next few signal windows.
           </p>
         </div>
       </section>
 
       <section class="section">
-        <div class="section-head compact">
-          <p class="eyebrow">Core model</p>
-          <h2>From traffic waves to green-time decisions.</h2>
+        <div class="section-head">
+          <p class="eyebrow">Core equations</p>
+          <h2>The small set of equations that drive the replay.</h2>
         </div>
         <div class="math-grid">
           <article>
             <span>01</span>
-            <h3>Conservation of vehicles</h3>
-            <code>rho(t+1) = rho(t) + dt / dx * (q_in - q_out)</code>
-            <p>
-              A road link is treated like a density field. If more vehicles enter
-              than leave, pressure rises. If discharge clears the link, pressure
-              falls.
-            </p>
+            <h3>Link conservation</h3>
+            <code>rho_i(t + 1) = rho_i(t) + dt / L_i * (q_in - q_out)</code>
+            <p>Density rises when inflow exceeds outflow and falls when a green phase actually clears vehicles.</p>
           </article>
           <article>
             <span>02</span>
-            <h3>Flow curve</h3>
-            <code>q = Q(rho)</code>
-            <p>
-              Flow rises in free traffic, peaks near critical density, then falls
-              as the link approaches jam density.
-            </p>
+            <h3>Fundamental diagram</h3>
+            <code>q_i(t) = min(v_f * rho_i, w * (rho_jam - rho_i))</code>
+            <p>Flow increases in free movement, then drops as the link approaches jam density.</p>
           </article>
           <article>
             <span>03</span>
-            <h3>Startup loss</h3>
-            <code>q_eff(t) = s(t) * Q(rho)</code>
-            <p>
-              A green signal does not create instant motion. Drivers hesitate and
-              discharge recovers over time after red.
-            </p>
+            <h3>Startup-loss correction</h3>
+            <code>q_eff = Pi_m(k) * q_i(t)</code>
+            <p>A green light does not instantly become moving traffic; drivers hesitate before discharge recovers.</p>
           </article>
           <article>
             <span>04</span>
-            <h3>Probabilistic arrival</h3>
-            <code>arrival_rate = lambda(t)</code>
-            <p>
-              Demand changes with rain, school release, events, and peak waves.
-              PATC should estimate uncertainty instead of assuming one fixed flow.
-            </p>
+            <h3>Probabilistic state</h3>
+            <code>x_t = [rho, queue, discharge, phase, blockage] + noise</code>
+            <p>The estimator keeps uncertainty visible instead of pretending sparse cameras see the full corridor perfectly.</p>
           </article>
         </div>
       </section>
 
       <section class="section">
-        <div class="section-head compact">
-          <p class="eyebrow">Controller</p>
-          <h2>Optimize pressure, but never ignore safety.</h2>
+        <div class="section-head">
+          <p class="eyebrow">What the math does</p>
+          <h2>It scores the next action, then explains why.</h2>
         </div>
         <div class="equation-card">
-          <code>min E[sum pressure + spillback_penalty + safety_penalty]</code>
+          <code>min E[delay + queue + spillback + stops + safety_penalty]</code>
           <p>
-            In replay, the controller scores alternative green windows using
-            queue pressure, downstream blocking risk, movement recovery, and
-            hard constraints. The action is a recommendation until field
-            validation and operator approval exist.
+            Candidate signal windows are scored against predicted pressure,
+            downstream blockage, startup loss, and safety constraints. The output
+            is a shadow recommendation: action, reason, confidence, expected
+            effect, and fallback trigger.
           </p>
         </div>
-        <div class="benefit-grid">
+        <div class="process-grid">
+          <article><span>A</span><h3>Measure</h3><p>Camera and observer data estimate queues, phase state, movement, and blockage.</p></article>
+          <article><span>B</span><h3>Predict</h3><p>The estimator projects arrival waves and uncertainty over the next few windows.</p></article>
+          <article><span>C</span><h3>Constrain</h3><p>Minimum green, pedestrian windows, emergency priority, stale-data stops, and manual override remain hard rules.</p></article>
+          <article><span>D</span><h3>Audit</h3><p>Every recommendation stores the state, action, confidence, and counterfactual replay.</p></article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <p class="eyebrow">Model contract</p>
+          <h2>What must be measured, bounded, and logged.</h2>
+        </div>
+        <div class="contract-grid">
           <article>
-            <span>Estimator</span>
-            <strong>Kalman or particle filter</strong>
-            <p>Estimate density, arrivals, discharge, and turning movement uncertainty from sparse sensors.</p>
+            <h3>State variables</h3>
+            <dl>
+              <div><dt>rho</dt><dd>vehicles per meter per lane, estimated from camera/observer counts</dd></div>
+              <div><dt>queue</dt><dd>vehicles waiting before each stop line and spillback point</dd></div>
+              <div><dt>q</dt><dd>vehicles per second leaving a lane group during effective green</dd></div>
+              <div><dt>phase</dt><dd>current signal group, elapsed green, minimum-green lockout</dd></div>
+            </dl>
           </article>
           <article>
-            <span>Optimizer</span>
-            <strong>MPC or constrained policy search</strong>
-            <p>Score the next few signal windows while respecting minimum greens and spillback limits.</p>
+            <h3>Estimator and weights</h3>
+            <dl>
+              <div><dt>Filter</dt><dd>particle or ensemble Kalman estimator over the next 2-5 signal windows</dd></div>
+              <div><dt>Delay</dt><dd>dominant term, penalizes total stopped seconds</dd></div>
+              <div><dt>Queue</dt><dd>prevents one approach from starving while another clears</dd></div>
+              <div><dt>Spillback</dt><dd>high penalty when a green would feed a blocked downstream link</dd></div>
+            </dl>
           </article>
           <article>
-            <span>Audit</span>
-            <strong>Counterfactual replay</strong>
-            <p>Store state, action, predicted effect, confidence, and rejection reason for every recommendation.</p>
+            <h3>Hard constraints</h3>
+            <dl>
+              <div><dt>Safety</dt><dd>minimum green, pedestrian windows, amber/all-red, emergency priority</dd></div>
+              <div><dt>Data quality</dt><dd>stale-camera, low-confidence, rain-glare, and occlusion fallbacks</dd></div>
+              <div><dt>Control</dt><dd>year one is shadow mode: recommend and replay, never write to controller</dd></div>
+              <div><dt>Audit</dt><dd>state, confidence, action, rejected actions, and fallback reason are logged</dd></div>
+            </dl>
           </article>
         </div>
       </section>
 
       <section class="section">
-        <div class="section-head compact">
-          <p class="eyebrow">Term notes</p>
-          <h2>Words used in the simulation.</h2>
+        <div class="section-head">
+          <p class="eyebrow">Validation path</p>
+          <h2>The model earns trust through data, not claims.</h2>
         </div>
-        <div class="term-list">
-          <article><strong>Demand</strong><span>Vehicle arrival rate into a link or sector.</span></article>
-          <article><strong>Discharge</strong><span>Vehicle outflow when a movement is served by green.</span></article>
-          <article><strong>Safety bias</strong><span>A conservative offset that prefers lower-risk actions under uncertainty.</span></article>
-          <article><strong>Peak spillback</strong><span>A queue grows backward and blocks upstream links.</span></article>
-          <article><strong>Event surge</strong><span>A short, non-stationary arrival wave from concerts, schools, offices, or festivals.</span></article>
+        <div class="timeline-list">
+          <article><strong>Offline calibration</strong><p>Fit density, discharge, startup loss, and spillback behavior from HSR sector observations and labeled sessions.</p></article>
+          <article><strong>Shadow mode</strong><p>Run recommendations in parallel without touching signal controllers; compare against observed outcomes and fixed-time baselines.</p></article>
+          <article><strong>Supervised pilot</strong><p>Only after replay safety gates, ask for an authority-reviewed pilot with before/after metrics.</p></article>
         </div>
       </section>
 
       <section class="section references">
-        <div class="section-head compact">
+        <div class="section-head">
           <p class="eyebrow">References</p>
-          <h2>Sources behind the model language.</h2>
+          <h2>Terms and model lineage.</h2>
         </div>
         <ol>
-          <li><a href="https://royalsocietypublishing.org/doi/10.1098/rspa.1955.0089">Lighthill and Whitham, 1955 - kinematic waves and traffic flow.</a></li>
-          <li><a href="https://pubsonline.informs.org/doi/abs/10.1287/opre.4.1.42">Richards, 1956 - shock waves on the highway.</a></li>
+          <li><a href="https://royalsocietypublishing.org/doi/10.1098/rspa.1955.0089">Lighthill and Whitham, 1955 - kinematic traffic waves.</a></li>
+          <li><a href="https://pubsonline.informs.org/doi/abs/10.1287/opre.4.1.42">Richards, 1956 - shock waves on highways.</a></li>
           <li><a href="https://ops.fhwa.dot.gov/publications/fhwahop08024/chapter3.htm">FHWA Traffic Signal Timing Manual - saturation flow and startup lost time.</a></li>
-          <li><a href="https://www.fhwa.dot.gov/publications/research/safety/04091/07.cfm">FHWA Signalized Intersections Guide - effective green and capacity.</a></li>
+          <li><a href="https://sumo.dlr.de/docs/">SUMO documentation - microsimulation reference environment.</a></li>
           <li><a href="https://www.ieee-jas.net/en/article/doi/10.1109/JAS.2019.1911471">Survey of MPC methods for traffic signal control.</a></li>
         </ol>
       </section>
@@ -151,10 +184,10 @@
 
     <footer>
       <span>PATC</span>
-      <p>Math for replay-first traffic signal intelligence.</p>
+      <p>Technical model for replay-first traffic signal intelligence.</p>
       <a href="index.html">Home</a>
       <a href="simulation.html">Simulation</a>
-      <a href="output/pdf/patc_timeline_cost.pdf">PDF</a>
+      <a href="contact.html">Contact</a>
     </footer>
   </body>
 </html>

@@ -1,20 +1,86 @@
-.sim-shell {
+.replay-shell {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   margin: 0 auto 60px;
-  max-width: 1320px;
+  max-width: 1380px;
   padding: 22px;
 }
-.sim-toolbar,
-.sim-grid {
+.replay-toolbar,
+.replay-grid {
   display: grid;
   gap: 20px;
   grid-template-columns: minmax(0, 1fr) 360px;
 }
-.control-grid {
+.scenario-buttons,
+.mode-switch,
+.replay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.scenario-btn,
+.mode-btn,
+.replay-actions button {
+  background: #0b161d;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 900;
+  padding: 12px 15px;
+}
+.scenario-btn.active,
+.mode-btn.active,
+.replay-actions button:hover {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: #061015;
+}
+.canvas-stage,
+.metric-panel {
+  background: #071017;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  padding: 16px;
+}
+#corridorCanvas {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+.replay-actions {
+  margin-top: 14px;
+}
+.metric-list {
   display: grid;
   gap: 12px;
+  margin: 22px 0 0;
+}
+.metric-list div {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.metric-list dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.metric-list dd {
+  font-size: 21px;
+  font-weight: 900;
+  margin: 4px 0 0;
+}
+.control-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 20px;
 }
 .control-grid label {
-  background: #07111f;
+  background: #071017;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   display: grid;
@@ -24,7 +90,7 @@
 .control-grid span {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
   text-transform: uppercase;
 }
 .control-grid strong {
@@ -34,41 +100,9 @@ input[type="range"] {
   accent-color: var(--amber);
   width: 100%;
 }
-.canvas-wrap,
-.sim-panel {
-  background: #06111f;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 16px;
-}
-#sectorCanvas {
-  display: block;
-  height: auto;
-  width: 100%;
-}
-.sim-panel dl {
-  display: grid;
-  gap: 12px;
-  margin: 22px 0;
-}
-.sim-panel div {
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 12px;
-}
-.sim-panel dt {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-.sim-panel dd {
-  color: var(--text);
-  font-size: 22px;
-  font-weight: 900;
-  margin: 4px 0 0;
-}
 .math-grid,
-.term-list {
+.contract-grid,
+.timeline-list {
   display: grid;
   gap: 16px;
   margin-top: 28px;
@@ -76,25 +110,49 @@ input[type="range"] {
 .math-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.term-list {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+.timeline-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.contract-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .math-grid article,
-.term-list article {
+.contract-grid article,
+.timeline-list article,
+.equation-card {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 22px;
 }
-.math-grid span,
-.term-list strong {
+.contract-grid dl {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 0;
+}
+.contract-grid div {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.contract-grid dt {
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.contract-grid dd {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+.math-grid span {
   color: var(--amber);
   font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
 }
 code {
-  background: #06111f;
+  background: #071017;
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--green);
@@ -104,30 +162,27 @@ code {
 }
 .equation-card {
   margin: 24px 0;
-  padding: 24px;
-}
-.term-list article {
-  display: grid;
-  gap: 10px;
-}
-.term-list span,
-.references li {
-  color: var(--muted);
-  line-height: 1.6;
 }
 .references ol {
+  color: var(--muted);
   display: grid;
   gap: 12px;
+  line-height: 1.6;
   padding-left: 22px;
 }
 .references a {
   color: var(--cyan);
 }
-@media (max-width: 920px) {
-  .sim-toolbar,
-  .sim-grid,
+@media (max-width: 980px) {
+  .replay-toolbar,
+  .replay-grid,
+  .control-grid,
   .math-grid,
-  .term-list {
+  .contract-grid,
+  .timeline-list {
     grid-template-columns: 1fr;
+  }
+  #corridorCanvas {
+    min-width: 720px;
   }
 }

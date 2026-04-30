@@ -73,22 +73,24 @@ def build_pdf() -> None:
 
     story = [
         para("PATC 12-Month Pilot Build Plan and Budget", title),
-        para("<b>Target.</b> Build a validated shadow-mode traffic-intelligence prototype for one Bengaluru connected-junction sector: field dataset, calibrated replay simulator, LWR-inspired density/flow calibration, expected-state startup-loss filter, recommendation engine, operator dashboard, safety playbook, and pilot-readiness package. The project period is data-first and replay-first; no field-controller writes are assumed.", body),
+        para("<b>Target.</b> Build a replay-first, shadow-mode pilot for one Bengaluru connected-junction sector around the HSR / Silk Board / Bommanahalli corridor. The 12 months fund permission work, baseline stabilization, temporary camera/sensor setup, sustained field data, labeling, weather/event context, AI + traffic-flow calibration, dashboarding, and authority-ready pilot evidence. No signal-controller writes are assumed in this phase.", body),
         para("12-month build schedule", section),
     ]
 
     plan_rows = [
-        ["M1-2", "Select one 4-6 signal sector; log BTP/jurisdictional intimation; map geometry, phases, timings, observation protocol, admin needs, and success metrics."],
-        ["M2-5", "Collect 180-240 clean site-hours across peak, off-peak, rain/night, weekday/weekend, school release, event surge, and seasonal variation."],
-        ["M2-6", "Label 120-160 sessions for queue length, discharge, spillback, empty-green, phase state, pedestrian conflict, blockage, and anomalies, with inter-rater QA."],
-        ["M3-6", "Build baseline replay: cleaned data pipeline, fixed-time baseline, LWR-inspired density calibration, expected-state startup-loss calibration, and scenario library."],
-        ["M5-8", "Build shadow recommender: pressure score, Pi_m-corrected discharge, downstream risk check, action reason, confidence, and fallback trigger."],
-        ["M7-10", "Build dashboard and mock-controller sandbox: replay timeline, recommendation log, before/after view, override notes, and validation traces."],
-        ["M9-12", "Run 500-700 replay/simulation tests, seasonal holdout checks, rain/event stress tests, validation report, safety playbook, and pilot memo."],
+        ["M1", "Confirm the first-choice 4-6 signal HSR/Silk Board-Bommanahalli sector only after a baseline-stability check for recent flyover/ramp and signal-pattern shifts. Map lane groups, phases, pedestrian crossings, bus stops, choke points, current ATCS context, and camera/sensor positions."],
+        ["M2", "Run BTP/jurisdiction permission path, privacy notice plan, and existing ATCS benchmark/integration map. If install permission is not viable, narrow scope to public-observation decision support instead of pretending full model calibration is possible."],
+        ["M3", "Execute site survey and temporary setup where allowed: 6-8 camera/viewpoint positions, timestamps, phase observation method, safe observer points, weather protection, storage workflow, signage/notice, and device security."],
+        ["M4-6", "Collect sustained data across AM peak, PM peak, off-peak, weekend, night, rain, school-release, office surge, and disruption windows. Target 180-220 clean site-hours, with re-collection after major road/signal changes."],
+        ["M5-7", "Run manual + automated labeling loop: queue length, discharge, spillback, blocked turns, pedestrian conflict, bus-stop friction, phase state, and anomaly notes. Join weather, holiday, event, roadwork, and ATCS-change metadata."],
+        ["M7-8", "Build cleaned dataset v1, fixed-time/observed baseline replay, and calibrated models for saturation flow, queue accumulation, discharge, startup loss, spillback, and downstream blockage risk."],
+        ["M8-9", "Build PATC shadow recommender and dashboard: timeline, queue/discharge charts, weather/event overlays, recommendation reason, confidence, rejected actions, fallback trigger, and audit log."],
+        ["M9-11", "Run extended live shadow-mode soak during observation windows. The system recommends in real time without operator action or controller writes; coverage must include rain, incidents, stale-data, manual-override, and downstream-blockage cases."],
+        ["M11-12", "Run stakeholder review loops and package evidence: dataset summary, ATCS benchmark, model limits, unsafe-case log, privacy handling, installation learnings, safety playbook, and supervised-pilot request."],
     ]
     table = Table(
         [[para(a, title), para(b, body)] for a, b in plan_rows],
-        colWidths=[0.52 * inch, 7.2 * inch],
+        colWidths=[0.66 * inch, 7.06 * inch],
         hAlign="LEFT",
     )
     table.setStyle(
@@ -110,24 +112,25 @@ def build_pdf() -> None:
     story.extend(
         [
             para("Cost overview - $100k requested", section),
-            para("<b>Budget assumption.</b> The budget funds one connected-junction sector through replay-only pilot readiness. Rates are planning assumptions: $70 per clean site-hour includes two observers, $75/session includes labeling plus QA, and $8/test is compute/analysis amortization; M1 includes two local quote checks before spend.", body),
+            para("<b>Budget assumption.</b> The budget funds one connected-junction sector through replay-only pilot readiness. The largest cost is field truth: permission work, temporary cameras/viewpoints, observer shifts, labeling, QA, privacy handling, weather/event metadata, existing-ATCS benchmarking, model calibration, and repeat collection. Amounts are planning estimates and include contingency for permission delays, traffic-pattern shifts, bad weather, equipment failure, and extra labeling.", body),
         ]
     )
 
     cost_rows = [
-        ["Founder runway", "$30k", "2 builders x $1.25k/month x 12 = $30k. Gate: model, dashboard, field ops, pilot packet."],
-        ["Field operations", "$16k", "200 hrs x $70 = $14k + $2k capture supplies. Gate: peak/rain/night/weekend observer logs."],
-        ["Labeling and dataset QA", "$13k", "150 sessions x $75 = $11.25k + $1.75k QA. Gate: queue, flow, phase, spillback, anomaly tags."],
-        ["Simulation tooling", "$10k", "$4k replay/SUMO + $3k calibration + $3k tracking. Gate: baseline, LWR-inspired, and startup-loss traces."],
-        ["Dashboard prototype", "$8k", "$6k UI/replay tooling + $2k demo capture. Gate: log, before/after view, mock-controller sandbox."],
-        ["Testing and validation", "$8k", "600 replay tests x $8 = $4.8k + $3.2k analysis/reporting. Gate: holdout baseline report."],
-        ["Civic/pilot prep", "$5k", "25 reviews x $120 = $3k + $2k materials. Gate: BTP request, permission path, pilot workflow."],
-        ["Cloud and storage", "$3k", "$1.2k hosting + $1k processed datasets + $0.8k backups/observability. No raw video by default."],
-        ["Travel and contingency", "$7k", "$250/month travel = $3k + $2k repeat observations + $2k admin/demo contingency."],
+        ["Founders", "$18k", "Two-founder runway for model, dashboard, field ops, civic review, and pilot-packet work while most grant spend funds field-heavy execution."],
+        ["Permits", "$10k", "BTP/jurisdiction meetings, ATCS benchmark review, admin/legal/privacy prep, reviewer material, pilot request packet, and local travel."],
+        ["Capture kit", "$17k", "6-8 temporary camera/viewpoint positions, mounts, edge storage, power backup, weather protection, signage/notice, security, replacements."],
+        ["Field ops", "$15k", "Observer shifts, repeated site visits, peak/off-peak/night/rain/weekend windows, safety coordination, and collection logs."],
+        ["Label QA", "$13k", "250-350 annotation/QA hours, inter-rater checks, model-assisted correction, queue/discharge/spillback/anomaly validation."],
+        ["Metadata", "$4k", "Weather feeds, event/holiday/roadwork annotation, metadata cleanup, and joining external context into replay sessions."],
+        ["Model", "$9k", "AI measurement pipeline, traffic-flow calibration, replay simulator, holdout evaluation, and scenario library."],
+        ["Dashboard", "$5k", "Replay UI, dashboard prototype, hosting, encrypted storage, backups, audit logs, and demo environment."],
+        ["Safety", "$4k", "Live non-actuating tests, validation analysis, unsafe-case review, safety playbook, and final evidence report."],
+        ["Reserve", "$5k", "Permission delays, repeat observations after bad data/weather, equipment failure, extra labeling, and admin overruns."],
     ]
     cost_table = Table(
         [[para(a, title), para(b, title), para(c, body)] for a, b, c in cost_rows],
-        colWidths=[1.5 * inch, 0.46 * inch, 5.76 * inch],
+        colWidths=[1.28 * inch, 0.46 * inch, 5.98 * inch],
         hAlign="LEFT",
     )
     cost_table.setStyle(
@@ -148,12 +151,12 @@ def build_pdf() -> None:
     story.append(cost_table)
     story.extend(
         [
-            para("M1 pilot packet", section),
-            para("First-choice sector: Silk Board to HSR/Bomanahalli, with ORR Bellandur and Whitefield/ITPL as backups. Permission matrix: BTP Traffic Management Centre or jurisdictional traffic station for observation intimation; BBMP/DULT coordination only if required; no response by M2 means lawful public manual counts only. Sample shadow recommendation to validate: extend E/W green by 8s only if replay residual queue drops 118m -> 82m and fallback rules stay clear.", body),
-            para("Fallback, privacy, and funding tiers", section),
-            para("Fallback scopes the first $8k: if permission is logged by M2, use it for setup, 40-60 clean site-hours, first labels, and stakeholder reviews; if not, cap formal-permission work at $2k and shift $4k to public manual counts. Data mode A: no raw video. Data mode B, only if needed: disabled for school-release windows; raw pre-blur clips never leave device; visible observer notice/contact where practical; encrypted storage, access log, and 30-day deletion proof. At $50k ship dataset+replay; $75k adds dashboard; $100k adds full validation packet.", body),
+            para("M1-M2 permission packet", section),
+            para("First-choice sector: HSR / Silk Board / Bommanahalli connected-signal sector, with ORR Bellandur and Whitefield/ITPL as backups. Permission matrix: BTP Traffic Management Centre or jurisdictional traffic station for observation intimation; BBMP/DULT coordination only if public-space installation or roadwork coordination requires it. If no install permission is available by M2, scope narrows to no-install decision-support evidence and the team does not claim full AI+math calibration readiness.", body),
+            para("Fallback and privacy", section),
+            para("Default data mode is aggregate observation: manual counts, phase notes, queue sketches, and processed labels. If short QA clips are permitted, raw pre-blur clips stay on-device or encrypted storage, school-release windows are excluded unless explicitly approved, access is logged, a grievance contact is listed in field notices, and clips are deleted or converted to aggregate labels within 30 days. No face, plate, identity, enforcement, or live-control pipeline is part of year one.", body),
             para("Acceptance criteria", section),
-            para("M3: sector selected, baseline timings mapped, first 40-60 clean site-hours complete. M6 pass: queue MAE <=15m or <=20%, delay MAPE <=25%. M9 pass: N>=120 holdout sessions and zero critical unsafe recommendations, where unsafe means violating min-green, pedestrian, emergency, stale-data, or downstream-blockage constraints. M12: validation report, safety playbook, dashboard demo, and authority-ready pilot memo. If M6 replay cannot beat fixed-time delay or residual queue by at least 10% on labeled data, pivot to dataset/tooling.", body),
+            para("M2 pass: permission/no-objection path, privacy workflow, and existing-ATCS benchmark are clear; otherwise scope is formally reduced. M6 pass: 180+ usable site-hours or a narrower 2-3 junction dataset with stated gaps. M9 pass: labels and baseline replay are stable enough for shadow mode. M11 pass: 60+ clean shadow hours with zero critical unsafe recommendations, where unsafe means violating minimum-green, pedestrian, emergency, stale-data, manual-override, or downstream-blockage constraints. M12 pass: dashboard demo, dataset summary, safety case, privacy process, ATCS comparison, and authority-ready supervised-pilot request. If replay cannot improve labeled fixed-time/observed baselines by at least 10% on delay or residual queue, pivot to dataset and decision-support tooling.", body),
         ]
     )
 
@@ -185,11 +188,11 @@ def build_request_pdf() -> None:
     )
     story = [
         para("PATC M1 Observation Permission Request - Draft", heading),
-        para("<b>Date:</b> 30 Apr 2026<br/><b>To:</b> Bengaluru Traffic Police Traffic Management Centre / jurisdictional traffic police station for Silk Board-HSR/Bomanahalli<br/><b>From:</b> PATC application team (named contacts in application packet)<br/><b>Status:</b> Not sent. Prepared as the first civic artifact for a replay-only validation pilot.", body),
+        para("<b>Date:</b> 30 Apr 2026<br/><b>To:</b> Bengaluru Traffic Police Traffic Management Centre / jurisdictional traffic police station for Silk Board-HSR/Bommanahalli<br/><b>From:</b> PATC application team (named contacts in application packet)<br/><b>Status:</b> Not sent. Prepared as the first civic artifact for a replay-only validation pilot.", body),
         para("Recipient role", subhead),
         para("BTP signal operations / jurisdictional traffic reviewer for roadside observation intimation. BBMP/DULT are coordination dependencies only if road works, junction geometry, or public-space use requires them.", body),
         para("First-choice sector", subhead),
-        para("Silk Board to HSR/Bomanahalli 4-6 signal sector. Public-redacted approximate points: Silk Board main junction (~12.9177, 77.6238), HSR approach (~12.912, 77.641), Bomanahalli approach (~12.908, 77.623), downstream queue point withheld for private packet. Backup sectors: ORR Bellandur and Whitefield/ITPL.", body),
+        para("Silk Board to HSR/Bommanahalli 4-6 signal sector. Public-redacted approximate points: Silk Board main junction (~12.9177, 77.6238), HSR approach (~12.912, 77.641), Bommanahalli approach (~12.908, 77.623), downstream queue point withheld for private packet. Backup sectors: ORR Bellandur and Whitefield/ITPL.", body),
         para("Request", subhead),
         para("Permission or written/no-objection guidance for no-install roadside observation on proposed windows: weekday AM peak 8:00-10:00, weekday PM peak 5:30-7:30, weekend 11:00-1:00, and one rain/night repeat. The team records aggregate queue length, discharge, spillback, phase timing, and anomaly notes for replay validation only.", body),
         para("Observer safety checklist", subhead),
