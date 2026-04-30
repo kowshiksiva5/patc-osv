@@ -20,8 +20,8 @@ const state = {
 const modeCopy = {
   patc: {
     label: "PATC shadow",
-    effect: "Coordinated waves",
-    overlay: "Predictive coordination protects downstream space",
+    effect: "Corridor coordination",
+    overlay: "All signals under one adaptive corridor plan",
   },
   fixed: {
     label: "Fixed-time baseline",
@@ -29,6 +29,8 @@ const modeCopy = {
     overlay: "Fixed cycle ignores sector pressure",
   },
 };
+const STOP_LINE_OFFSET = 56;
+const MIN_VEHICLE_GAP = 0.03;
 function vehicleTargetCount() {
   return 30;
 }
@@ -55,12 +57,13 @@ function routeLength(route) {
 function progressForJunction(route, junctionId) {
   const j = junctions.find((item) => item.id === junctionId);
   let covered = 0;
+  const total = routeLength(route);
   for (let i = 1; i < route.points.length; i += 1) {
     const a = route.points[i - 1];
     const b = route.points[i];
     const seg = Math.hypot(b[0] - a[0], b[1] - a[1]);
     const near = Math.hypot(b[0] - j.x, b[1] - j.y) < 68;
-    if (near) return Math.max(0, (covered + seg - 34) / routeLength(route));
+    if (near) return Math.max(0, (covered + seg - STOP_LINE_OFFSET) / total);
     covered += seg;
   }
   throw new Error(`Route stop ${junctionId} is not on its declared geometry.`);
@@ -164,6 +167,10 @@ function arrivalPressure(junctionId, phase) {
 function updateSignals(dt) {
   junctions.forEach((junction) => {
     junction.timer += dt;
+    if (!isFixedMode() && junction.id !== "J2") {
+      junction.phase = "EW";
+      return;
+    }
     const downstreamRisk = downstreamPenalty(junction.id);
     const ewLive = pressure(junction.id, "EW");
     const nsLive = pressure(junction.id, "NS");
@@ -179,7 +186,14 @@ function updateSignals(dt) {
     const urgent = Math.max(ew, ns) > Math.min(ew, ns) * 1.06 + 0.55;
     const shouldPatcSwitch = !isFixedMode() && target !== junction.phase && urgent && junction.timer > minGreen;
     const shouldFixedSwitch = isFixedMode() && junction.timer > 10.2;
-    if (shouldPatcSwitch || shouldFixedSwitch || junction.timer > maxGreen) {
+    const shouldPatcMaxSwitch = !isFixedMode() && target !== junction.phase && junction.timer > maxGreen;
+    const shouldMaxSwitch = isFixedMode() && junction.timer > maxGreen;
+    if (shouldPatcSwitch || shouldPatcMaxSwitch) {
+      junction.phase = target;
+      junction.timer = 0;
+      return;
+    }
+    if (shouldFixedSwitch || shouldMaxSwitch) {
       junction.phase = junction.phase === "EW" ? "NS" : "EW";
       junction.timer = 0;
     }
@@ -209,12 +223,12 @@ function leaderInfo(vehicle, projected) {
   }, { gap: 1, vehicle: null });
 }
 function queueSpacingBlocked(vehicle, leader) {
-  if (!leader || leader.gap >= 0.028) return false;
+  if (!leader || leader.gap >= MIN_VEHICLE_GAP) return false;
   return distanceToStop(vehicle) < 0.18;
 }
 function followingProgress(vehicle, projected, leader) {
-  if (!leader.vehicle || leader.gap >= 0.028) return projected;
-  return Math.max(vehicle.progress, Math.min(projected, leader.vehicle.progress - 0.028));
+  if (!leader.vehicle || leader.gap >= MIN_VEHICLE_GAP) return projected;
+  return Math.max(vehicle.progress, Math.min(projected, leader.vehicle.progress - MIN_VEHICLE_GAP));
 }
 function distanceToStop(vehicle) {
   const stop = nextStop(vehicle);
@@ -265,6 +279,7 @@ function updateVehicle(vehicle, dt) {
   vehicle.blocked = blocked;
   vehicle.blockReason = signalBlocked ? "signal" : conflictBlocked ? "conflict" : spacingBlocked ? "spacing" : "";
   if (blocked) {
+    holdBeforeStop(vehicle);
     if (signalBlocked || conflictBlocked || distanceToStop(vehicle) < 0.14) {
       vehicle.wait += dt;
       vehicle.delayCost += dt;
@@ -278,6 +293,11 @@ function updateVehicle(vehicle, dt) {
     vehicle.progress = 1;
     vehicle.complete = true;
   }
+}
+function holdBeforeStop(vehicle) {
+  const stop = nextStop(vehicle);
+  if (!stop) return;
+  vehicle.progress = Math.min(vehicle.progress, Math.max(0, stop.p - 0.002));
 }
 function step(dt) {
   updateSignals(dt);
@@ -403,12 +423,26 @@ function drawModeOverlay() {
   drawPatcCoordination();
 }
 function drawPatcCoordination() {
+  const pulse = 0.62 + Math.sin(state.frameIndex / 18) * 0.16;
   ctx.save();
   ctx.setLineDash([38, 24]);
   ctx.lineDashOffset = -state.frameIndex * 1.3;
-  drawPath(routes.east.points, 14, "rgba(47,214,210,0.26)");
+  drawPath(routes.east.points, 16, "rgba(47,214,210,0.28)");
+  drawPath(routes.west.points, 10, "rgba(82,210,115,0.18)");
+  drawPath(routes.feeder.points, 8, "rgba(198,236,102,0.18)");
+  ctx.setLineDash([14, 12]);
+  ctx.lineDashOffset = -state.frameIndex * 0.9;
+  drawPath(junctions.map((j) => [j.x, j.y]), 3, "rgba(82,210,115,0.78)");
   ctx.restore();
-  drawBadge(710, 92, modeCopy.patc.overlay, colors.green);
+  junctions.forEach((j, index) => {
+    ctx.strokeStyle = `rgba(82,210,115,${pulse})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(j.x, j.y, 34 + Math.sin(state.frameIndex / 16 + index) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    drawBadge(j.x - 34, j.y + 30, "coordinated", colors.green);
+  });
+  drawBadge(690, 92, modeCopy.patc.overlay, colors.green);
 }
 function drawFixedIssues() {
   const hotspots = pressureRanked().filter((item) => Math.max(item.ew, item.ns) > 2.4).slice(0, 3);
@@ -444,23 +478,10 @@ function drawBadge(x, y, label, color) {
   ctx.font = "700 12px sans-serif";
   ctx.fillText(label, x + 10, y + 18);
 }
-function displayPose(vehicle, used) {
-  const pose = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
-  let attempts = 0;
-  while (used.some((item) => Math.hypot(item.x - pose.x, item.y - pose.y) < 28) && attempts < 4) {
-    const direction = vehicle.id % 2 === 0 ? 1 : -1;
-    pose.x += Math.cos(pose.angle + Math.PI / 2) * 16 * direction;
-    pose.y += Math.sin(pose.angle + Math.PI / 2) * 16 * direction;
-    attempts += 1;
-  }
-  used.push(pose);
-  return pose;
-}
 function drawVehicles() {
-  const used = [];
   state.vehicles.forEach((vehicle) => {
     if (vehicle.complete || vehicle.delay > 0) return;
-    const p = displayPose(vehicle, used);
+    const p = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.angle);
