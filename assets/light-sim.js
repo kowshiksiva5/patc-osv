@@ -173,10 +173,10 @@ function updateSignals(dt) {
     const nsBias = currentScenario().primaryPhase === "NS" && junction.id === "J2" ? 1.35 : 1;
     const ew = isFixedMode() ? ewLive : Math.max(0, ewDemand * ewBias - downstreamRisk * 0.1);
     const ns = isFixedMode() ? nsLive : nsDemand * nsBias;
-    const minGreen = (isFixedMode() ? 4.0 : 4.2) * controlValue("safety");
-    const maxGreen = isFixedMode() ? 10.8 : 14.2;
+    const minGreen = isFixedMode() ? 4.0 * controlValue("safety") : Math.min(4.8, 3.2 * controlValue("safety"));
+    const maxGreen = isFixedMode() ? 10.8 : 11.8;
     const target = ew >= ns ? "EW" : "NS";
-    const urgent = Math.max(ew, ns) > Math.min(ew, ns) * 1.08 + 0.85;
+    const urgent = Math.max(ew, ns) > Math.min(ew, ns) * 1.06 + 0.55;
     const shouldPatcSwitch = !isFixedMode() && target !== junction.phase && urgent && junction.timer > minGreen;
     const shouldFixedSwitch = isFixedMode() && junction.timer > 10.2;
     if (shouldPatcSwitch || shouldFixedSwitch || junction.timer > maxGreen) {
@@ -522,7 +522,7 @@ function updatePanel() {
   document.getElementById("recommendationValue").textContent = state.recommendation;
 }
 function severeStopCount() {
-  return state.vehicles.filter((vehicle) => vehicle.delayCost > 15).length;
+  return state.vehicles.filter((vehicle) => vehicle.delayCost > 18).length;
 }
 function modeEffectText(avgDelay, breakdowns) {
   if (state.vehicles.every((vehicle) => vehicle.complete)) {
@@ -535,8 +535,8 @@ function startupFactor(vehicle) {
   const stop = nextStop(vehicle);
   if (!stop || stop.p - vehicle.progress > 0.05) return 1;
   const junction = junctions.find((item) => item.id === stop.id);
-  const startupWindow = isFixedMode() ? 4.0 : 1.2;
-  const base = isFixedMode() ? 0.12 : 0.65;
+  const startupWindow = isFixedMode() ? 4.0 : 0.8;
+  const base = isFixedMode() ? 0.12 : 0.78;
   if (junction.phase !== vehicle.route.phase || junction.timer > startupWindow) return 1;
   return base + (junction.timer / startupWindow) * (1 - base);
 }
