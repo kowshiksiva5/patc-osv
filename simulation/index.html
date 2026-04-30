@@ -25,7 +25,7 @@
         <img src="../assets/logo.svg" alt="" />
         <span>
           <strong>PATC</strong>
-          <small>Probabilistic Adaptive Traffic Control</small>
+          <small>Adaptive Corridor Intelligence</small>
         </span>
       </a>
       <nav aria-label="Primary navigation">
@@ -49,7 +49,8 @@
       </section>
 
       <section class="replay-shell" aria-label="PATC HSR corridor replay">
-        <div class="replay-toolbar">
+        <!-- Toolbar: scenario + mode on same row -->
+        <div class="replay-toolbar-row">
           <div>
             <p class="eyebrow">Scenario</p>
             <div class="scenario-buttons" role="group" aria-label="Scenario selector">
@@ -57,39 +58,73 @@
               <button type="button" class="scenario-btn" data-scenario="school">School release</button>
             </div>
           </div>
-          <div class="mode-switch" role="group" aria-label="Control mode">
-            <button type="button" class="mode-btn active" data-mode="patc">PATC shadow</button>
-            <button type="button" class="mode-btn" data-mode="fixed">Fixed-time baseline</button>
-          </div>
-        </div>
-
-        <div class="replay-grid">
-          <div class="canvas-stage">
-            <canvas id="corridorCanvas" width="1080" height="640" aria-label="Multi-junction traffic replay"></canvas>
-            <div class="replay-actions">
-              <button type="button" id="startBtn">Start</button>
-              <button type="button" id="stopBtn">Stop</button>
-              <button type="button" id="restartBtn">Restart</button>
-              <button type="button" id="speedBtn">1x speed</button>
+          <div>
+            <div class="mode-switch" role="group" aria-label="Control mode">
+              <button type="button" class="mode-btn active" data-mode="patc">PATC shadow</button>
+              <button type="button" class="mode-btn" data-mode="fixed">Fixed-time baseline</button>
             </div>
           </div>
-
-          <aside class="metric-panel">
-            <p class="eyebrow">Live sector state</p>
-            <h2 id="scenarioTitle">Peak spillback</h2>
-            <p id="scenarioCopy" style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">Office traffic releases into a saturated downstream link.</p>
-            <dl class="metric-list">
-              <div><dt>Completion</dt><dd id="completionValue">0%</dd></div>
-              <div><dt>Active / total</dt><dd id="activeValue">0/22</dd></div>
-              <div><dt>Average delay</dt><dd id="delayValue">0s</dd></div>
-              <div><dt>Severe stops</dt><dd id="breakdownValue">0</dd></div>
-              <div><dt>Mode effect</dt><dd id="modeEffectValue">Coordinating waves</dd></div>
-              <div><dt>Queue pressure</dt><dd id="pressureValue">Low</dd></div>
-              <div><dt>Recommendation</dt><dd id="recommendationValue">Collecting replay state</dd></div>
-            </dl>
-          </aside>
         </div>
 
+        <!-- Full-width canvas -->
+        <div class="canvas-stage canvas-full">
+          <canvas id="corridorCanvas" width="1200" height="520" aria-label="Multi-junction traffic replay"></canvas>
+          <div class="replay-controls-bar">
+            <div class="replay-actions">
+              <button type="button" id="startBtn" class="primary-action">▶ Start</button>
+              <button type="button" id="stopBtn" title="Stop">⏹</button>
+              <button type="button" id="restartBtn" title="Restart">↺</button>
+            </div>
+            <div class="speed-selector" role="group" aria-label="Playback speed">
+              <button type="button" data-speed="0.5">0.5×</button>
+              <button type="button" data-speed="1" class="active-control">1×</button>
+              <button type="button" data-speed="2">2×</button>
+              <button type="button" data-speed="4">4×</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics stacked below canvas in 2-row grid -->
+        <div class="metrics-below">
+          <div class="metric-row">
+            <div class="metric-chip">
+              <span class="metric-label">Scenario</span>
+              <span class="metric-value" id="scenarioTitle">Peak spillback</span>
+            </div>
+            <div class="metric-chip">
+              <span class="metric-label">Completion</span>
+              <span class="metric-value" id="completionValue">0%</span>
+            </div>
+            <div class="metric-chip">
+              <span class="metric-label">Active / total</span>
+              <span class="metric-value" id="activeValue">0/22</span>
+            </div>
+            <div class="metric-chip">
+              <span class="metric-label">Avg delay</span>
+              <span class="metric-value" id="delayValue">0s</span>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-chip">
+              <span class="metric-label">Severe stops</span>
+              <span class="metric-value" id="breakdownValue">0</span>
+            </div>
+            <div class="metric-chip">
+              <span class="metric-label">Mode effect</span>
+              <span class="metric-value" id="modeEffectValue">Coordinating waves</span>
+            </div>
+            <div class="metric-chip">
+              <span class="metric-label">Queue pressure</span>
+              <span class="metric-value" id="pressureValue">Low</span>
+            </div>
+            <div class="metric-chip wide">
+              <span class="metric-label">Recommendation</span>
+              <span class="metric-value" id="recommendationValue">Collecting replay state</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sliders with numeric labels -->
         <div class="control-grid">
           <label>
             <span>Demand</span>

@@ -1,17 +1,21 @@
 /* ═══════════════════════════════════════════════════════════════
-   PATC — Site animations v3 · Corridor wave + scroll reveal fix
+   PATC — Site animations v4 · Bullet-proof reveal + corridor wave
    ═══════════════════════════════════════════════════════════════ */
 
 (function () {
   'use strict';
 
-  /* ── Scroll-reveal (FIX: fire immediately for above-fold) ──── */
+  /* ── Scroll-reveal ─────────────────────────────────────────── */
   function initScrollReveal() {
     const targets = document.querySelectorAll(
       '.reveal, .reveal-left, .reveal-right, .reveal-scale'
     );
     if (!targets.length) return;
 
+    /* Use a generous rootMargin so elements trigger well before
+       they're fully scrolled into view. threshold: 0 means "any
+       pixel visible" — eliminates the bug where 8% threshold +
+       negative rootMargin prevented elements from ever firing. */
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -21,13 +25,45 @@
           }
         });
       },
-      { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
+      { threshold: 0, rootMargin: '0px 0px -20px 0px' }
     );
 
-    /* Observe all targets — IntersectionObserver fires on first
-       observe() if the element is already in the viewport, so
-       above-fold elements get .visible on first paint. */
     targets.forEach((el) => observer.observe(el));
+
+    /* Safety net: after 1.5s, force-reveal anything still hidden.
+       Catches edge cases where IntersectionObserver fails (e.g.
+       elements in overflow:hidden parents, or Safari timing). */
+    setTimeout(() => {
+      targets.forEach((el) => {
+        if (!el.classList.contains('visible')) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top < window.innerHeight + 100) {
+            el.classList.add('visible');
+          }
+        }
+      });
+    }, 1500);
+
+    /* Fallback scroll listener for any stragglers */
+    let fallbackDone = false;
+    function fallbackCheck() {
+      if (fallbackDone) return;
+      let allDone = true;
+      targets.forEach((el) => {
+        if (!el.classList.contains('visible')) {
+          allDone = false;
+          const rect = el.getBoundingClientRect();
+          if (rect.top < window.innerHeight + 60) {
+            el.classList.add('visible');
+          }
+        }
+      });
+      if (allDone) {
+        fallbackDone = true;
+        window.removeEventListener('scroll', fallbackCheck);
+      }
+    }
+    window.addEventListener('scroll', fallbackCheck, { passive: true });
   }
 
   /* ── Scroll progress bar ────────────────────────────────────── */
@@ -46,7 +82,7 @@
         });
         ticking = true;
       }
-    });
+    }, { passive: true });
   }
 
   /* ── Header scroll state ────────────────────────────────────── */
@@ -63,7 +99,7 @@
         });
         ticking = true;
       }
-    });
+    }, { passive: true });
   }
 
   /* ── Active nav link highlight ──────────────────────────────── */
@@ -92,32 +128,29 @@
     const DPR = Math.min(window.devicePixelRatio || 1, 2);
     let W, H, animId;
 
-    /* Nodes: 5 junction nodes in a corridor layout */
+    /* 5 junction nodes spread wide across the canvas */
     const NODES = [
-      { x: 0.12, y: 0.48 },
-      { x: 0.30, y: 0.38 },
-      { x: 0.50, y: 0.50 },
-      { x: 0.70, y: 0.42 },
-      { x: 0.88, y: 0.52 },
+      { x: 0.08, y: 0.45, scale: 1.0 },
+      { x: 0.28, y: 0.35, scale: 1.4 },
+      { x: 0.50, y: 0.52, scale: 1.0 },
+      { x: 0.72, y: 0.40, scale: 1.1 },
+      { x: 0.92, y: 0.50, scale: 1.0 },
     ];
 
-    /* Links between nodes */
     const LINKS = [
-      [0, 1], [1, 2], [2, 3], [3, 4],
-      [1, 3],
+      [0, 1], [1, 2], [2, 3], [3, 4], [1, 3],
     ];
 
-    /* Vehicle dots that travel along links */
     const vehicles = [];
-    const VEHICLE_COUNT = 14;
+    const VEHICLE_COUNT = 16;
 
     function createVehicle() {
       const linkIdx = Math.floor(Math.random() * LINKS.length);
       return {
         link: linkIdx,
         t: Math.random(),
-        speed: (0.003 + Math.random() * 0.006) * (Math.random() > 0.3 ? 1 : -1),
-        size: Math.random() > 0.6 ? 3 : 2,
+        speed: (0.002 + Math.random() * 0.005) * (Math.random() > 0.3 ? 1 : -1),
+        size: 2,
         isPatc: Math.random() > 0.3,
       };
     }
@@ -139,83 +172,108 @@
       for (let i = 0; i < VEHICLE_COUNT; i++) vehicles.push(createVehicle());
     }
 
-    /* Green wave: a pulse that travels left→right over ~7s */
     let wavePhase = 0;
+
+    /* Junction state based on wave proximity */
+    function junctionState(nx) {
+      const wavePosX = (wavePhase % 1) * W;
+      const dist = Math.abs(nx - wavePosX);
+      if (dist < 60) return { color: '#34D399', label: 'flowing' };
+      if (dist < 140) return { color: '#F59E0B', label: 'holding' };
+      return { color: 'rgba(79, 209, 197, 0.25)', label: 'idle' };
+    }
 
     function draw() {
       ctx.clearRect(0, 0, W, H);
-      wavePhase = (wavePhase + 0.004) % 2;
+      wavePhase = (wavePhase + 0.003) % 2;
 
       /* Faint grid */
-      ctx.strokeStyle = 'rgba(79, 209, 197, 0.04)';
+      ctx.strokeStyle = 'rgba(79, 209, 197, 0.03)';
       ctx.lineWidth = 0.5;
-      for (let x = 0; x < W; x += 40) {
+      for (let x = 0; x < W; x += 80) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
       }
-      for (let y = 0; y < H; y += 40) {
+      for (let y = 0; y < H; y += 80) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
       }
 
-      /* Draw links (roads) */
+      /* Green wave pulse */
+      const wavePosX = (wavePhase % 1) * W;
+      const grad = ctx.createRadialGradient(wavePosX, H * 0.45, 0, wavePosX, H * 0.45, 140);
+      grad.addColorStop(0, 'rgba(52, 211, 153, 0.10)');
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      /* Draw links (roads) — main corridor spine */
       LINKS.forEach(([a, b]) => {
         const na = NODES[a], nb = NODES[b];
         ctx.beginPath();
         ctx.moveTo(na.x * W, na.y * H);
         ctx.lineTo(nb.x * W, nb.y * H);
-        ctx.strokeStyle = 'rgba(79, 209, 197, 0.12)';
-        ctx.lineWidth = 18;
+        ctx.strokeStyle = 'rgba(79, 209, 197, 0.10)';
+        ctx.lineWidth = 20;
         ctx.lineCap = 'round';
         ctx.stroke();
 
-        /* Lane dashes */
-        ctx.setLineDash([8, 12]);
-        ctx.strokeStyle = 'rgba(232, 236, 244, 0.06)';
+        /* Lane center dash */
+        ctx.setLineDash([6, 14]);
+        ctx.strokeStyle = 'rgba(232, 236, 244, 0.04)';
         ctx.lineWidth = 1;
         ctx.stroke();
         ctx.setLineDash([]);
       });
 
-      /* Draw green wave pulse traveling along the corridor */
-      const wavePosX = (wavePhase % 1) * W;
-      const grad = ctx.createRadialGradient(wavePosX, H * 0.45, 0, wavePosX, H * 0.45, 120);
-      grad.addColorStop(0, 'rgba(52, 211, 153, 0.12)');
-      grad.addColorStop(1, 'transparent');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, W, H);
+      /* Draw minor approach arms per junction */
+      NODES.forEach((node) => {
+        const nx = node.x * W;
+        const ny = node.y * H;
+        const armLen = 40 * (node.scale || 1);
 
-      /* Draw nodes */
+        ctx.strokeStyle = 'rgba(79, 209, 197, 0.06)';
+        ctx.lineWidth = 10;
+        ctx.lineCap = 'round';
+
+        /* Vertical minor arm */
+        ctx.beginPath();
+        ctx.moveTo(nx, ny - armLen);
+        ctx.lineTo(nx, ny + armLen);
+        ctx.stroke();
+      });
+
+      /* Draw nodes with 3-state semantic colors */
       NODES.forEach((node, i) => {
         const nx = node.x * W;
         const ny = node.y * H;
-
-        /* Node glow based on wave proximity */
-        const dist = Math.abs(nx - wavePosX);
-        const glow = Math.max(0, 1 - dist / 100);
+        const scale = node.scale || 1;
+        const state = junctionState(nx);
+        const outerR = 14 * scale;
+        const innerR = 4 * scale;
 
         /* Outer ring */
         ctx.beginPath();
-        ctx.arc(nx, ny, 16 + glow * 4, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(10, 15, 26, 0.9)';
+        ctx.arc(nx, ny, outerR, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(10, 15, 26, 0.92)';
         ctx.fill();
-        ctx.strokeStyle = glow > 0.3
-          ? `rgba(52, 211, 153, ${0.4 + glow * 0.4})`
-          : 'rgba(79, 209, 197, 0.25)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = state.color;
+        ctx.lineWidth = 3;
         ctx.stroke();
 
         /* Inner dot */
         ctx.beginPath();
-        ctx.arc(nx, ny, 5 + glow * 2, 0, Math.PI * 2);
-        ctx.fillStyle = glow > 0.3 ? `rgba(52, 211, 153, ${0.7 + glow * 0.3})` : 'rgba(79, 209, 197, 0.5)';
+        ctx.arc(nx, ny, innerR, 0, Math.PI * 2);
+        ctx.fillStyle = state.color;
         ctx.fill();
 
-        /* Label */
-        ctx.fillStyle = 'rgba(232, 236, 244, 0.6)';
-        ctx.font = '500 10px Inter, sans-serif';
-        ctx.fillText(`J${i + 1}`, nx + 20, ny - 8);
+        /* Label — under junction, monospace, muted */
+        ctx.fillStyle = 'rgba(92, 102, 120, 0.8)';
+        ctx.font = '500 11px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`J${i + 1}`, nx, ny + outerR + 16);
+        ctx.textAlign = 'start';
       });
 
-      /* Draw + update vehicles */
+      /* Draw + update vehicles — neutral white/grey dots */
       vehicles.forEach((v) => {
         const link = LINKS[v.link];
         const na = NODES[link[0]], nb = NODES[link[1]];
@@ -231,14 +289,32 @@
 
         ctx.beginPath();
         ctx.arc(vx, vy, v.size, 0, Math.PI * 2);
-        ctx.fillStyle = v.isPatc ? 'rgba(79, 209, 197, 0.7)' : 'rgba(245, 158, 11, 0.6)';
+        ctx.fillStyle = 'rgba(232, 236, 244, 0.5)';
         ctx.fill();
 
         /* Faint trail */
         ctx.beginPath();
-        ctx.arc(vx, vy, v.size + 3, 0, Math.PI * 2);
-        ctx.fillStyle = v.isPatc ? 'rgba(79, 209, 197, 0.08)' : 'rgba(245, 158, 11, 0.06)';
+        ctx.arc(vx, vy, v.size + 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(232, 236, 244, 0.06)';
         ctx.fill();
+      });
+
+      /* Corner legend chip */
+      const legendY = H - 24;
+      const legendItems = [
+        { color: '#34D399', label: 'flowing' },
+        { color: '#F59E0B', label: 'holding' },
+      ];
+      ctx.font = '500 10px Inter, sans-serif';
+      let lx = 14;
+      legendItems.forEach(({ color, label }) => {
+        ctx.beginPath();
+        ctx.arc(lx, legendY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.fillStyle = 'rgba(92, 102, 120, 0.7)';
+        ctx.fillText(label, lx + 8, legendY + 3.5);
+        lx += ctx.measureText(label).width + 24;
       });
 
       animId = requestAnimationFrame(draw);
@@ -250,12 +326,11 @@
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => { resize(); }, 200);
+      resizeTimer = setTimeout(resize, 200);
     });
 
-    /* Respect prefers-reduced-motion */
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mq.matches) { cancelAnimationFrame(animId); draw(); /* single frame */ }
+    if (mq.matches) { cancelAnimationFrame(animId); }
     mq.addEventListener('change', (e) => {
       if (e.matches) cancelAnimationFrame(animId);
       else { animId = requestAnimationFrame(draw); }
@@ -276,7 +351,7 @@
           }
         });
       },
-      { threshold: 0.4 }
+      { threshold: 0.3 }
     );
 
     counters.forEach((el) => observer.observe(el));
@@ -318,7 +393,7 @@
         const rect = card.getBoundingClientRect();
         const x = (e.clientX - rect.left) / rect.width - 0.5;
         const y = (e.clientY - rect.top) / rect.height - 0.5;
-        card.style.transform = `translateY(-3px) perspective(600px) rotateX(${-y * 3}deg) rotateY(${x * 3}deg)`;
+        card.style.transform = `translateY(-2px) perspective(600px) rotateX(${-y * 2}deg) rotateY(${x * 2}deg)`;
       });
 
       card.addEventListener('mouseleave', () => {
@@ -348,7 +423,7 @@
         document.body.classList.add('page-exit');
         setTimeout(() => {
           window.location.href = link.href;
-        }, 250);
+        }, 220);
       });
     });
   }

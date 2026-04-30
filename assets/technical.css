@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   PATC — Technical pages (Simulation + Technology) v3
+   PATC — Technical pages (Simulation + Technology) v4
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Replay shell ─────────────────────────────────────────────── */
@@ -8,7 +8,7 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   margin: 0 auto 48px;
-  max-width: 1280px;
+  max-width: 1200px;
   padding: 20px;
   transition: border-color 0.3s ease;
 }
@@ -19,7 +19,17 @@
   border-color: rgba(var(--signal-red-rgb), 0.35);
 }
 
-/* Toolbar + grid */
+/* Toolbar row — scenario + mode on same line */
+.replay-toolbar-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+/* Legacy toolbar grid (for backward compat) */
 .replay-toolbar,
 .replay-grid {
   display: grid;
@@ -37,7 +47,8 @@
 }
 .scenario-btn,
 .mode-btn,
-.replay-actions button {
+.replay-actions button,
+.speed-selector button {
   background: var(--bg-overlay);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
@@ -50,28 +61,37 @@
 }
 .scenario-btn:hover,
 .mode-btn:hover,
-.replay-actions button:hover {
+.replay-actions button:hover,
+.speed-selector button:hover {
   border-color: rgba(var(--accent-rgb), 0.3);
 }
 .scenario-btn.active,
 .mode-btn.active,
-.replay-actions button.active-control {
+.replay-actions button.active-control,
+.speed-selector button.active-control {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--bg-base);
 }
 
-/* Canvas & metric panel */
-.canvas-stage,
-.metric-panel {
+/* Start button override — primary style */
+.replay-actions .primary-action {
+  font-size: 13px;
+  padding: 10px 18px;
+}
+
+/* Canvas full-width */
+.canvas-stage {
   background: var(--bg-overlay);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   overflow-x: auto;
   padding: 14px;
 }
-.fixed-mode .canvas-stage,
-.fixed-mode .metric-panel {
+.canvas-full {
+  width: 100%;
+}
+.fixed-mode .canvas-stage {
   border-color: rgba(var(--signal-red-rgb), 0.25);
 }
 #corridorCanvas {
@@ -79,7 +99,80 @@
   height: auto;
   width: 100%;
 }
-.replay-actions { margin-top: 12px; }
+
+/* Controls bar — below canvas */
+.replay-controls-bar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+/* Speed selector */
+.speed-selector {
+  display: flex;
+  gap: 4px;
+}
+.speed-selector button {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  padding: 7px 12px;
+}
+
+/* ── Metrics below canvas (2-row chip grid) ───────────────────── */
+.metrics-below {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.metric-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.metric-chip {
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  transition: border-color 0.2s ease;
+}
+.metric-chip:hover {
+  border-color: rgba(var(--accent-rgb), 0.2);
+}
+.metric-chip.wide {
+  grid-column: span 2;
+}
+.metric-label {
+  color: var(--text-muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.metric-value {
+  color: var(--text-primary);
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* Legacy metric panel (kept for backward compat) */
+.metric-panel {
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow-x: auto;
+  padding: 14px;
+}
+.fixed-mode .metric-panel {
+  border-color: rgba(var(--signal-red-rgb), 0.25);
+}
 
 /* Metric list */
 .metric-list {
@@ -105,7 +198,7 @@
   margin: 3px 0 0;
 }
 
-/* Control sliders */
+/* Control sliders — styled range inputs */
 .control-grid {
   display: grid;
   gap: 12px;
@@ -135,9 +228,34 @@
   color: var(--signal-green);
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* Range input styling */
 input[type="range"] {
-  accent-color: var(--accent);
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border-subtle);
+  border-radius: 4px;
+  height: 6px;
+  outline: none;
   width: 100%;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--accent);
+  border: 2px solid var(--bg-base);
+  border-radius: 50%;
+  cursor: pointer;
+  height: 18px;
+  width: 18px;
+}
+input[type="range"]::-moz-range-thumb {
+  background: var(--accent);
+  border: 2px solid var(--bg-base);
+  border-radius: 50%;
+  cursor: pointer;
+  height: 14px;
+  width: 14px;
 }
 
 /* ── Tech grids ───────────────────────────────────────────────── */
@@ -254,6 +372,7 @@ code {
 
 /* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 1024px) {
+  .replay-toolbar-row { flex-direction: column; align-items: stretch; }
   .replay-toolbar,
   .replay-grid,
   .control-grid,
@@ -263,6 +382,12 @@ code {
   .timeline-list {
     grid-template-columns: 1fr;
   }
+  .metric-row { grid-template-columns: repeat(2, 1fr); }
+  .metric-chip.wide { grid-column: span 2; }
   #corridorCanvas { min-width: 0; }
   .replay-shell { padding: 14px; margin-left: 20px; margin-right: 20px; }
+}
+@media (max-width: 640px) {
+  .metric-row { grid-template-columns: 1fr; }
+  .metric-chip.wide { grid-column: span 1; }
 }

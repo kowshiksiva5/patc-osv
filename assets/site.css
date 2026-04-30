@@ -19,10 +19,10 @@
   --text-muted:     #5C6678;
 
   /* ── Accent ───────────────────────────────────────────────────── */
-  --accent:        #4FD1C5;
-  --accent-rgb:    79, 209, 197;
-  --accent-hover:  #2EBFB1;
-  --accent-faint:  rgba(79, 209, 197, 0.10);
+  --accent:        #3DBFB0;
+  --accent-rgb:    61, 191, 176;
+  --accent-hover:  #2EADA0;
+  --accent-faint:  rgba(61, 191, 176, 0.08);
 
   /* ── Signal semantics (traffic-domain only) ───────────────────── */
   --signal-green:     #34D399;
@@ -148,29 +148,27 @@ img { max-width: 100%; }
 .brand:hover { transform: scale(1.02); }
 .brand img { height: 28px; width: 28px; }
 .brand span { display: grid; gap: 1px; }
-.brand strong { font-size: 17px; font-weight: 800; letter-spacing: 0.01em; }
+.brand strong { font-size: 17px; font-weight: 700; letter-spacing: 0.04em; }
 .brand small { color: var(--text-secondary); font-size: 11px; }
 
 /* Nav */
 nav { display: flex; gap: 4px; }
 nav a {
-  border-radius: 8px;
   color: var(--text-secondary);
   font-size: 14px;
   font-weight: 600;
   padding: 7px 14px;
   position: relative;
-  transition: color 0.2s ease, background 0.2s ease;
+  transition: color 0.2s ease;
 }
 nav a:hover,
 nav a.active {
   color: var(--accent);
-  background: var(--accent-faint);
 }
 nav a::after {
   background: var(--accent);
   border-radius: 1px;
-  bottom: 1px;
+  bottom: 0;
   content: '';
   height: 2px;
   left: 50%;
@@ -178,7 +176,7 @@ nav a::after {
   position: absolute;
   transform: translateX(-50%) scaleX(0);
   transition: opacity 0.2s ease, transform 0.25s ease;
-  width: 18px;
+  width: 20px;
 }
 nav a:hover::after,
 nav a.active::after {
@@ -194,10 +192,10 @@ main { overflow: hidden; position: relative; }
   align-items: center;
   color: var(--accent);
   display: inline-flex;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   gap: 8px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   margin: 0 0 16px;
   text-transform: uppercase;
 }
@@ -214,10 +212,10 @@ main { overflow: hidden; position: relative; }
 h1, h2, h3, p { margin-top: 0; }
 h1 {
   color: var(--text-primary);
-  font-size: clamp(40px, 5vw, 64px);
+  font-size: clamp(42px, 5.2vw, 72px);
   font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.06;
+  letter-spacing: -0.025em;
+  line-height: 1.04;
   margin-bottom: 20px;
 }
 h2 {
@@ -237,7 +235,7 @@ h3 {
 /* ── Hero ──────────────────────────────────────────────────────── */
 .hero {
   margin: 0 auto;
-  max-width: 1280px;
+  max-width: 1200px;
   padding: 80px 48px 64px;
   position: relative;
 }
@@ -325,7 +323,7 @@ h3 {
 /* ── Section container ────────────────────────────────────────── */
 .section {
   margin: 0 auto;
-  max-width: 1280px;
+  max-width: 1200px;
   padding: 120px 48px;
   position: relative;
 }
@@ -448,7 +446,7 @@ h3 {
 
 /* ── Section divider ──────────────────────────────────────────── */
 .section-divider {
-  background: linear-gradient(90deg, transparent, var(--border-subtle), transparent);
+  background: linear-gradient(90deg, transparent, rgba(61, 191, 176, 0.2), transparent);
   border: none;
   height: 1px;
   margin: 0;

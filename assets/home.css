@@ -1,22 +1,69 @@
 /* ═══════════════════════════════════════════════════════════════
-   PATC — Home page v3 · Corridor-themed hero + consolidated layout
+   PATC — Home v5 · Corridor scroll-story with progressive reveal
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── Hero layout: left copy + right corridor animation ───────── */
-.product-hero {
-  display: grid;
-  gap: 48px;
-  grid-template-columns: minmax(0, 1fr) minmax(380px, 480px);
-  align-items: center;
-  min-height: 80vh;
-  max-height: 860px;
-  position: relative;
-  padding-top: 100px;
-  padding-bottom: 80px;
-  max-width: 1280px;
+/* ── Animated grid background ─────────────────────────────────── */
+body::before {
+  background-image:
+    linear-gradient(rgba(61, 191, 176, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(61, 191, 176, 0.035) 1px, transparent 1px);
+  background-size: 80px 80px;
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: -2;
+}
+body::after {
+  animation: gridWave 10s linear infinite;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(61, 191, 176, 0.025) 20%,
+    rgba(61, 191, 176, 0.05) 50%,
+    rgba(61, 191, 176, 0.025) 80%,
+    transparent 100%
+  );
+  content: '';
+  height: 100%;
+  left: -100%;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: -1;
+}
+@keyframes gridWave {
+  0%   { left: -100%; }
+  100% { left: 100%; }
 }
 
-/* ── Corridor animation canvas ────────────────────────────────── */
+/* ── CHAPTER: Full-bleed immersive hero ───────────────────────── */
+.story-hero {
+  align-items: center;
+  display: grid;
+  gap: 48px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 420px);
+  margin: 0 auto;
+  max-width: 1200px;
+  min-height: 92vh;
+  padding: 120px 48px 80px;
+  position: relative;
+}
+.story-hero::before {
+  background: radial-gradient(
+    ellipse at 25% 30%,
+    rgba(61, 191, 176, 0.09),
+    transparent 55%
+  );
+  content: '';
+  inset: -200px;
+  pointer-events: none;
+  position: absolute;
+  z-index: -1;
+}
+
+/* Corridor animation canvas */
 .corridor-visual {
   align-self: center;
   background: var(--bg-elevated);
@@ -24,51 +71,58 @@
   border-radius: var(--radius-lg);
   overflow: hidden;
   position: relative;
+  aspect-ratio: 4 / 3;
+  transition: border-color 0.3s ease;
+}
+.corridor-visual:hover {
+  border-color: rgba(var(--accent-rgb), 0.25);
 }
 #corridorHero {
   display: block;
-  height: auto;
+  height: 100%;
   width: 100%;
 }
 
-/* ── Operating belief (merged into compact section) ───────────── */
-.belief-section {
+/* ── CHAPTER: Corridor flow — horizontal scroll-reveal strip ──── */
+.corridor-flow {
   background: var(--bg-elevated);
   border-bottom: 1px solid var(--border-subtle);
   border-top: 1px solid var(--border-subtle);
+  overflow: hidden;
+  position: relative;
 }
-.belief-inner {
+.corridor-flow-inner {
   display: grid;
-  gap: 40px;
-  grid-template-columns: minmax(240px, 0.5fr) minmax(0, 1fr);
+  gap: 48px;
+  grid-template-columns: minmax(240px, 0.45fr) minmax(0, 1fr);
   margin: 0 auto;
-  max-width: 1280px;
+  max-width: 1200px;
   padding: 80px 48px;
 }
-.belief-inner h2 { margin-bottom: 0; max-width: 560px; }
-.belief-copy {
+.corridor-flow-inner h2 { margin-bottom: 0; }
+.corridor-flow-copy {
   color: var(--text-secondary);
   font-size: 16px;
   line-height: 1.7;
 }
-.belief-copy p { max-width: 640px; }
+.corridor-flow-copy p { max-width: 640px; }
 
-/* Flow chip strip */
+/* Flow ticker — animated chip strip */
 .flow-ticker {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   display: flex;
-  gap: 8px;
+  gap: 10px;
   margin-top: 20px;
   overflow: hidden;
-  padding: 10px 12px;
+  padding: 10px 14px;
   position: relative;
 }
 .flow-ticker::before {
   background: linear-gradient(90deg,
     var(--bg-elevated) 0%,
-    transparent 12%,
-    transparent 88%,
+    transparent 15%,
+    transparent 85%,
     var(--bg-elevated) 100%
   );
   content: '';
@@ -78,7 +132,7 @@
   z-index: 2;
 }
 .flow-ticker span {
-  animation: tickerScroll 22s linear infinite;
+  animation: tickerScroll 24s linear infinite;
   background: var(--accent-faint);
   border: 1px solid var(--border-subtle);
   border-radius: 999px;
@@ -86,32 +140,31 @@
   flex: 0 0 auto;
   font-size: 12px;
   font-weight: 600;
-  padding: 7px 14px;
+  padding: 7px 16px;
   white-space: nowrap;
 }
-
 @keyframes tickerScroll {
   0%   { transform: translateX(0); }
-  100% { transform: translateX(-220px); }
+  100% { transform: translateX(-240px); }
 }
 
-/* ── Problem section (with big stat) ──────────────────────────── */
-.problem-section {
+/* ── CHAPTER: Problem — big stat + cards ──────────────────────── */
+.story-problem {
   margin: 0 auto;
-  max-width: 1280px;
-  padding: 120px 48px;
+  max-width: 1200px;
+  padding: 120px 48px 80px;
 }
 .problem-head {
   display: grid;
-  gap: 24px;
+  gap: 32px;
   grid-template-columns: 1fr auto;
   align-items: end;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 .big-stat {
   color: var(--signal-red);
   font-family: 'JetBrains Mono', monospace;
-  font-size: clamp(48px, 6vw, 80px);
+  font-size: clamp(56px, 7vw, 96px);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -121,81 +174,128 @@
   color: var(--text-secondary);
   display: block;
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   letter-spacing: 0;
   margin-top: 6px;
   text-align: right;
 }
 
-/* ── How it works (4 numbered cards) ──────────────────────────── */
-.works-section {
+/* ── CHAPTER: Safety — appears early for civic trust ──────────── */
+/* Uses site.css .safety-panel */
+
+/* ── CHAPTER: Process — 4 numbered steps ──────────────────────── */
+.story-process {
   margin: 0 auto;
-  max-width: 1280px;
-  padding: 0 48px 120px;
+  max-width: 1200px;
+  padding: 80px 48px 120px;
 }
 
-/* ── Contact section (merged into home) ───────────────────────── */
-.contact-section {
+/* ── CHAPTER: Problem detail — split narrative ────────────────── */
+/* Uses site.css .split-section */
+
+/* ── CHAPTER: Explore — 2 page link cards ─────────────────────── */
+/* Uses site.css .page-links */
+
+/* ── CHAPTER: Contact — 3 equal cards ─────────────────────────── */
+.story-contact {
   background: var(--bg-elevated);
   border-top: 1px solid var(--border-subtle);
 }
 .contact-inner {
   display: grid;
-  gap: 40px;
-  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  grid-template-columns: minmax(240px, 0.4fr) minmax(0, 1fr);
   margin: 0 auto;
-  max-width: 1280px;
+  max-width: 1200px;
   padding: 80px 48px;
 }
 .contact-inner h2 { margin-bottom: 4px; }
+.contact-cards {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, 1fr);
+}
 .contact-card {
   background: var(--bg-overlay);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 28px;
-  transition: border-color 0.25s ease;
+  padding: 24px;
+  transition: border-color 0.25s ease, transform 0.25s ease;
 }
 .contact-card:hover {
-  border-color: rgba(var(--accent-rgb), 0.3);
+  border-color: rgba(var(--accent-rgb), 0.35);
+  transform: translateY(-2px);
 }
-.contact-card h3 { font-size: 20px; margin-bottom: 12px; }
-.contact-card .profile-link { margin-top: 8px; }
-.contact-card small {
-  color: var(--text-muted);
-  display: block;
-  font-size: 12px;
-  margin-top: 6px;
+.contact-card h3 {
+  font-size: 15px;
+  margin-bottom: 10px;
 }
-.affiliation {
-  color: var(--text-muted);
+.contact-card p {
+  color: var(--text-secondary);
   font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+.contact-card .profile-link {
   margin-top: 12px;
+  font-size: 13px;
+}
+
+/* ── Scroll-story junction markers (decorative) ───────────────── */
+.junction-marker {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 0 48px;
+}
+.junction-marker .dot {
+  background: var(--accent);
+  border-radius: 50%;
+  height: 10px;
+  opacity: 0.5;
+  width: 10px;
+}
+.junction-marker .line {
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.15), transparent);
+  flex: 1;
+  height: 1px;
 }
 
 /* ── Reduced motion ───────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
+  body::after { animation: none; }
   .flow-ticker span { animation: none; }
   .reveal, .reveal-left, .reveal-right, .reveal-scale {
-    opacity: 1;
-    transform: none;
-    transition: none;
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }
 
 /* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 1024px) {
-  .product-hero {
+  .story-hero {
     grid-template-columns: 1fr;
     min-height: auto;
-    max-height: none;
-    padding-top: 72px;
+    padding: 80px 20px 48px;
+    gap: 32px;
   }
-  .corridor-visual { max-width: 520px; }
-  .belief-inner { grid-template-columns: 1fr; padding: 48px 20px; }
-  .problem-section { padding: 80px 20px; }
+  .corridor-visual { max-width: 480px; }
+  .corridor-flow-inner {
+    grid-template-columns: 1fr;
+    padding: 48px 20px;
+  }
+  .story-problem { padding: 80px 20px 48px; }
   .problem-head { grid-template-columns: 1fr; }
   .big-stat { text-align: left; }
-  .works-section { padding: 0 20px 80px; }
-  .contact-inner { grid-template-columns: 1fr; padding: 48px 20px; }
+  .story-process { padding: 48px 20px 80px; }
+  .contact-inner {
+    grid-template-columns: 1fr;
+    padding: 48px 20px;
+  }
+  .contact-cards { grid-template-columns: 1fr; }
+  .junction-marker { padding: 0 20px; }
 }

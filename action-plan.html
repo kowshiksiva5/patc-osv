@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PATC — 1-Page Action Plan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet" />
+  <style>
+    @page { size: letter; margin: 0.55in 0.6in; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-family: Inter, system-ui, sans-serif; font-size: 10.5px; color: #1a1a1a; line-height: 1.52; }
+    body { max-width: 7.5in; margin: 0 auto; padding: 0.55in 0.6in; }
+
+    /* ── Header ── */
+    .doc-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2.5px solid #0f2b3d; padding-bottom: 10px; margin-bottom: 14px; }
+    .doc-title h1 { font-size: 17px; font-weight: 900; color: #0f2b3d; letter-spacing: -0.01em; line-height: 1.15; }
+    .doc-title p { font-size: 10px; color: #5a7080; margin-top: 3px; }
+    .doc-meta { text-align: right; font-size: 9px; color: #5a7080; line-height: 1.6; }
+    .doc-meta strong { color: #0f2b3d; }
+
+    /* ── Hook ── */
+    .hook { background: linear-gradient(135deg, #f0f6fa, #e8f0f5); border: 1px solid #c8d8e2; border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; }
+    .hook p { font-size: 10.5px; color: #1a3040; }
+    .hook strong { color: #0f2b3d; }
+
+    /* ── Section titles ── */
+    h2 { font-size: 11.5px; font-weight: 900; color: #0f2b3d; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1.5px solid #d0dce4; padding-bottom: 4px; margin-bottom: 8px; margin-top: 14px; }
+    h2:first-of-type { margin-top: 0; }
+
+    /* ── Problem stats ── */
+    .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+    .stat-card { background: #0f2b3d; color: #fff; border-radius: 5px; padding: 8px 10px; text-align: center; }
+    .stat-card .num { font-size: 18px; font-weight: 900; display: block; line-height: 1.1; }
+    .stat-card .label { font-size: 8.5px; color: #b0c8d8; display: block; margin-top: 3px; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    /* ── Timeline ── */
+    .timeline { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .phase { border: 1px solid #d0dce4; border-radius: 5px; padding: 8px 10px; }
+    .phase .tag { display: inline-block; background: #0f2b3d; color: #fff; font-size: 8px; font-weight: 800; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .phase h3 { font-size: 10.5px; font-weight: 800; color: #1a3040; margin-bottom: 3px; }
+    .phase ul { padding-left: 14px; font-size: 9.5px; color: #3a5060; }
+    .phase li { margin-bottom: 2px; }
+
+    /* ── Metrics ── */
+    .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 14px; }
+    .metric { border: 1px solid #d0dce4; border-radius: 4px; padding: 6px 8px; }
+    .metric strong { display: block; font-size: 10px; color: #0f2b3d; }
+    .metric span { font-size: 9px; color: #5a7080; }
+
+    /* ── Outputs & Approach ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+    .col h3 { font-size: 10px; font-weight: 800; color: #0f2b3d; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+    .col ul { padding-left: 14px; font-size: 9.5px; color: #3a5060; }
+    .col li { margin-bottom: 2px; }
+    .col p { font-size: 9.5px; color: #3a5060; }
+
+    /* ── Footer ── */
+    .doc-footer { border-top: 1px solid #d0dce4; padding-top: 6px; margin-top: 14px; font-size: 8.5px; color: #7a8a94; display: flex; justify-content: space-between; }
+
+    @media print {
+      body { padding: 0; }
+      .stat-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .phase .tag { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="doc-header">
+    <div class="doc-title">
+      <h1>Probabilistic Adaptive Traffic Control (PATC)</h1>
+      <p>Traffic lights that predict movement, not just count cars.</p>
+    </div>
+    <div class="doc-meta">
+      <strong>OSV Fellowship 2026</strong><br />
+      12-month action plan<br />
+      PATC-AP-2026-001
+    </div>
+  </div>
+
+  <div class="hook">
+    <p>
+      <strong>The problem:</strong> Fixed-time and detector-based signals waste green time because they ignore arrival uncertainty and driver start-up delay.
+      Most global cities lose <strong>120–150 hours per driver annually</strong> to congestion (TomTom Traffic Index). Bengaluru alone costs an estimated
+      <strong>₹20,000 crore/year</strong> in lost productivity. PATC treats a corridor as a moving pressure field — modeling density, discharge, startup loss,
+      and spillback risk — to coordinate signals that clear congestion instead of displacing it.
+    </p>
+  </div>
+
+  <h2>The Approach</h2>
+  <div class="two-col">
+    <div class="col">
+      <h3>Core Model Stack</h3>
+      <ul>
+        <li><strong>LWR conservation law</strong> — discretized density field per link</li>
+        <li><strong>Markov mobility model</strong> — Idle → Accelerating → Flow states with probabilistic transition rates</li>
+        <li><strong>Poisson/NB arrival forecast</strong> — EWMA-updated stochastic arrival rate</li>
+        <li><strong>MPC optimizer</strong> — rolling horizon QP with delay, queue, spillback, and safety penalties</li>
+        <li><strong>Particle/Kalman filter</strong> — online state estimation under sensor sparsity</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Key Differentiators</h3>
+      <ul>
+        <li>Startup-loss damping (Πₘ) prevents over-serving phases where queues haven't woken up</li>
+        <li>Sector-level spillback detection before queues lock up — not post-hoc correction</li>
+        <li>Every recommendation: action + reason + confidence + fallback + replay trace</li>
+        <li>Shadow mode first — 40–60 clean site-hours before any live actuation</li>
+        <li>Safety-hard: min greens, pedestrian windows, emergency priority, stale-data stops</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>12-Month Roadmap</h2>
+  <div class="timeline">
+    <div class="phase">
+      <span class="tag">Months 1–3</span>
+      <h3>Foundation & Model Development</h3>
+      <ul>
+        <li>Implement LWR-CTM in Python/NumPy</li>
+        <li>Build Markov chain mobility module + MLE calibration</li>
+        <li>Prototype EWMA arrival estimator</li>
+        <li>Establish 4 SUMO baseline networks (isolated, arterial, grid, hybrid)</li>
+        <li>Begin field observation on target corridor</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <span class="tag">Months 4–6</span>
+      <h3>MPC Integration & Co-simulation</h3>
+      <ul>
+        <li>Integrate OSQP-based QP solver into MPC loop</li>
+        <li>Implement TraCI interface for real-time SUMO co-simulation</li>
+        <li>Validate state estimation accuracy (Kalman filter metrics)</li>
+        <li>Tune MPC weights via grid search on baseline network</li>
+        <li>Launch public demo website with corridor replay</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <span class="tag">Months 7–9</span>
+      <h3>Simulation Campaign & Analysis</h3>
+      <ul>
+        <li>30-replication Monte Carlo campaigns on all four networks</li>
+        <li>Comparative KPI tables with Welch t-test significance</li>
+        <li>Emission & fuel savings reports (HBEFA3 baseline)</li>
+        <li>Sensitivity analyses on λ₁, λ₂, μ, H, Nₓ parameters</li>
+        <li>Publish open-source benchmark report</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <span class="tag">Months 10–12</span>
+      <h3>Edge Prototype & Pilot Proposal</h3>
+      <ul>
+        <li>Port MPC to embedded target (RPi 5 / Jetson Orin NX)</li>
+        <li>Implement NTCIP 1202 communication interface</li>
+        <li>Hardware-in-the-loop testing against SUMO live feed</li>
+        <li>Prepare field trial protocol for target corridor</li>
+        <li>Submit pilot proposal to transport authority</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Target KPIs</h2>
+  <div class="stat-row">
+    <div class="stat-card">
+      <span class="num">↓ 35%</span>
+      <span class="label">Max avg. delay reduction</span>
+    </div>
+    <div class="stat-card">
+      <span class="num">↓ 27%</span>
+      <span class="label">CO₂ emissions (net)</span>
+    </div>
+    <div class="stat-card">
+      <span class="num">↓ 31%</span>
+      <span class="label">Fuel consumption/veh</span>
+    </div>
+    <div class="stat-card">
+      <span class="num">< 50ms</span>
+      <span class="label">MPC solve time (8-phase)</span>
+    </div>
+  </div>
+
+  <h2>Measurement & Validation</h2>
+  <div class="metric-grid">
+    <div class="metric"><strong>Average delay</strong><span>tripinfo/@timeLoss — seconds/vehicle</span></div>
+    <div class="metric"><strong>Stops/vehicle</strong><span>tripinfo/@waitingCount — mean ± 95% CI</span></div>
+    <div class="metric"><strong>CO₂ & fuel</strong><span>HBEFA3 emission factors — network-total</span></div>
+    <div class="metric"><strong>Residual queue</strong><span>lanearea/@maxJamLength — metres/phase</span></div>
+    <div class="metric"><strong>Solver time</strong><span>Wall-clock ms per MPC solve — 8-phase QP</span></div>
+    <div class="metric"><strong>Safety constraints</strong><span>Min green, ped windows, stale-data — hard rules</span></div>
+  </div>
+
+  <h2>12-Month Outputs</h2>
+  <div class="two-col">
+    <div class="col">
+      <h3>Deliverables</h3>
+      <ul>
+        <li>Open-source PATC controller (Python + SUMO/TraCI)</li>
+        <li>Benchmark report with statistical significance tests</li>
+        <li>Public demo website with interactive corridor replay</li>
+        <li>Edge prototype (RPi 5 / Jetson Orin NX)</li>
+        <li>Field trial protocol + pilot proposal</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Key Risks & Mitigations</h3>
+      <ul>
+        <li><strong>Simulation ≠ reality</strong> → Early field observation (month 3+)</li>
+        <li><strong>Sensor sparsity</strong> → Particle filter + conservative fallbacks</li>
+        <li><strong>Extreme events</strong> → Chance constraints + auto fixed-time revert</li>
+        <li><strong>Operator trust</strong> → Replay traces + feedback from shadow day 1</li>
+        <li><strong>Bureaucratic delay</strong> → Build evidence first, negotiate second</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    <span>PATC-AP-2026-001 · Probabilistic Adaptive Traffic Control</span>
+    <span>OSV Fellowship 2026 Application</span>
+  </div>
+
+</body>
+</html>

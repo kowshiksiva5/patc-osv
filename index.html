@@ -25,7 +25,7 @@
         <img src="assets/logo.svg" alt="" />
         <span>
           <strong>PATC</strong>
-          <small>Probabilistic Adaptive Traffic Control</small>
+          <small>Adaptive Corridor Intelligence</small>
         </span>
       </a>
       <nav aria-label="Primary navigation">
@@ -35,26 +35,24 @@
     </header>
 
     <main>
-      <!-- ═══ HERO ═══ -->
-      <section class="hero product-hero">
+      <!-- ═══ CHAPTER 1 — HERO ═══ -->
+      <section class="story-hero">
         <div class="hero-copy">
           <p class="eyebrow reveal" style="--reveal-delay: 0s">PATC — Adaptive Corridor Control</p>
-          <h1 class="reveal" style="--reveal-delay: 60ms">Traffic lights should learn the wave before it reaches the next signal.</h1>
-          <p class="hero-lede reveal" style="--reveal-delay: 120ms">
+          <h1 class="reveal" style="--reveal-delay: 80ms">Traffic lights should learn the wave before it reaches the next signal.</h1>
+          <p class="hero-lede reveal" style="--reveal-delay: 160ms">
             Each light is ready before your vehicle arrives. Not luck — traffic
             physics, probability, and real-time optimization working together to
             reduce wasted time at every red light.
           </p>
-          <div class="hero-actions reveal" style="--reveal-delay: 180ms">
+          <div class="hero-actions reveal" style="--reveal-delay: 240ms">
             <a class="primary-action" href="simulation/">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><polygon points="4,2 14,8 4,14" fill="currentColor"/></svg>
               Run corridor replay
             </a>
             <a class="secondary-action" href="technology/">How it works →</a>
           </div>
-
-          <!-- Credibility strip -->
-          <div class="cred-strip reveal" style="--reveal-delay: 240ms">
+          <div class="cred-strip reveal" style="--reveal-delay: 320ms">
             <span>Shadow mode</span>
             <span>No black-box RL</span>
             <span>Replay-auditable</span>
@@ -62,22 +60,22 @@
           </div>
         </div>
 
-        <!-- Corridor animation (replaces starfield particles) -->
-        <div class="corridor-visual reveal-scale" style="--reveal-delay: 100ms">
-          <canvas id="corridorHero" width="480" height="360" aria-label="Animated corridor wave showing coordinated signal timing"></canvas>
+        <div class="corridor-visual reveal-scale" style="--reveal-delay: 120ms">
+          <canvas id="corridorHero" width="480" height="360" aria-label="Animated corridor wave showing coordinated signal timing across 5 junctions"></canvas>
         </div>
       </section>
 
-      <hr class="section-divider" />
+      <!-- Junction marker: the corridor continues ↓ -->
+      <div class="junction-marker" aria-hidden="true"><span class="dot"></span><span class="line"></span></div>
 
-      <!-- ═══ OPERATING BELIEF ═══ -->
-      <section class="belief-section" aria-label="Operating belief">
-        <div class="belief-inner">
+      <!-- ═══ CHAPTER 2 — HOW THE CORRIDOR THINKS ═══ -->
+      <section class="corridor-flow">
+        <div class="corridor-flow-inner">
           <div class="reveal-left">
             <p class="eyebrow">Operating belief</p>
             <h2>Don't make one junction clever. Make the whole sector predictable.</h2>
           </div>
-          <div class="belief-copy reveal-right">
+          <div class="corridor-flow-copy reveal-right">
             <p>
               PATC observes the current road state, predicts the next pressure wave,
               tests the action in shadow mode, and recommends only the signal move
@@ -91,14 +89,16 @@
               <span>Log every decision</span>
               <span>Observe density</span>
               <span>Predict wave arrival</span>
-              <span>Score spillback risk</span>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ═══ PROBLEM + STATS ═══ -->
-      <section class="problem-section" aria-label="The problem">
+      <!-- Junction marker -->
+      <div class="junction-marker" aria-hidden="true"><span class="dot"></span><span class="line"></span></div>
+
+      <!-- ═══ CHAPTER 3 — THE PROBLEM (big stat) ═══ -->
+      <section class="story-problem">
         <div class="problem-head">
           <div class="reveal">
             <p class="eyebrow">Problem first</p>
@@ -108,7 +108,7 @@
               clears pressure or simply moves the jam to the next signal.
             </p>
           </div>
-          <div class="big-stat reveal" style="--reveal-delay: 100ms">
+          <div class="big-stat reveal" style="--reveal-delay: 120ms">
             <span data-count="168" data-suffix=" hrs">0</span>
             <small>lost per driver · TomTom 2025</small>
           </div>
@@ -138,30 +138,24 @@
 
       <hr class="section-divider" />
 
-      <!-- ═══ PROBLEM DETAIL ═══ -->
-      <section class="section split-section">
-        <div class="reveal-left">
-          <p class="eyebrow">Problem</p>
-          <h2>One green can make the next junction worse.</h2>
+      <!-- ═══ CHAPTER 4 — SAFETY BOUNDARY (civic trust first) ═══ -->
+      <section class="section safety-panel reveal-scale">
+        <div>
+          <p class="eyebrow">Safety boundary</p>
+          <h2>No black-box control. No direct live writes in year one.</h2>
         </div>
-        <div class="section-inner reveal-right">
-          <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.7;">
-            In corridors like HSR, Silk Board, and Bommanahalli, one signal releases
-            vehicles into a downstream link that is already blocked. The queue moves
-            backward, two-wheelers fill gaps, buses slow discharge, and the next
-            signal inherits a worse problem.
-          </p>
-          <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.7;">
-            PATC treats traffic like flow: density, discharge, startup loss,
-            spillback, weather, and event waves. The product is not an
-            uncontrolled AI switch. It is a measured operating layer that proves
-            when an adaptive action helps, why it helps, and when it must fall back.
-          </p>
+        <div class="safety-grid">
+          <p><strong>Shadow first.</strong> PATC recommends and records decisions while the real signal runs normally.</p>
+          <p><strong>Hard rules.</strong> Minimum greens, amber/all-red, pedestrian windows, emergency priority, stale data, and manual override remain non-negotiable.</p>
+          <p><strong>Privacy by design.</strong> The pilot defaults to aggregate labels; any QA clips are short-lived, access-logged, and not used for identity or enforcement.</p>
         </div>
       </section>
 
-      <!-- ═══ HOW IT WORKS (4 steps) ═══ -->
-      <section class="works-section">
+      <!-- Junction marker -->
+      <div class="junction-marker" aria-hidden="true"><span class="dot"></span><span class="line"></span></div>
+
+      <!-- ═══ CHAPTER 5 — HOW IT WORKS (4 steps) ═══ -->
+      <section class="story-process">
         <div class="section-head reveal">
           <p class="eyebrow">Product</p>
           <h2>A decision layer for connected signal sectors.</h2>
@@ -197,20 +191,29 @@
 
       <hr class="section-divider" />
 
-      <!-- ═══ SAFETY ═══ -->
-      <section class="section safety-panel reveal-scale">
-        <div>
-          <p class="eyebrow">Safety boundary</p>
-          <h2>No black-box control. No direct live writes in year one.</h2>
+      <!-- ═══ CHAPTER 6 — PROBLEM DETAIL ═══ -->
+      <section class="section split-section">
+        <div class="reveal-left">
+          <p class="eyebrow">Why coordination</p>
+          <h2>One green can make the next junction worse.</h2>
         </div>
-        <div class="safety-grid">
-          <p><strong>Shadow first.</strong> PATC recommends and records decisions while the real signal runs normally.</p>
-          <p><strong>Hard rules.</strong> Minimum greens, amber/all-red, pedestrian windows, emergency priority, stale data, and manual override remain non-negotiable.</p>
-          <p><strong>Privacy by design.</strong> The pilot defaults to aggregate labels; any QA clips are short-lived, access-logged, and not used for identity or enforcement.</p>
+        <div class="section-inner reveal-right">
+          <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.7;">
+            In corridors like HSR, Silk Board, and Bommanahalli, one signal releases
+            vehicles into a downstream link that is already blocked. The queue moves
+            backward, two-wheelers fill gaps, buses slow discharge, and the next
+            signal inherits a worse problem.
+          </p>
+          <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.7;">
+            PATC treats traffic like flow: density, discharge, startup loss,
+            spillback, weather, and event waves. The product is not an
+            uncontrolled AI switch. It is a measured operating layer that proves
+            when an adaptive action helps, why it helps, and when it must fall back.
+          </p>
         </div>
       </section>
 
-      <!-- ═══ EXPLORE ═══ -->
+      <!-- ═══ CHAPTER 7 — EXPLORE ═══ -->
       <section class="section">
         <div class="section-head reveal">
           <p class="eyebrow">Explore</p>
@@ -230,34 +233,37 @@
 
       <hr class="section-divider" />
 
-      <!-- ═══ CONTACT (merged into homepage) ═══ -->
-      <section class="contact-section" id="contact">
+      <!-- ═══ CHAPTER 8 — CONTACT (3 cards) ═══ -->
+      <section class="story-contact" id="contact">
         <div class="contact-inner">
           <div class="reveal-left">
             <p class="eyebrow">Contact</p>
-            <h2>Reach the founders</h2>
+            <h2>Get in touch</h2>
             <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.7;">
-              For technical review, pilot discussion, or civic validation — contact us directly.
+              For technical review, pilot discussion, or civic validation — reach the team directly.
             </p>
           </div>
-          <div style="display: grid; gap: 16px;">
+          <div class="contact-cards">
             <div class="contact-card reveal reveal-delay-1">
-              <h3>Kowshik Sivasankaran</h3>
-              <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.65; margin: 0;">
-                Product lead, founder. Background in ML infrastructure and civic systems.
-              </p>
-              <a class="profile-link" href="https://www.linkedin.com/in/kowshiksiva5/" target="_blank" rel="noreferrer">
-                LinkedIn →
+              <h3>✉ Email</h3>
+              <p>Kowshik Sivasankaran<br/>Product lead, founder</p>
+              <a class="profile-link" href="mailto:kowshiksiva5@gmail.com">
+                kowshiksiva5@gmail.com →
               </a>
-              <small>kowshiksiva5@gmail.com</small>
             </div>
             <div class="contact-card reveal reveal-delay-2">
-              <h3>Affiliation</h3>
-              <p class="affiliation">OSV Fellowship 2025 · Bengaluru, India</p>
-              <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.65; margin: 0 0 6px;">
-                PATC is built as an open civic-tech project under the
-                <a href="https://www.osvfellowship.com" target="_blank" rel="noreferrer" style="color: var(--accent);">OSV Fellowship</a>.
-              </p>
+              <h3>↗ LinkedIn</h3>
+              <p>Background in ML infrastructure and civic systems</p>
+              <a class="profile-link" href="https://www.linkedin.com/in/kowshiksiva5/" target="_blank" rel="noreferrer">
+                Connect on LinkedIn →
+              </a>
+            </div>
+            <div class="contact-card reveal reveal-delay-3">
+              <h3>⌨ GitHub</h3>
+              <p>Open-source civic-tech project under OSV Fellowship 2025</p>
+              <a class="profile-link" href="https://github.com/kowshiksiva5/patc-osv" target="_blank" rel="noreferrer">
+                View repository →
+              </a>
             </div>
           </div>
         </div>
@@ -266,7 +272,7 @@
 
     <footer>
       <span>PATC</span>
-      <p>Probabilistic Adaptive Traffic Control for connected city corridors.</p>
+      <p>Adaptive corridor intelligence for connected city sectors.</p>
       <a href="simulation/">Simulation</a>
       <a href="technology/">Technology</a>
       <a href="#contact">Contact</a>
