@@ -183,6 +183,6 @@ code {
     grid-template-columns: 1fr;
   }
   #corridorCanvas {
-    min-width: 720px;
+    min-width: 0;
   }
 }

@@ -12,6 +12,7 @@ const state = {
   nextId: 1,
   paused: false,
   speed: 1,
+  frameIndex: 0,
   lastTs: 0,
   resetHandle: null,
   recommendation: "Collecting replay state",
@@ -78,14 +79,16 @@ function segmentPoint(route, a, b, t, lane) {
 function createVehicle(index) {
   const scenario = currentScenario();
   const key = scenario.bias[index % scenario.bias.length];
+  const kind = index % 5 === 0 || index % 7 === 0 ? "bike" : "car";
   return {
     id: state.nextId++,
+    kind,
     routeKey: key,
     route: routes[key],
     lane: index % 2,
     progress: 0,
     delay: index * scenario.spacing * (1.45 - controlValue("demand") * 0.35),
-    speed: 0.036 + (index % 4) * 0.004,
+    speed: (kind === "bike" ? 0.041 : 0.035) + (index % 4) * 0.004,
     wait: 0,
     stops: 0,
     complete: false,
@@ -175,8 +178,7 @@ function physicalConflict(vehicle, projected) {
     const currentGap = Math.hypot(currentPose.x - otherPose.x, currentPose.y - otherPose.y);
     const projectedGap = Math.hypot(pose.x - otherPose.x, pose.y - otherPose.y);
     const occupiedJunction = nearStop && hasEnteredJunction(other, stop.id) && projectedGap < 34;
-    const closingConflict = projectedGap < 0 && projectedGap < currentGap;
-    return occupiedJunction || closingConflict;
+    return occupiedJunction && projectedGap < currentGap;
   });
 }
 function hasEnteredJunction(vehicle, junctionId) {
@@ -238,19 +240,63 @@ function drawPath(points, width, color) {
   points.slice(1).forEach((point) => ctx.lineTo(point[0], point[1]));
   ctx.stroke();
 }
+function drawBlocks() {
+  cityBlocks.forEach(([x, y, width, height], index) => {
+    ctx.fillStyle = index % 2 === 0 ? "#081016" : "#0a141b";
+    ctx.fillRect(x, y, width, height);
+    ctx.strokeStyle = "rgba(128,167,189,0.12)";
+    ctx.strokeRect(x, y, width, height);
+  });
+}
+function drawLaneDash(points, color) {
+  ctx.save();
+  ctx.setLineDash([12, 15]);
+  ctx.lineDashOffset = -state.frameIndex * 0.5;
+  drawPath(points, 2, color);
+  ctx.restore();
+}
 function drawRoads() {
   ctx.fillStyle = colors.bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  Object.values(routes).forEach((route) => drawPath(route.points, 54, colors.road));
-  Object.values(routes).forEach((route) => drawPath(route.points, 2, colors.lane));
+  ctx.fillStyle = "rgba(128,167,189,0.06)";
+  for (let x = 0; x < canvas.width; x += 32) {
+    for (let y = 0; y < canvas.height; y += 32) {
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+  drawBlocks();
+  gridLinks.forEach((points) => drawPath(points, 38, "#0f2230"));
+  Object.values(routes).forEach((route) => drawPath(route.points, 58, colors.road));
+  gridLinks.forEach((points) => drawLaneDash(points, "rgba(244,247,242,0.10)"));
+  Object.values(routes).forEach((route) => drawLaneDash(route.points, colors.lane));
 }
 function drawSignals() {
-  junctions.forEach((j) => {
-    ctx.fillStyle = j.phase === "EW" ? colors.amber : colors.cyan;
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.shadowBlur = 16;
+  supportNodes.forEach((node) => {
+    ctx.fillStyle = "#0b151d";
+    ctx.strokeStyle = "rgba(128,167,189,0.38)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(j.x, j.y, 13, 0, Math.PI * 2);
+    ctx.arc(node.x, node.y, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = colors.muted;
+    ctx.font = "700 10px sans-serif";
+    ctx.fillText(node.id, node.x + 13, node.y + 4);
+  });
+  junctions.forEach((j) => {
+    const color = j.phase === "EW" ? colors.amber : colors.cyan;
+    ctx.fillStyle = "#071017";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(j.x, j.y, 21, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(j.x, j.y, 8, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.fillStyle = colors.text;
@@ -259,6 +305,16 @@ function drawSignals() {
     ctx.fillStyle = colors.muted;
     ctx.font = "12px sans-serif";
     ctx.fillText(`${j.phase} ${j.timer.toFixed(0)}s`, j.x + 18, j.y + 6);
+  });
+  sensorSites.forEach((site) => {
+    ctx.strokeStyle = colors.cyan;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(site.x, site.y, 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = colors.cyan;
+    ctx.font = "700 10px sans-serif";
+    ctx.fillText(site.id, site.x + 10, site.y - 8);
   });
 }
 function displayPose(vehicle, used) {
@@ -283,20 +339,30 @@ function drawVehicles() {
     ctx.rotate(p.angle);
     ctx.fillStyle = vehicle.blocked ? colors.red : vehicle.route.color;
     ctx.shadowColor = ctx.fillStyle;
-    ctx.shadowBlur = 9;
-    ctx.beginPath();
-    ctx.roundRect(-12, -5, 24, 10, 4);
-    ctx.fill();
+    ctx.shadowBlur = vehicle.kind === "bike" ? 5 : 9;
+    if (vehicle.kind === "bike") {
+      ctx.fillRect(-9, -2, 18, 4);
+      ctx.beginPath();
+      ctx.arc(-7, 4, 3, 0, Math.PI * 2);
+      ctx.arc(7, 4, 3, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.roundRect(-12, -5, 24, 10, 4);
+      ctx.fill();
+      ctx.fillStyle = "rgba(5,7,10,0.42)";
+      ctx.fillRect(2, -4, 5, 8);
+    }
     ctx.restore();
   });
 }
 function drawDashboardOverlay() {
   const complete = state.vehicles.filter((vehicle) => vehicle.complete).length;
   ctx.fillStyle = "rgba(5,7,10,0.72)";
-  ctx.fillRect(24, 24, 260, 88);
+  ctx.fillRect(24, 24, 310, 96);
   ctx.fillStyle = colors.text;
   ctx.font = "700 15px sans-serif";
-  ctx.fillText("PATC shadow corridor", 42, 54);
+  ctx.fillText("PATC connected-sector shadow replay", 42, 54);
   ctx.fillStyle = colors.muted;
   ctx.font = "13px sans-serif";
   ctx.fillText(`${complete}/72 complete | ${state.mode.toUpperCase()}`, 42, 80);
@@ -318,6 +384,7 @@ function updatePanel() {
   document.getElementById("recommendationValue").textContent = state.recommendation;
 }
 function render() {
+  state.frameIndex += 1;
   drawRoads();
   drawSignals();
   drawVehicles();
@@ -325,7 +392,7 @@ function render() {
   updatePanel();
 }
 function frame(ts) {
-  const dt = Math.min(0.05, (ts - state.lastTs) / 1000 || 0.016) * state.speed * 12;
+  const dt = Math.min(0.05, (ts - state.lastTs) / 1000 || 0.016) * state.speed * 4;
   state.lastTs = ts;
   if (!state.paused) step(dt);
   render();

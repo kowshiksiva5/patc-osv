@@ -37,6 +37,7 @@ input {
 .site-header {
   align-items: center;
   background: rgba(5, 7, 10, 0.94);
+  backdrop-filter: blur(18px);
   border-bottom: 1px solid var(--line);
   display: flex;
   gap: 24px;
@@ -168,6 +169,12 @@ h3 {
   background: var(--panel);
   color: var(--text);
 }
+.primary-action:hover,
+.secondary-action:hover,
+.profile-link:hover {
+  border-color: var(--cyan);
+  transform: translateY(-1px);
+}
 .process-grid span,
 .page-links span,
 .team-grid span {
@@ -217,6 +224,12 @@ h3 {
 }
 .team-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.profile-url {
+  color: var(--muted);
+  display: block;
+  font-size: 13px;
+  margin-top: 10px;
 }
 .benefit-grid strong,
 .page-links strong,
@@ -300,5 +313,8 @@ footer p {
   }
   h1 {
     font-size: 44px;
+  }
+  .brand small {
+    max-width: 220px;
   }
 }

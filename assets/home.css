@@ -1,152 +1,294 @@
-.hero-console {
-  align-self: center;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 20px;
+.product-hero {
+  position: relative;
 }
-.console-topline,
-.console-grid {
+.product-hero::before {
+  background:
+    linear-gradient(90deg, rgba(47, 214, 210, 0.08), transparent 42%),
+    linear-gradient(180deg, rgba(255, 177, 42, 0.07), transparent 38%);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+.product-hero > * {
+  position: relative;
+}
+.operating-layer {
+  align-self: center;
+  background:
+    linear-gradient(180deg, rgba(16, 28, 36, 0.96), rgba(7, 16, 23, 0.96)),
+    #071017;
+  border: 1px solid rgba(47, 214, 210, 0.28);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  padding: 18px;
+}
+.layer-topline,
+.decision-stack {
   display: flex;
   gap: 14px;
   justify-content: space-between;
 }
-.console-topline span,
-.console-grid span {
+.layer-topline span,
+.decision-stack span {
   color: var(--amber);
   font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
 }
-.console-topline strong {
+.layer-topline strong {
   color: var(--green);
 }
-.corridor-visual {
-  background: #071017;
-  border: 1px solid #1c3544;
+.network-board {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(47, 214, 210, 0.12), transparent 20%),
+    radial-gradient(circle at 78% 76%, rgba(255, 177, 42, 0.11), transparent 20%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    #050b10;
+  background-size: auto, auto, 44px 44px, 44px 44px;
+  border: 1px solid #1d3543;
   border-radius: var(--radius);
-  height: 360px;
+  height: 370px;
   margin: 18px 0;
   overflow: hidden;
   position: relative;
 }
-.corridor-road,
-.corridor-signal,
-.queue-band,
-.car-dot {
+.grid-road,
+.signal-node,
+.sensor-pin,
+.wave-band,
+.moving-unit {
   position: absolute;
 }
-.corridor-road {
-  background: #17303f;
+.grid-road {
+  background: #172f3d;
   border: 1px solid rgba(244, 247, 242, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(47, 214, 210, 0.06);
 }
-.main-road {
-  height: 54px;
-  left: -8%;
-  top: 48%;
-  transform: rotate(-7deg);
-  width: 116%;
-}
-.feeder-road {
+.horizontal {
   height: 42px;
-  width: 68%;
+  left: -5%;
+  width: 110%;
 }
-.f1 { left: -16%; top: 24%; transform: rotate(25deg); }
-.f2 { right: -18%; top: 22%; transform: rotate(-28deg); }
-.f3 { left: 28%; top: 68%; transform: rotate(82deg); width: 55%; }
-.corridor-signal {
-  background: var(--green);
-  border: 7px solid rgba(244, 247, 242, 0.16);
-  border-radius: 50%;
-  height: 42px;
+.vertical {
+  height: 112%;
+  top: -6%;
   width: 42px;
-  z-index: 2;
 }
-.c1 { left: 18%; top: 47%; }
-.c2 { left: 39%; top: 43%; background: var(--amber); }
-.c3 { left: 60%; top: 39%; }
-.c4 { left: 79%; top: 35%; background: var(--red); }
-.queue-band {
-  background: linear-gradient(90deg, var(--red), var(--amber), rgba(255, 177, 42, 0));
+.diagonal {
+  height: 38px;
+  width: 86%;
+}
+.h1 { top: 24%; transform: rotate(-5deg); }
+.h2 { top: 50%; transform: rotate(-4deg); }
+.h3 { top: 73%; transform: rotate(-4deg); }
+.v1 { left: 24%; transform: rotate(4deg); }
+.v2 { left: 50%; transform: rotate(4deg); }
+.v3 { left: 74%; transform: rotate(4deg); }
+.d1 { left: -7%; top: 65%; transform: rotate(-30deg); }
+.d2 { right: -15%; top: 34%; transform: rotate(32deg); }
+.signal-node {
+  align-items: center;
+  background: #0a151d;
+  border: 1px solid rgba(244, 247, 242, 0.22);
+  border-radius: 50%;
+  display: flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+  z-index: 4;
+}
+.signal-node i {
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 18px var(--green);
+  display: block;
+  height: 14px;
+  width: 14px;
+}
+.signal-node.amber i {
+  background: var(--amber);
+  box-shadow: 0 0 18px var(--amber);
+}
+.signal-node.red i {
+  background: var(--red);
+  box-shadow: 0 0 18px var(--red);
+}
+.signal-node.live {
+  animation: nodePulse 2.4s ease-in-out infinite;
+}
+.n1 { left: 20%; top: 44%; }
+.n2 { left: 46%; top: 42%; }
+.n3 { left: 70%; top: 39%; }
+.n4 { left: 20%; top: 68%; }
+.n5 { left: 46%; top: 66%; }
+.n6 { left: 70%; top: 63%; }
+.sensor-pin {
+  border: 2px solid var(--cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(47, 214, 210, 0.8);
+  height: 12px;
+  width: 12px;
+  z-index: 5;
+}
+.s1 { left: 31%; top: 30%; }
+.s2 { left: 57%; top: 76%; }
+.s3 { left: 82%; top: 48%; }
+.wave-band {
+  background: linear-gradient(90deg, rgba(255, 99, 88, 0), var(--red), var(--amber), rgba(255, 177, 42, 0));
   border-radius: 999px;
-  height: 10px;
+  height: 12px;
   opacity: 0.9;
   z-index: 3;
 }
-.q1 { left: 15%; top: 43%; transform: rotate(-7deg); width: 31%; }
-.q2 { left: 55%; top: 54%; transform: rotate(-7deg); width: 26%; }
-.car-dot {
-  background: var(--cyan);
-  border-radius: 999px;
-  box-shadow: 0 0 18px var(--cyan);
-  height: 10px;
-  width: 42px;
-  z-index: 4;
+.w1 {
+  animation: waveShift 5.6s linear infinite;
+  left: 8%;
+  top: 47%;
+  transform: rotate(-4deg);
+  width: 38%;
 }
-.car-a { left: 28%; top: 52%; transform: rotate(-7deg); }
-.car-b { left: 49%; top: 47%; transform: rotate(-7deg); background: var(--amber); box-shadow: 0 0 18px var(--amber); }
-.car-c { left: 70%; top: 43%; transform: rotate(-7deg); }
-.console-grid {
+.w2 {
+  animation: waveShift 7s linear infinite reverse;
+  left: 47%;
+  top: 60%;
+  transform: rotate(-4deg);
+  width: 34%;
+}
+.moving-unit {
+  border-radius: 999px;
+  box-shadow: 0 0 16px currentColor;
+  color: var(--cyan);
+  height: 10px;
+  width: 38px;
+  z-index: 6;
+}
+.moving-unit.car {
+  background: currentColor;
+}
+.moving-unit.bike {
+  background: var(--green);
+  color: var(--green);
+  height: 7px;
+  width: 22px;
+}
+.u1 { animation: glideEast 6.8s linear infinite; top: 53%; }
+.u2 { animation: glideEast 8.4s linear infinite reverse; top: 29%; color: var(--amber); }
+.u3 { animation: glideNorth 5.4s linear infinite; left: 52%; }
+.u4 { animation: glideNorth 7.2s linear infinite reverse; left: 78%; }
+.decision-stack {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
 }
-.console-grid div {
+.decision-stack div {
   background: #071017;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 14px;
 }
-.console-grid strong {
+.decision-stack strong {
   display: block;
   margin-top: 7px;
 }
-.evidence-band {
+.impact-band {
   background: #0a1116;
   border-bottom: 1px solid var(--line);
   border-top: 1px solid var(--line);
   display: grid;
-  gap: 24px;
-  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
-  padding: 48px 54px;
+  gap: 30px;
+  grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+  padding: 52px 54px;
 }
-.evidence-grid {
+.impact-grid {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
-.evidence-grid article {
-  background: var(--panel);
+.impact-grid article {
+  background: linear-gradient(180deg, var(--panel), #081116);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  min-height: 212px;
   padding: 22px;
 }
-.evidence-grid strong {
+.impact-grid strong {
   color: var(--text);
   display: block;
-  font-size: 32px;
+  font-size: 30px;
   line-height: 1;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-.evidence-grid span {
+.impact-grid span {
   color: var(--muted);
   display: block;
   line-height: 1.45;
 }
-.evidence-grid a {
+.impact-grid a {
   color: var(--cyan);
   display: inline-flex;
   font-size: 13px;
   font-weight: 900;
-  margin-top: 12px;
+  margin-top: 14px;
+}
+.safety-grid {
+  display: grid;
+  gap: 14px;
+}
+.safety-grid p {
+  background: rgba(82, 210, 115, 0.06);
+  border: 1px solid rgba(82, 210, 115, 0.16);
+  border-radius: var(--radius);
+  margin: 0;
+  padding: 14px;
+}
+.safety-grid strong {
+  color: var(--green);
+}
+@keyframes nodePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(47, 214, 210, 0);
+  }
+  50% {
+    box-shadow: 0 0 34px rgba(47, 214, 210, 0.42);
+  }
+}
+@keyframes waveShift {
+  0% { opacity: 0.25; transform: translateX(-28px) rotate(-4deg); }
+  45% { opacity: 0.95; }
+  100% { opacity: 0.25; transform: translateX(68px) rotate(-4deg); }
+}
+@keyframes glideEast {
+  0% { left: -10%; transform: rotate(-4deg); }
+  100% { left: 108%; transform: rotate(-4deg); }
+}
+@keyframes glideNorth {
+  0% { top: 104%; transform: rotate(-92deg); }
+  100% { top: -12%; transform: rotate(-92deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-node.live,
+  .w1,
+  .w2,
+  .u1,
+  .u2,
+  .u3,
+  .u4 {
+    animation: none;
+  }
 }
 @media (max-width: 980px) {
-  .evidence-band,
-  .evidence-grid,
-  .console-grid {
+  .impact-band,
+  .impact-grid,
+  .decision-stack {
     grid-template-columns: 1fr;
   }
-  .evidence-band {
+  .impact-band {
     padding-left: 18px;
     padding-right: 18px;
+  }
+  .network-board {
+    height: 320px;
   }
 }
