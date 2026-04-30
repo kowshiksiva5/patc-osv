@@ -190,7 +190,8 @@ function hasEnteredJunction(vehicle, junctionId) {
 }
 function setPaused(value) {
   state.paused = value;
-  document.getElementById("pauseBtn").textContent = value ? "Resume" : "Pause";
+  document.getElementById("startBtn").classList.toggle("active-control", !value);
+  document.getElementById("stopBtn").classList.toggle("active-control", value);
 }
 function updateVehicle(vehicle, dt) {
   if (vehicle.complete) return;
@@ -421,9 +422,8 @@ Object.values(controls).forEach((control) => {
     scheduleReset();
   });
 });
-document.getElementById("pauseBtn").addEventListener("click", () => {
-  setPaused(!state.paused);
-});
+document.getElementById("startBtn").addEventListener("click", () => setPaused(false));
+document.getElementById("stopBtn").addEventListener("click", () => setPaused(true));
 document.getElementById("restartBtn").addEventListener("click", resetReplay);
 document.getElementById("speedBtn").addEventListener("click", () => {
   state.speed = state.speed === 1 ? 2 : state.speed === 2 ? 0.5 : 1;

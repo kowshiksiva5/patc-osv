@@ -32,6 +32,7 @@
 }
 .scenario-btn.active,
 .mode-btn.active,
+.replay-actions button.active-control,
 .replay-actions button:hover {
   background: var(--amber);
   border-color: var(--amber);

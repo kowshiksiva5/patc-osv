@@ -111,25 +111,23 @@ def build_pdf() -> None:
     story.append(table)
     story.extend(
         [
-            para("Cost overview - $80k grant ask / $100k tracked pilot", section),
-            para("<b>Budget assumption.</b> The grant ask is planned at $80k. The full tracked pilot budget is $100k after adding founder/in-kind support for unpaid build time, coordination, and reusable equipment. The largest cost is field truth: mapping, permission work, temporary cameras/viewpoints, observer shifts, labeling, QA, privacy handling, weather/event metadata, existing-ATCS benchmarking, model calibration, and repeat collection.", body),
+            para("Cost overview - USD 75k grant ask / USD 95k tracked pilot", section),
+            para("<b>Budget assumption.</b> Amounts below are in USD, not INR lakhs. The grant ask is planned at USD 75k. The full tracked pilot is roughly USD 95k after adding founder/in-kind support for unpaid build time, coordination, and reusable equipment. The budget is intentionally grouped into practical work packages instead of over-splitting permissions, cameras, calibration, labeling, and software into inflated-looking standalone buckets.", body),
         ]
     )
 
     cost_rows = [
-        ["Founder/in-kind", "$20k", "Not part of the grant ask: founder build time, coordination, reusable devices, civic preparation, and runway tracked as matching support."],
-        ["Mapping + permits", "$8k", "Detailed sector mapping, Bengaluru Traffic Police / jurisdiction meetings, ATCS benchmark review, admin/legal/privacy prep, and local travel."],
-        ["Capture kit", "$22k", "6-8 camera/viewpoint positions, mounts, edge storage, power backup, weather protection, signage/notice, security, replacements."],
-        ["Setup + calibration", "$10k", "Field installation support where allowed, timestamp calibration, power/storage workflow, device checks, privacy notices, and dry runs."],
-        ["Field ops", "$14k", "Observer shifts, repeated site visits, peak/off-peak/night/rain/weekend windows, safety coordination, and collection logs."],
-        ["Label QA", "$12k", "Manual and automated annotation, inter-rater checks, model-assisted correction, queue/discharge/spillback/anomaly validation."],
-        ["Metadata/privacy", "$5k", "Weather feeds, event/holiday/roadwork annotation, metadata cleanup, access logging, privacy handling, and retention proof."],
-        ["Model + dashboard", "$6k", "AI measurement pipeline, traffic-flow calibration, replay simulator, holdout evaluation, dashboard, audit log, and demo hosting."],
-        ["Safety report", "$3k", "Live non-actuating tests, validation analysis, unsafe-case review, safety playbook, and authority-ready final evidence report."],
+        ["Founder/in-kind", "USD 20k", "Not part of the grant ask: founder build time, coordination, reusable devices, civic preparation, and runway tracked as matching support."],
+        ["Field sensing setup", "USD 20k", "Temporary cameras/viewpoints, mounts, edge storage, power backup, weather protection, installation help where allowed, timestamp calibration, and replacements."],
+        ["Data collection", "USD 16k", "Repeated site visits and observer shifts across AM/PM peaks, off-peak, weekend, night, rain, school-release, office surge, and disruption windows."],
+        ["Labeling + validation", "USD 11k", "Manual plus automated labeling, inter-rater checks, queue/discharge/spillback/anomaly validation, and correction passes."],
+        ["Model + dashboard", "USD 9k", "Traffic-flow calibration, replay simulator, shadow recommender, dashboard, audit log, holdout evaluation, and demo hosting."],
+        ["Civic + privacy", "USD 7k", "Detailed sector mapping, Bengaluru Traffic Police / jurisdiction meetings, ATCS benchmark review, admin/legal/privacy prep, and reviewer material."],
+        ["Cloud + reserve", "USD 12k", "Encrypted storage, backups, weather/event metadata, local travel, repeat observations after bad data/weather, equipment failure, and seasonal re-collection buffer."],
     ]
     cost_table = Table(
         [[para(a, title), para(b, title), para(c, body)] for a, b, c in cost_rows],
-        colWidths=[1.28 * inch, 0.46 * inch, 5.98 * inch],
+        colWidths=[1.46 * inch, 0.78 * inch, 5.48 * inch],
         hAlign="LEFT",
     )
     cost_table.setStyle(

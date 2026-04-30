@@ -1,4 +1,9 @@
 .product-hero {
+  background:
+    linear-gradient(90deg, rgba(47, 214, 210, 0.06), transparent 38%),
+    repeating-linear-gradient(112deg, rgba(128, 167, 189, 0.06) 0 1px, transparent 1px 88px),
+    repeating-linear-gradient(18deg, rgba(255, 177, 42, 0.045) 0 1px, transparent 1px 118px);
+  overflow: hidden;
   position: relative;
 }
 .product-hero::before {
@@ -13,6 +18,34 @@
 .product-hero > * {
   position: relative;
 }
+.hero-map-bg {
+  inset: 0;
+  opacity: 0.62;
+  pointer-events: none;
+  position: absolute;
+}
+.map-line,
+.map-node {
+  position: absolute;
+}
+.map-line {
+  background: rgba(47, 214, 210, 0.12);
+  height: 1px;
+  transform-origin: left center;
+  width: 520px;
+}
+.ml1 { left: -4%; top: 24%; transform: rotate(12deg); }
+.ml2 { left: 30%; top: 12%; transform: rotate(74deg); }
+.ml3 { right: -12%; top: 72%; transform: rotate(-18deg); }
+.ml4 { left: 18%; bottom: 14%; transform: rotate(-34deg); width: 680px; }
+.map-node {
+  border: 1px solid rgba(255, 177, 42, 0.36);
+  height: 12px;
+  width: 12px;
+}
+.mn1 { left: 34%; top: 27%; }
+.mn2 { right: 24%; top: 18%; }
+.mn3 { left: 58%; bottom: 19%; }
 .operating-layer {
   align-self: center;
   background:
@@ -199,6 +232,13 @@
   gap: 30px;
   grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
   padding: 52px 54px;
+}
+.impact-band > div:first-child p:not(.eyebrow),
+.section-lede {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.65;
+  max-width: 780px;
 }
 .impact-grid {
   display: grid;
