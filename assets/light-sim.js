@@ -35,6 +35,8 @@ const CONTROL_NODE_RADIUS = 64;
 const CROSSING_CLEAR_TIME = 1.15;
 const FIXED_CONFLICT_LOOKAHEAD = 3.2;
 const ENTRY_RESERVATION_MARGIN = 0.012;
+const FIXED_APPROACH_STOP_ZONE = 0.034;
+const FIXED_DWELL_BASE = 0.62;
 const MIN_VEHICLE_GAP = 0.04;
 const ROUTE_PRIORITY = ["east", "west", "feeder", "south", "north"];
 function vehicleTargetCount() {
@@ -209,6 +211,8 @@ function createVehicle(index) {
     wait: 0,
     delayCost: 0,
     stops: 0,
+    fixedWaits: {},
+    fixedReleased: {},
     complete: false,
     blocked: false,
     blockReason: "",
@@ -225,15 +229,19 @@ function resetReplay() {
     if (isFixedMode() && !isFieldNode(node)) {
       node.phase = i === 0 ? "EW" : "NS";
       node.timer = i * 0.8;
+      node.groupCursor = {};
+      assignFixedGroup(node, node.phase, false);
       return;
     }
     if (isFixedMode()) {
       node.phase = "OBS";
       node.timer = i * 0.35;
+      node.activeGroup = null;
       return;
     }
     node.phase = scenario.primaryPhase === "NS" && node.id === "J2" ? "NS" : "EW";
     node.timer = i * 0.45;
+    node.activeGroup = null;
   });
   state.nextId = 1;
   state.vehicles = Array.from({ length: vehicleTargetCount() }, (_, index) => createVehicle(index));
@@ -252,7 +260,11 @@ function nextStop(vehicle) {
   return vehicle.route.stopProgress.find((stop) => stop.p > vehicle.progress + 0.0005);
 }
 function nextControlPoint(vehicle) {
-  return vehicle.route.controlPoints.find((point) => point.p > vehicle.progress + 0.0005);
+  return vehicle.route.controlPoints.find((point) => {
+    const notCleared = vehicle.progress <= point.centerP + clearProgress(vehicle);
+    const notMissed = point.p > vehicle.progress - 0.0005;
+    return notCleared && notMissed;
+  });
 }
 function controlPointForVehicle(vehicle, id) {
   return vehicle.route.controlPoints.find((point) => {
@@ -279,9 +291,19 @@ function fixedGroupAllowed(node, point) {
   if (node.phase !== controlPhase(point)) return false;
   const groups = groupsForNodePhase(node.id, node.phase);
   if (groups.length <= 1) return true;
-  const slotSeconds = Math.max(2.4, 10.2 / groups.length);
-  const slot = Math.floor(node.timer / slotSeconds) % groups.length;
-  return groups[slot] === point.group;
+  if (!node.activeGroup || !groups.includes(node.activeGroup)) assignFixedGroup(node, node.phase, false);
+  return node.activeGroup === point.group;
+}
+function assignFixedGroup(node, phase, rotate) {
+  const groups = groupsForNodePhase(node.id, phase);
+  if (groups.length === 0) {
+    node.activeGroup = null;
+    return;
+  }
+  node.groupCursor = node.groupCursor || {};
+  const current = node.groupCursor[phase] || 0;
+  node.groupCursor[phase] = rotate ? (current + 1) % groups.length : current;
+  node.activeGroup = groups[node.groupCursor[phase]];
 }
 function pressure(junctionId, phase) {
   return state.vehicles.reduce((total, vehicle) => {
@@ -379,6 +401,7 @@ function updateJunctionNode(junction) {
   }
   if (shouldFixedSwitch || shouldMaxSwitch) {
     junction.phase = junction.phase === "EW" ? "NS" : "EW";
+    assignFixedGroup(junction, junction.phase, true);
     junction.timer = 0;
   }
 }
@@ -466,6 +489,26 @@ function controlsConflict(point, otherPoint) {
 }
 function fixedConflictAhead(point, other, otherPoint) {
   return inControlWindow(other, otherPoint) && etaToControl(other, otherPoint) < FIXED_CONFLICT_LOOKAHEAD;
+}
+function fixedDwellBlocked(vehicle, projected, dt) {
+  if (!isFixedMode()) return false;
+  const point = nextControlPoint(vehicle);
+  if (!point || point.kind !== "junction") return false;
+  const key = controlKey(point);
+  if (vehicle.fixedReleased[key]) return false;
+  if (projected < point.p - FIXED_APPROACH_STOP_ZONE) return false;
+  vehicle.fixedWaits[key] = (vehicle.fixedWaits[key] || 0) + dt;
+  if (vehicle.fixedWaits[key] >= fixedDwellDuration(vehicle)) {
+    vehicle.fixedReleased[key] = true;
+    return false;
+  }
+  return true;
+}
+function fixedDwellDuration(vehicle) {
+  return FIXED_DWELL_BASE + (vehicle.id % 4) * 0.16;
+}
+function controlKey(point) {
+  return `${point.id}:${point.group}`;
 }
 function canReserveAhead(vehicle, point, other, otherPoint) {
   if (inControlWindow(other, otherPoint)) return false;
@@ -574,17 +617,18 @@ function updateVehicle(vehicle, dt) {
   const velocity = vehicle.speed * controlValue("discharge") * startup;
   const projected = Math.min(1, vehicle.progress + velocity * dt);
   const signalBlocked = blockedBySignal(vehicle, projected);
+  const dwellBlocked = fixedDwellBlocked(vehicle, projected, dt);
   const conflictBlocked = crossingConflict(vehicle, projected) || junctionEntryConflict(vehicle, projected) || physicalConflict(vehicle, projected);
   const leader = leaderInfo(vehicle, projected);
   const spacingBlocked = queueSpacingBlocked(vehicle, leader);
   const bodyBlocked = !spacingBlocked && bodyConflict(vehicle, projected);
-  const blocked = signalBlocked || conflictBlocked || spacingBlocked || bodyBlocked;
+  const blocked = signalBlocked || dwellBlocked || conflictBlocked || spacingBlocked || bodyBlocked;
   const fixedSignalHold = isFixedMode() && conflictBlocked && distanceToStop(vehicle) < 0.16;
   vehicle.blocked = blocked;
-  vehicle.blockReason = signalBlocked || fixedSignalHold ? "signal" : conflictBlocked || bodyBlocked ? "conflict" : spacingBlocked ? "spacing" : "";
+  vehicle.blockReason = signalBlocked || dwellBlocked || fixedSignalHold ? "signal" : conflictBlocked || bodyBlocked ? "conflict" : spacingBlocked ? "spacing" : "";
   if (blocked) {
-    holdBeforeControl(vehicle);
-    if (signalBlocked || conflictBlocked || distanceToStop(vehicle) < 0.14) {
+    if (signalBlocked || dwellBlocked || conflictBlocked) holdBeforeControl(vehicle, projected);
+    if (signalBlocked || dwellBlocked || conflictBlocked || distanceToStop(vehicle) < 0.14) {
       vehicle.wait += dt;
       vehicle.delayCost += dt;
       if (vehicle.wait - vehicle.stops > 1) vehicle.stops += 1;
@@ -598,12 +642,16 @@ function updateVehicle(vehicle, dt) {
     vehicle.complete = true;
   }
 }
-function holdBeforeControl(vehicle) {
+function holdBeforeControl(vehicle, projected) {
   const point = nextControlPoint(vehicle);
   if (!point) return;
   if (inControlWindow(vehicle, point)) return;
   const margin = point.kind === "junction" ? ENTRY_RESERVATION_MARGIN + 0.002 : 0.002;
-  vehicle.progress = Math.min(vehicle.progress, Math.max(0, point.p - margin));
+  const holdP = holdProgress(vehicle, point, margin, projected);
+  vehicle.progress = Math.max(vehicle.progress, holdP);
+}
+function holdProgress(vehicle, point, margin, projected) {
+  return Math.max(0, Math.max(vehicle.progress, Math.min(projected, point.p - margin)));
 }
 function step(dt) {
   updateSignals(dt);
@@ -670,11 +718,20 @@ function drawRoads() {
   }
   drawBlocks();
   gridLinks.forEach((points) => drawPath(points, 38, "#0f2230"));
+  drawFeederCrossroads();
   Object.values(routes).forEach((route) => drawPath(route.points, 58, colors.road));
   gridLinks.forEach((points) => drawLaneDash(points, "rgba(244,247,242,0.10)"));
   Object.values(routes).forEach((route) => drawLaneDash(route.points, colors.lane));
 }
+function drawFeederCrossroads() {
+  const road = "#123040";
+  drawPath([[390, 120], [500, 120], [625, 120]], 58, road);
+  drawPath([[500, 68], [500, 120], [500, 188]], 52, road);
+  drawPath([[392, 520], [502, 520], [626, 520]], 58, road);
+  drawPath([[502, 454], [502, 520], [502, 590]], 52, road);
+}
 function drawSignals() {
+  drawApproachSignals();
   supportNodes.forEach((node) => {
     drawFieldSignal(node, 10);
   });
@@ -704,6 +761,37 @@ function drawSignals() {
   sensorSites.forEach((site) => {
     drawFieldSignal(site, 8);
   });
+}
+function drawApproachSignals() {
+  Object.entries(routes).forEach(([routeKey, route]) => {
+    route.controlPoints
+      .filter((point) => point.kind === "junction")
+      .forEach((point) => drawApproachSignal(routeKey, route, point));
+  });
+}
+function drawApproachSignal(routeKey, route, point) {
+  const pose = pointAt(route, point.p, routeKey === "south" || routeKey === "north" ? 1 : 0);
+  const color = approachSignalColor(routeKey, point);
+  const normal = { x: Math.cos(pose.angle + Math.PI / 2), y: Math.sin(pose.angle + Math.PI / 2) };
+  ctx.save();
+  ctx.strokeStyle = "rgba(244,247,242,0.72)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(pose.x - normal.x * 18, pose.y - normal.y * 18);
+  ctx.lineTo(pose.x + normal.x * 18, pose.y + normal.y * 18);
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 9;
+  ctx.beginPath();
+  ctx.arc(pose.x + normal.x * 25, pose.y + normal.y * 25, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+function approachSignalColor(routeKey, point) {
+  if (!isFixedMode()) return routeKey === "south" || routeKey === "north" ? colors.cyan : colors.green;
+  const node = nodeById(point.id);
+  return node && fixedGroupAllowed(node, point) ? colors.green : colors.red;
 }
 function drawFieldSignal(node, radius) {
   const active = !isFixedMode();
