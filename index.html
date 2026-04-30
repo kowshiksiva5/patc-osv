@@ -6,7 +6,7 @@
     <title>PATC | Probabilistic Adaptive Traffic Control</title>
     <meta
       name="description"
-      content="PATC is a shadow-mode adaptive traffic intelligence product for coordinated city sectors, starting with Bengaluru mixed traffic."
+      content="PATC uses traffic physics, probability, and replay-first optimization to make congested city corridors smoother before any live signal control."
     />
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="assets/styles.css" />
@@ -19,10 +19,10 @@
       </a>
       <nav aria-label="Primary navigation">
         <a href="#product">Product</a>
-        <a href="#simulation">Simulation</a>
-        <a href="#evidence">Evidence</a>
-        <a href="#proof">Pilot</a>
-        <a href="#company">Company</a>
+        <a href="#simulation">Demo</a>
+        <a href="#evidence">Benefits</a>
+        <a href="#proof">Safety</a>
+        <a href="#company">Rollout</a>
       </nav>
     </header>
 
@@ -31,31 +31,56 @@
         <canvas id="trafficCanvas" aria-hidden="true"></canvas>
         <div class="hero-shade"></div>
         <div class="hero-copy">
-          <p class="eyebrow">Shadow-mode signal intelligence for congested corridors</p>
-          <h1>Help traffic teams see sector pressure before queues lock up.</h1>
+          <p class="eyebrow">Not luck. Better traffic math.</p>
+          <h1>Imagine every light turning green as you arrive.</h1>
           <p class="hero-lede">
-            PATC starts with a synthetic replay today, then turns field counts
-            and signal observations into corridor pressure, spillback warnings,
-            startup-loss estimates, and operator-reviewed signal recommendations.
+            Static timers miss the physics of the road: driver hesitation,
+            vehicle waves, and downstream queues. PATC starts in shadow-mode
+            replay to predict those waves and test safer green-time decisions
+            every few seconds before any live control.
           </p>
           <div class="hero-actions">
             <a href="#simulation">Explore the replay</a>
-            <a href="#proof">View pilot readiness</a>
+            <a href="#proof">See safety path</a>
           </div>
         </div>
       </section>
 
       <section id="product" class="product-path" aria-label="Product path">
-        <a href="#simulation"><span>Problem</span><strong>Linked queues fail as a sector</strong></a>
-        <a href="#simulation"><span>Product</span><strong>Shadow recommendations + replay</strong></a>
-        <a href="#evidence"><span>Current proof</span><strong>Synthetic fixture, clearly labeled</strong></a>
-        <a href="#proof"><span>Pilot path</span><strong>Field labels before control</strong></a>
+        <a href="#simulation"><span>What you feel</span><strong>Red light after red light</strong></a>
+        <a href="#simulation"><span>Why it happens</span><strong>Static timers miss traffic waves</strong></a>
+        <a href="#evidence"><span>What PATC tests</span><strong>Probabilistic green timing</strong></a>
+        <a href="#proof"><span>Safety first</span><strong>Replay before control</strong></a>
+      </section>
+
+      <section class="public-story" aria-label="Public traffic story">
+        <div>
+          <p class="eyebrow">For everyone stuck at a red light</p>
+          <h2>Traffic is not just cars. It is a moving wave.</h2>
+        </div>
+        <div class="public-story-grid">
+          <article>
+            <span>01</span>
+            <strong>Drivers hesitate</strong>
+            <p>When a light turns green, vehicles do not move instantly. That startup loss compounds across a busy corridor.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <strong>Queues travel backward</strong>
+            <p>A downstream jam can make an upstream green useless, pushing more vehicles into a blocked link.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <strong>Better timing should be felt</strong>
+            <p>The public goal is simpler commutes: less stop-start motion, less wasted fuel, and fewer avoidable red-light waits.</p>
+          </article>
+        </div>
       </section>
 
       <section class="recommendation-sample" aria-label="Sample operator recommendation">
         <div>
-          <p class="eyebrow">Sample shadow decision</p>
-          <h2>Recommendation, reason, effect, safety fallback, and validation status in one card.</h2>
+          <p class="eyebrow">What the math does</p>
+          <h2>Measure the wave. Predict the hesitation. Recommend the next green window.</h2>
         </div>
         <div class="sample-grid">
           <span><strong>Recommendation</strong> In replay, test extending E/W green by 8 seconds; this is not operational advice.</span>
@@ -72,12 +97,12 @@
       <section id="simulation" class="section simulation-lab">
         <div class="section-head">
           <p class="eyebrow">Interactive sector replay</p>
-          <h2>Synthetic sector replay toward a coordinated operating layer.</h2>
+          <h2>Watch traffic waves turn into signal decisions.</h2>
           <p>
-            The demo estimates how density waves may move through a linked
-            sector, accounts for startup delay after red, and exposes every
-            recommendation as a replay that an operator can audit after field
-            ingestion is added.
+            The demo shows why a green light is not always enough. It estimates
+            how density waves move through a linked sector, accounts for startup
+            delay after red, and exposes each recommendation as an auditable
+            replay once field observations are added.
           </p>
         </div>
 
@@ -88,9 +113,15 @@
           <span>Control mode <strong>one node + synthetic neighbors</strong></span>
         </div>
 
+        <div class="replay-guide" aria-label="How to read the replay">
+          <span><strong>Cyan and orange</strong> show competing traffic streams.</span>
+          <span><strong>Green pulses</strong> show smoother arrival windows.</span>
+          <span><strong>Red pressure</strong> shows where queues can lock the corridor.</span>
+        </div>
+
         <div class="scenario-console" aria-label="Replay scenario controls">
           <div>
-            <p class="console-kicker">Change the traffic story</p>
+            <p class="console-kicker">Change the commute</p>
             <h3 id="scenarioTitle">Peak spillback from a saturated approach</h3>
             <p id="scenarioCopy">
               One approach discharges, but the next road is already full. PATC
@@ -126,11 +157,10 @@
           <article class="concept-card">
             <div class="concept-token">FLOW</div>
             <div>
-              <h3>Traffic behaves like constrained flow</h3>
+              <h3>Vehicles move like a pressure wave</h3>
               <p>
-                The model treats a sector like a moving pressure field: free
-                flow, critical density, and jam density determine where a queue
-                will grow next.
+                The replay treats a corridor like a moving pressure field: free
+                flow, critical density, and jam density shape where queues grow.
               </p>
               <div class="pill">LWR-inspired calibration target</div>
             </div>
@@ -138,7 +168,7 @@
           <article class="concept-card">
             <div class="concept-token">Pi_m</div>
             <div>
-              <h3>Green does not mean instant movement</h3>
+              <h3>Green does not mean instant motion</h3>
               <p>
                 Each stopped stream moves through idle, acceleration, and flow.
                 PATC discounts discharge while vehicles are still recovering
@@ -150,11 +180,11 @@
           <article class="concept-card">
             <div class="concept-token">H=6</div>
             <div>
-              <h3>Recommendations stay explainable</h3>
+              <h3>Optimization stays explainable</h3>
               <p>
-                The current candidate action is scored against pressure, wait
-                time, and synthetic downstream context risk before it becomes a
-                shadow-mode recommendation.
+                Every few seconds, the replay scores pressure, wait time, and
+                synthetic downstream context risk before showing a shadow-mode
+                recommendation.
               </p>
               <div class="pill">Operator-reviewed replay</div>
             </div>
@@ -182,8 +212,8 @@
               <button class="btn" id="btn05x" onclick="setSpeed(0.5,this)">0.5x</button>
             </div>
             <div class="legend-row">
-              <div class="legend-item"><div class="leg-line cyan"></div> Vehicle A route</div>
-              <div class="legend-item"><div class="leg-line orange"></div> Vehicle B route</div>
+              <div class="legend-item"><div class="leg-line cyan"></div> N/S traffic stream</div>
+              <div class="legend-item"><div class="leg-line orange"></div> E/W traffic stream</div>
               <div class="legend-item"><div class="leg-dot green"></div> N/S green</div>
               <div class="legend-item"><div class="leg-dot red"></div> E/W red</div>
               <div class="legend-item"><div class="leg-dot yellow"></div> Transition</div>
@@ -411,52 +441,52 @@
 
       <section id="proof" class="section proof">
         <div class="section-head compact">
-          <p class="eyebrow">Validation path</p>
-          <h2>Start with replay. Earn trust before control.</h2>
+          <p class="eyebrow">Public benefit</p>
+          <h2>The visible promise is fewer wasted stops.</h2>
           <p>
-            PATC is intentionally a shadow-mode decision-support layer first.
-            The pilot should run observed replay across a 4-6 signal sector
-            through peak, off-peak, rain, weekend, school, event, and seasonal
-            variation before any deployment request.
+            PATC is built to be felt by ordinary commuters, but it should earn
+            trust before touching a live signal. The first product is a
+            shadow-mode replay that shows whether smarter timing would reduce
+            red-light waits without making cross traffic unsafe.
           </p>
         </div>
         <div class="proof-grid">
-          <article><span>Observed</span><h3>Cross-junction failure</h3><p>One upstream signal can clear while the next road stays saturated. The system is built around that linked-sector failure mode.</p></article>
-          <article><span>Modeled</span><h3>Flow plus startup loss</h3><p>The product tracks density, discharge, Pi_m, phase timing, wait, and pressure instead of treating every junction as isolated.</p></article>
-          <article><span>Simulated</span><h3>Hypothesis targets</h3><p>The percentage numbers are simulation targets that must be validated against fixed-time and actuated baselines.</p></article>
-          <article><span>Pilot gate</span><h3>Authority-ready replay</h3><p>Run peak, off-peak, rain, weekend, school, holiday, event, and seasonal variation before any deployment request.</p></article>
+          <article><span>For drivers</span><h3>Smoother movement</h3><p>The goal is fewer stop-start waves across a linked sector, not a single lucky green at one pole.</p></article>
+          <article><span>For air</span><h3>Less idle waste</h3><p>Reduced waiting and hard braking should lower wasted fuel and emissions once field baselines prove the effect.</p></article>
+          <article><span>For operators</span><h3>Explainable decisions</h3><p>Every recommendation comes with a reason, confidence score, safety fallback, and replay trace.</p></article>
+          <article><span>For cities</span><h3>Replay before rollout</h3><p>Peak, rain, school, weekend, event, and seasonal patterns are tested before any live deployment request.</p></article>
         </div>
         <div class="pilot-path">
-          <article><strong>First-choice corridor</strong><span>Silk Board to HSR/Bomanahalli sector: 4-6 signals, mixed traffic, frequent spillback, and strong commuter pain.</span></article>
-          <article><strong>M1 permission path</strong><span>BTP Traffic Management Centre or jurisdictional traffic station first; BBMP/DULT coordination only if the corridor requires it.</span></article>
-          <article><strong>Observation unit</strong><span>Site-hours, not observer-hours: two-person windows are labeled as one site-hour and audited with inter-rater QA.</span></article>
-          <article><strong>Data posture</strong><span>No raw video by default. Clip-assisted labeling is disabled for school-release windows; raw pre-blur clips never leave the capture device; privacy complaints trigger immediate deletion.</span></article>
-          <article><strong>Fallback rules</strong><span>Minimum greens, pedestrian windows, emergency preemption, stale-data stop, and manual operator priority.</span></article>
+          <article><strong>Where it starts</strong><span>A dense Bengaluru sector with 4-6 interacting signals, mixed traffic, frequent spillback, and clear commuter pain.</span></article>
+          <article><strong>What gets measured</strong><span>Queue length, discharge rate, phase timing, empty-green time, rain/event tags, and downstream blocking.</span></article>
+          <article><strong>How it stays private</strong><span>No raw video by default; labels focus on traffic state, not people or plates, and complaint-triggered deletion is immediate.</span></article>
+          <article><strong>Who stays in control</strong><span>Traffic operators keep authority through minimum greens, pedestrian windows, emergency priority, stale-data stops, and manual override.</span></article>
+          <article><strong>When it scales</strong><span>Only after replay beats fixed-time and actuated baselines across normal, rainy, school, weekend, event, and seasonal traffic.</span></article>
         </div>
       </section>
 
       <section id="plan" class="section plan">
         <div class="section-head compact">
-          <p class="eyebrow">Pilot readiness</p>
-          <h2>Website, replay, trace, field plan, and budget tie together.</h2>
+          <p class="eyebrow">From demo to street</p>
+          <h2>A practical path from replay to a real city sector.</h2>
           <p>
-            A traffic stakeholder or funder should be able to inspect the replay,
-            see one recommendation, understand the civic safety boundary, then
-            open the one-page build plan.
+            Before commuters see a change at the signal, the system has to
+            observe real traffic, calibrate the physics, replay alternate green
+            windows, and pass a human-reviewed safety gate.
           </p>
         </div>
         <div class="pilot-flow">
-          <article><span>01</span><strong>Website</strong><p>Company story, product wedge, and current status without founder names.</p></article>
-          <article><span>02</span><strong>Replay</strong><p>Two-route synthetic sector demo with one controlled node and downstream context.</p></article>
-          <article><span>03</span><strong>Trace</strong><p>Hand-authored synthetic fixture that exposes formulas, baseline, and caveats.</p></article>
-          <article><span>04</span><strong>Pilot plan</strong><p>One sector, 12 months, replay validation, civic packet, and budget gates.</p></article>
+          <article><span>01</span><strong>Observe</strong><p>Build clean site-hour data across peak, off-peak, rain, school, weekend, event, and seasonal variation.</p></article>
+          <article><span>02</span><strong>Calibrate</strong><p>Fit density, discharge, startup loss, and spillback behavior to the chosen sector.</p></article>
+          <article><span>03</span><strong>Replay</strong><p>Compare PATC recommendations against fixed-time and actuated baselines before any field control.</p></article>
+          <article><span>04</span><strong>Pilot</strong><p>Move to supervised live testing only after operators can audit the decision, risk, and fallback trace.</p></article>
         </div>
         <a class="pdf-link" href="output/pdf/patc_timeline_cost.pdf">View pilot one-pager</a>
       </section>
 
       <section id="company" class="section company">
         <div class="section-head">
-          <p class="eyebrow">Company</p>
+          <p class="eyebrow">Rollout</p>
           <h2>Prove it in Bengaluru traffic. Reuse it across any congested corridor.</h2>
           <p>
             Bengaluru is the proving ground because the traffic is dense,
@@ -466,24 +496,20 @@
           </p>
         </div>
         <div class="boundary-grid">
-          <article><strong>Shadow-mode recommendations</strong><span>The product earns trust through replay, evidence, and operator review before live control.</span></article>
-          <article><strong>Linked-sector coordination</strong><span>The core wedge is coordinating interacting queues across multiple signals, not optimizing one pole in isolation.</span></article>
-          <article><strong>Operator-grade replay</strong><span>Every recommendation needs a reason, confidence score, fallback trigger, and exportable validation trace.</span></article>
+          <article><strong>For commuters</strong><span>The product focuses on the felt outcome: smoother arrivals, shorter queues, and less avoidable idling.</span></article>
+          <article><strong>For traffic teams</strong><span>The system coordinates interacting queues across multiple signals instead of optimizing one junction in isolation.</span></article>
+          <article><strong>For city rollout</strong><span>Every recommendation needs a reason, confidence score, fallback trigger, and exportable validation trace.</span></article>
         </div>
         <div class="traction-strip">
-          <span>Current receipt: live replay, generated trace, pilot one-pager, and M1 request draft dated Apr 30, 2026</span>
-          <span>Next receipt: logged BTP/jurisdictional intimation, first 40-60 clean site-hours, and labeled replay dataset</span>
-          <span>Rejected assumption: more green time alone solves spillback</span>
-          <span>Unfair angle: mechanical flow intuition applied to traffic pressure and discharge</span>
+          <span>Now: live replay, auditable synthetic trace, and one-page pilot plan</span>
+          <span>Next: permissioned observations, 40-60 clean site-hours, and labeled Bengaluru replay data</span>
+          <span>Public boundary: no black-box live control without safety gates</span>
+          <span>Core insight: traffic behaves like pressure, discharge, hesitation, and waves</span>
         </div>
         <div class="team-fit">
-          <article><strong>Mechanical systems owner</strong><span>Owns flow-model framing, validation discipline, corridor observation design, test protocol, and physical-world failure modes.</span></article>
-          <article><strong>Software/data owner</strong><span>Owns simulation, dashboard, automation, dataset structure, replay exports, and weekly product iteration.</span></article>
-          <article><strong>Field cadence</strong><span>M1 starts at two windows per week. M2-M5 ramps to 6-8 two-hour site windows per week, with 40-60 clean site-hours by M3.</span></article>
-        </div>
-        <div id="pilot-contact" class="pilot-contact">
-          <strong>Contact status</strong>
-          <span>Use the named contacts in the private application packet; public intake will be added after the first civic intimation is logged.</span>
+          <article><strong>Step 1: prove the wave</strong><span>Use observed traffic to show where queues move backward, where greens are wasted, and where startup loss matters.</span></article>
+          <article><strong>Step 2: prove the decision</strong><span>Replay alternate green windows with clear reasons, confidence, and rejection cases.</span></article>
+          <article><strong>Step 3: prove the rollout</strong><span>Run supervised pilots only when the replay is repeatable, safe, and useful to operators.</span></article>
         </div>
       </section>
     </main>
@@ -492,7 +518,7 @@
       <img src="assets/logo.svg" alt="" />
       <span>PATC</span>
       <p>Adaptive signal intelligence for congested city sectors.</p>
-      <a href="#proof">View pilot readiness</a>
+      <a href="#proof">See safety path</a>
       <a href="output/pdf/patc_timeline_cost.pdf">Pilot one-pager</a>
     </footer>
 

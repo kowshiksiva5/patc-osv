@@ -4,13 +4,14 @@ const ctx = canvas.getContext("2d");
 let width = 0;
 let height = 0;
 let tick = 0;
+let lastFrame = 0;
 let reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const vehicles = Array.from({ length: 130 }, (_, index) => ({
   color: ["#00e5ff", "#ff9000", "#00ff88", "#ffc107"][index % 4],
   lane: index % 3,
   offset: Math.random(),
-  speed: 0.0011 + Math.random() * 0.0025,
+  speed: 0.0009 + Math.random() * 0.002,
 }));
 
 function scrollToHashTarget(hash) {
@@ -155,15 +156,46 @@ function drawPressure(routeSet) {
   ctx.setLineDash([]);
 }
 
+function drawGreenWave(routeSet) {
+  const wave = (tick * 0.004) % 1;
+  routeSet.forEach((route, routeIndex) => {
+    for (let step = 0; step < 3; step += 1) {
+      const progress = (wave + step * 0.34 + routeIndex * 0.12) % 1;
+      const point = pointAt(route, progress);
+      const pulse = Math.sin((tick * 0.055) + step + routeIndex) * 0.5 + 0.5;
+      const radius = 18 + pulse * 16;
+      ctx.strokeStyle = routeIndex === 1
+        ? `rgba(255,193,7,${0.18 + pulse * 0.18})`
+        : `rgba(0,255,136,${0.18 + pulse * 0.18})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = routeIndex === 1
+        ? `rgba(255,193,7,${0.035 + pulse * 0.035})`
+        : `rgba(0,255,136,${0.035 + pulse * 0.035})`;
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, radius * 0.68, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+}
+
 function drawVehicles(routeSet) {
   vehicles.forEach((vehicle) => {
     const point = pointAt(routeSet[vehicle.lane], (vehicle.offset + tick * vehicle.speed) % 1);
     ctx.save();
     ctx.translate(point.x, point.y);
     ctx.rotate(point.angle);
-    ctx.globalAlpha = 0.82;
+    ctx.globalAlpha = 0.88;
+    ctx.shadowColor = vehicle.color;
+    ctx.shadowBlur = 10;
     ctx.fillStyle = vehicle.color;
-    ctx.fillRect(-9, -4, 18, 8);
+    ctx.roundRect(-9, -4, 18, 8, 3);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.fillRect(4, -2, 4, 4);
     ctx.restore();
   });
   ctx.globalAlpha = 1;
@@ -174,22 +206,26 @@ function drawSignals(routeSet) {
   signals.forEach((point, index) => {
     const active = index === Math.floor(tick / 95) % signals.length;
     const color = active ? "#ffc107" : index % 2 ? "#00ff88" : "#ff3040";
+    const pulse = active ? Math.sin(tick * 0.08) * 0.5 + 0.5 : 0;
     ctx.shadowColor = color;
-    ctx.shadowBlur = active ? 26 : 12;
+    ctx.shadowBlur = active ? 26 + pulse * 16 : 12;
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(point.x, point.y, active ? 14 : 10, 0, Math.PI * 2);
+    ctx.arc(point.x, point.y, active ? 13 + pulse * 3 : 10, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
   });
 }
 
-function drawHero() {
+function drawHero(timestamp = 0) {
   if (document.hidden) return;
-  tick += 1;
+  const delta = lastFrame ? Math.min(2.2, (timestamp - lastFrame) / 16.67) : 1;
+  lastFrame = timestamp;
+  tick += delta;
   const routeSet = routes();
   drawBackground(routeSet);
   drawPressure(routeSet);
+  drawGreenWave(routeSet);
   drawVehicles(routeSet);
   drawSignals(routeSet);
   if (!reduceMotion) requestAnimationFrame(drawHero);
