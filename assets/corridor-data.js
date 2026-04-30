@@ -74,7 +74,7 @@ const routes = {
   north: {
     phase: "NS",
     color: colors.cyan,
-    laneShift: -8,
+    laneShift: 8,
     points: [[548, 615], [500, 318], [478, 55]],
     stops: ["J2"],
   },

@@ -21,7 +21,7 @@ const modeCopy = {
   patc: {
     label: "PATC shadow",
     effect: "Corridor coordination",
-    overlay: "All signals under one adaptive corridor plan",
+    overlay: "J/F/S nodes under one adaptive corridor plan",
   },
   fixed: {
     label: "Fixed-time baseline",
@@ -30,9 +30,15 @@ const modeCopy = {
   },
 };
 const STOP_LINE_OFFSET = 56;
-const MIN_VEHICLE_GAP = 0.03;
+const MIN_VEHICLE_GAP = 0.04;
 function vehicleTargetCount() {
-  return 30;
+  return 22;
+}
+function controlledNodes() {
+  return [...junctions, ...coordinatedNodes()];
+}
+function isFieldNode(node) {
+  return node.id.startsWith("F") || node.id.startsWith("S");
 }
 function isFixedMode() {
   return state.mode === "fixed";
@@ -107,7 +113,7 @@ function createVehicle(index) {
     kind,
     routeKey: key,
     route: routes[key],
-    lane: index % 2,
+    lane: laneForRoute(key, index),
     progress: 0,
     delay: index * scenario.spacing * demandSpacing,
     speed: (kind === "bike" ? 0.041 : 0.035) + (index % 4) * 0.004,
@@ -119,16 +125,26 @@ function createVehicle(index) {
     blockReason: "",
   };
 }
+function laneForRoute(key, index) {
+  if (key === "south") return 1;
+  if (key === "north") return 1;
+  return index % 2;
+}
 function resetReplay() {
   const scenario = currentScenario();
-  junctions.forEach((j, i) => {
-    if (isFixedMode()) {
-      j.phase = i === 0 ? "EW" : "NS";
-      j.timer = i * 0.8;
+  controlledNodes().forEach((node, i) => {
+    if (isFixedMode() && !isFieldNode(node)) {
+      node.phase = i === 0 ? "EW" : "NS";
+      node.timer = i * 0.8;
       return;
     }
-    j.phase = scenario.primaryPhase === "NS" && j.id === "J2" ? "NS" : "EW";
-    j.timer = i * 1.5;
+    if (isFixedMode()) {
+      node.phase = "OBS";
+      node.timer = i * 0.35;
+      return;
+    }
+    node.phase = scenario.primaryPhase === "NS" && node.id === "J2" ? "NS" : "EW";
+    node.timer = i * 0.45;
   });
   state.nextId = 1;
   state.vehicles = Array.from({ length: vehicleTargetCount() }, (_, index) => createVehicle(index));
@@ -153,6 +169,29 @@ function pressure(junctionId, phase) {
     if (!stop || stop.id !== junctionId) return total;
     const distance = Math.max(0, stop.p - vehicle.progress);
     return total + Math.max(0, 1.4 - distance * 13) + vehicle.wait * 0.18;
+  }, fieldNodePressure(junctionId, phase));
+}
+function fieldNodePressure(junctionId, phase) {
+  if (isFixedMode()) return 0;
+  return coordinatedNodes().reduce((total, node) => {
+    if (closestJunction(node).id !== junctionId) return total;
+    return total + state.vehicles.reduce((nodeTotal, vehicle) => {
+      if (vehicle.complete || vehicle.delay > 0 || vehicle.route.phase !== phase) return nodeTotal;
+      const pose = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
+      const distance = Math.hypot(pose.x - node.x, pose.y - node.y);
+      return distance < 126 ? nodeTotal + (1.05 - distance / 140) : nodeTotal;
+    }, 0);
+  }, 0);
+}
+function coordinatedNodes() {
+  return [...supportNodes, ...sensorSites];
+}
+function localNodePressure(node, phase) {
+  return state.vehicles.reduce((total, vehicle) => {
+    if (vehicle.complete || vehicle.delay > 0 || vehicle.route.phase !== phase) return total;
+    const pose = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
+    const distance = Math.hypot(pose.x - node.x, pose.y - node.y);
+    return distance < 128 ? total + Math.max(0, 1.15 - distance / 120) + vehicle.wait * 0.08 : total;
   }, 0);
 }
 function arrivalPressure(junctionId, phase) {
@@ -165,39 +204,62 @@ function arrivalPressure(junctionId, phase) {
   }, 0);
 }
 function updateSignals(dt) {
-  junctions.forEach((junction) => {
-    junction.timer += dt;
-    if (!isFixedMode() && junction.id !== "J2") {
-      junction.phase = "EW";
-      return;
-    }
-    const downstreamRisk = downstreamPenalty(junction.id);
-    const ewLive = pressure(junction.id, "EW");
-    const nsLive = pressure(junction.id, "NS");
-    const ewDemand = ewLive + arrivalPressure(junction.id, "EW");
-    const nsDemand = nsLive + arrivalPressure(junction.id, "NS");
-    const ewBias = currentScenario().primaryPhase === "EW" ? 1.1 : 1;
-    const nsBias = currentScenario().primaryPhase === "NS" && junction.id === "J2" ? 1.35 : 1;
-    const ew = isFixedMode() ? ewLive : Math.max(0, ewDemand * ewBias - downstreamRisk * 0.1);
-    const ns = isFixedMode() ? nsLive : nsDemand * nsBias;
-    const minGreen = isFixedMode() ? 4.0 * controlValue("safety") : Math.min(4.8, 3.2 * controlValue("safety"));
-    const maxGreen = isFixedMode() ? 10.8 : 11.8;
-    const target = ew >= ns ? "EW" : "NS";
-    const urgent = Math.max(ew, ns) > Math.min(ew, ns) * 1.06 + 0.55;
-    const shouldPatcSwitch = !isFixedMode() && target !== junction.phase && urgent && junction.timer > minGreen;
-    const shouldFixedSwitch = isFixedMode() && junction.timer > 10.2;
-    const shouldPatcMaxSwitch = !isFixedMode() && target !== junction.phase && junction.timer > maxGreen;
-    const shouldMaxSwitch = isFixedMode() && junction.timer > maxGreen;
-    if (shouldPatcSwitch || shouldPatcMaxSwitch) {
-      junction.phase = target;
-      junction.timer = 0;
-      return;
-    }
-    if (shouldFixedSwitch || shouldMaxSwitch) {
-      junction.phase = junction.phase === "EW" ? "NS" : "EW";
-      junction.timer = 0;
-    }
-  });
+  controlledNodes().forEach((node) => updateControlledNode(node, dt));
+}
+function updateControlledNode(node, dt) {
+  node.timer += dt;
+  if (isFieldNode(node)) {
+    updateFieldNode(node);
+    return;
+  }
+  updateJunctionNode(node);
+}
+function updateFieldNode(node) {
+  if (isFixedMode()) {
+    node.phase = "OBS";
+    return;
+  }
+  const nearest = closestJunction(node);
+  const ew = pressure(nearest.id, "EW") * 0.18 + localNodePressure(node, "EW");
+  const ns = pressure(nearest.id, "NS") * 0.18 + localNodePressure(node, "NS");
+  const target = ew >= ns ? "EW" : "NS";
+  if (target !== node.phase && node.timer > Math.min(4.2, 2.6 * controlValue("safety"))) {
+    node.phase = target;
+    node.timer = 0;
+  }
+}
+function updateJunctionNode(junction) {
+  if (!isFixedMode() && junction.id !== "J2") {
+    junction.phase = "EW";
+    return;
+  }
+  const downstreamRisk = downstreamPenalty(junction.id);
+  const ewLive = pressure(junction.id, "EW");
+  const nsLive = pressure(junction.id, "NS");
+  const ewDemand = ewLive + arrivalPressure(junction.id, "EW");
+  const nsDemand = nsLive + arrivalPressure(junction.id, "NS");
+  const ewBias = currentScenario().primaryPhase === "EW" ? 1.1 : 1;
+  const nsBias = currentScenario().primaryPhase === "NS" && junction.id === "J2" ? 1.35 : 1;
+  const ew = isFixedMode() ? ewLive : Math.max(0, ewDemand * ewBias - downstreamRisk * 0.1);
+  const ns = isFixedMode() ? nsLive : nsDemand * nsBias;
+  const minGreen = isFixedMode() ? 4.0 * controlValue("safety") : Math.min(4.8, 3.2 * controlValue("safety"));
+  const maxGreen = isFixedMode() ? 10.8 : 11.8;
+  const target = ew >= ns ? "EW" : "NS";
+  const urgent = Math.max(ew, ns) > Math.min(ew, ns) * 1.06 + 0.55;
+  const shouldPatcSwitch = !isFixedMode() && target !== junction.phase && urgent && junction.timer > minGreen;
+  const shouldFixedSwitch = isFixedMode() && junction.timer > 10.2;
+  const shouldPatcMaxSwitch = !isFixedMode() && target !== junction.phase && junction.timer > maxGreen;
+  const shouldMaxSwitch = isFixedMode() && junction.timer > maxGreen;
+  if ((shouldPatcSwitch || shouldPatcMaxSwitch || shouldFixedSwitch || shouldMaxSwitch) && junctionOccupied(junction.id)) return;
+  if (shouldPatcSwitch || shouldPatcMaxSwitch) {
+    junction.phase = target;
+    junction.timer = 0;
+    return;
+  }
+  if (shouldFixedSwitch || shouldMaxSwitch) {
+    junction.phase = junction.phase === "EW" ? "NS" : "EW";
+    junction.timer = 0;
+  }
 }
 function downstreamPenalty(junctionId) {
   const order = ["J1", "J2", "J3", "J4"];
@@ -250,6 +312,25 @@ function physicalConflict(vehicle, projected) {
     return occupiedJunction && projectedGap < currentGap;
   });
 }
+function junctionEntryConflict(vehicle, projected) {
+  const stop = nextStop(vehicle);
+  if (!stop || projected < stop.p - 0.006) return false;
+  const pose = pointAt(vehicle.route, projected, vehicle.lane);
+  return state.vehicles.some((other) => {
+    if (other === vehicle || other.complete || other.delay > 0 || other.routeKey === vehicle.routeKey) return false;
+    if (!hasEnteredJunction(other, stop.id)) return false;
+    const otherPose = pointAt(other.route, other.progress, other.lane);
+    return Math.hypot(pose.x - otherPose.x, pose.y - otherPose.y) < 46;
+  });
+}
+function vehicleClearance(a, b) {
+  if (a.kind === "bike" && b.kind === "bike") return 22;
+  if (a.kind === "bike" || b.kind === "bike") return 26;
+  return 30;
+}
+function junctionOccupied(junctionId) {
+  return state.vehicles.some((vehicle) => !vehicle.complete && vehicle.delay <= 0 && hasEnteredJunction(vehicle, junctionId));
+}
 function hasEnteredJunction(vehicle, junctionId) {
   const stop = vehicle.route.stopProgress.find((item) => item.id === junctionId);
   if (!stop || vehicle.progress <= stop.p + 0.004) return false;
@@ -272,7 +353,7 @@ function updateVehicle(vehicle, dt) {
   const velocity = vehicle.speed * controlValue("discharge") * startup;
   const projected = Math.min(1, vehicle.progress + velocity * dt);
   const signalBlocked = blockedBySignal(vehicle, dt);
-  const conflictBlocked = physicalConflict(vehicle, projected);
+  const conflictBlocked = junctionEntryConflict(vehicle, projected) || physicalConflict(vehicle, projected);
   const leader = leaderInfo(vehicle, projected);
   const spacingBlocked = queueSpacingBlocked(vehicle, leader);
   const blocked = signalBlocked || conflictBlocked || spacingBlocked;
@@ -321,7 +402,7 @@ function updateRecommendation() {
     return;
   }
   const risk = downstreamPenalty(top.j.id) > 1.6 ? "protect downstream gap" : `${phase === top.j.phase ? "hold" : "prepare"} ${phase}`;
-  state.recommendation = `${top.j.id}: ${risk}`;
+  state.recommendation = `${top.j.id}: ${risk}; F/S mesh synced`;
 }
 function pressureRanked() {
   const ranked = junctions.map((j) => ({ j, ew: pressure(j.id, "EW"), ns: pressure(j.id, "NS") }));
@@ -370,16 +451,7 @@ function drawRoads() {
 }
 function drawSignals() {
   supportNodes.forEach((node) => {
-    ctx.fillStyle = "#0b151d";
-    ctx.strokeStyle = "rgba(128,167,189,0.38)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, 10, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = colors.muted;
-    ctx.font = "700 10px sans-serif";
-    ctx.fillText(node.id, node.x + 13, node.y + 4);
+    drawFieldSignal(node, 10);
   });
   junctions.forEach((j) => {
     const color = j.phase === "EW" ? colors.amber : colors.cyan;
@@ -405,15 +477,26 @@ function drawSignals() {
     ctx.fillText(`${j.phase} ${j.timer.toFixed(0)}s`, j.x + 18, j.y + 6);
   });
   sensorSites.forEach((site) => {
-    ctx.strokeStyle = colors.cyan;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(site.x, site.y, 8, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = colors.cyan;
-    ctx.font = "700 10px sans-serif";
-    ctx.fillText(site.id, site.x + 10, site.y - 8);
+    drawFieldSignal(site, 8);
   });
+}
+function drawFieldSignal(node, radius) {
+  const active = !isFixedMode();
+  const color = !active ? "rgba(128,167,189,0.38)" : node.phase === "NS" ? colors.cyan : colors.green;
+  ctx.fillStyle = "#0b151d";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = active ? 2 : 1;
+  ctx.beginPath();
+  ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = active ? color : colors.muted;
+  ctx.font = "700 10px sans-serif";
+  ctx.fillText(node.id, node.x + radius + 4, node.y + 4);
+  if (!active) return;
+  ctx.fillStyle = colors.muted;
+  ctx.font = "9px sans-serif";
+  ctx.fillText(`${node.phase} ${node.timer.toFixed(0)}s`, node.x + radius + 4, node.y + 15);
 }
 function drawModeOverlay() {
   if (isFixedMode()) {
@@ -433,6 +516,10 @@ function drawPatcCoordination() {
   ctx.setLineDash([14, 12]);
   ctx.lineDashOffset = -state.frameIndex * 0.9;
   drawPath(junctions.map((j) => [j.x, j.y]), 3, "rgba(82,210,115,0.78)");
+  coordinatedNodes().forEach((node) => {
+    const nearest = closestJunction(node);
+    drawPath([[node.x, node.y], [nearest.x, nearest.y]], 1.5, "rgba(47,214,210,0.30)");
+  });
   ctx.restore();
   junctions.forEach((j, index) => {
     ctx.strokeStyle = `rgba(82,210,115,${pulse})`;
@@ -442,7 +529,21 @@ function drawPatcCoordination() {
     ctx.stroke();
     drawBadge(j.x - 34, j.y + 30, "coordinated", colors.green);
   });
-  drawBadge(690, 92, modeCopy.patc.overlay, colors.green);
+  coordinatedNodes().forEach((node, index) => {
+    ctx.strokeStyle = `rgba(47,214,210,${0.42 + Math.sin(state.frameIndex / 15 + index) * 0.14})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.id.startsWith("S") ? 17 : 20, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+  drawBadge(660, 92, modeCopy.patc.overlay, colors.green);
+  drawBadge(708, 532, "F1-F6 + S1-S4 synced", colors.cyan);
+}
+function closestJunction(node) {
+  return junctions.reduce((best, junction) => {
+    const distance = Math.hypot(node.x - junction.x, node.y - junction.y);
+    return distance < best.distance ? { junction, distance } : best;
+  }, { junction: junctions[0], distance: Infinity }).junction;
 }
 function drawFixedIssues() {
   const hotspots = pressureRanked().filter((item) => Math.max(item.ew, item.ns) > 2.4).slice(0, 3);
@@ -478,10 +579,31 @@ function drawBadge(x, y, label, color) {
   ctx.font = "700 12px sans-serif";
   ctx.fillText(label, x + 10, y + 18);
 }
+function displayPose(vehicle, used) {
+  const candidates = [vehicle.progress];
+  for (let i = 1; i <= 14; i += 1) candidates.push(vehicle.progress - i * 0.011);
+  for (let i = 1; i <= 4; i += 1) candidates.push(vehicle.progress + i * 0.008);
+  for (const progress of candidates) {
+    const pose = pointAt(vehicle.route, Math.max(0, Math.min(1, progress)), vehicle.lane);
+    if (hasDisplayClearance(vehicle, pose, used)) {
+      used.push({ ...pose, vehicle });
+      return pose;
+    }
+  }
+  return null;
+}
+function hasDisplayClearance(vehicle, pose, used) {
+  return used.every((item) => {
+    if (item.vehicle.routeKey === vehicle.routeKey && item.vehicle.lane !== vehicle.lane) return true;
+    return Math.hypot(item.x - pose.x, item.y - pose.y) >= vehicleClearance(vehicle, item.vehicle);
+  });
+}
 function drawVehicles() {
+  const used = [];
   state.vehicles.forEach((vehicle) => {
     if (vehicle.complete || vehicle.delay > 0) return;
-    const p = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
+    const p = displayPose(vehicle, used);
+    if (!p) return;
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.angle);
@@ -489,17 +611,17 @@ function drawVehicles() {
     ctx.shadowColor = ctx.fillStyle;
     ctx.shadowBlur = vehicle.kind === "bike" ? 5 : 9;
     if (vehicle.kind === "bike") {
-      ctx.fillRect(-9, -2, 18, 4);
+      ctx.fillRect(-6, -1.5, 12, 3);
       ctx.beginPath();
-      ctx.arc(-7, 4, 3, 0, Math.PI * 2);
-      ctx.arc(7, 4, 3, 0, Math.PI * 2);
+      ctx.arc(-4, 3, 2, 0, Math.PI * 2);
+      ctx.arc(4, 3, 2, 0, Math.PI * 2);
       ctx.fill();
     } else {
       ctx.beginPath();
-      ctx.roundRect(-12, -5, 24, 10, 4);
+      ctx.roundRect(-8, -3.5, 16, 7, 3);
       ctx.fill();
       ctx.fillStyle = "rgba(5,7,10,0.42)";
-      ctx.fillRect(2, -4, 5, 8);
+      ctx.fillRect(1, -3, 4, 6);
     }
     ctx.restore();
   });
@@ -610,7 +732,7 @@ document.getElementById("speedBtn").addEventListener("click", () => {
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) setPaused(true);
 });
-window.PATC = { state, resetReplay, step, render, completionPercent, pointAt, setPaused };
+window.PATC = { state, resetReplay, step, render, completionPercent, pointAt, displayPose, controlledNodes, setPaused };
 updateReadouts();
 resetReplay();
 requestAnimationFrame((ts) => {
