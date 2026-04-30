@@ -1,0 +1,133 @@
+.sim-shell {
+  margin: 0 auto 60px;
+  max-width: 1320px;
+  padding: 22px;
+}
+.sim-toolbar,
+.sim-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+.control-grid {
+  display: grid;
+  gap: 12px;
+}
+.control-grid label {
+  background: #07111f;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+.control-grid span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.control-grid strong {
+  color: var(--green);
+}
+input[type="range"] {
+  accent-color: var(--amber);
+  width: 100%;
+}
+.canvas-wrap,
+.sim-panel {
+  background: #06111f;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+#sectorCanvas {
+  display: block;
+  height: auto;
+  width: 100%;
+}
+.sim-panel dl {
+  display: grid;
+  gap: 12px;
+  margin: 22px 0;
+}
+.sim-panel div {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.sim-panel dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.sim-panel dd {
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 900;
+  margin: 4px 0 0;
+}
+.math-grid,
+.term-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 28px;
+}
+.math-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.term-list {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.math-grid article,
+.term-list article {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+.math-grid span,
+.term-list strong {
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+code {
+  background: #06111f;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--green);
+  display: block;
+  overflow-x: auto;
+  padding: 12px;
+}
+.equation-card {
+  margin: 24px 0;
+  padding: 24px;
+}
+.term-list article {
+  display: grid;
+  gap: 10px;
+}
+.term-list span,
+.references li {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.references ol {
+  display: grid;
+  gap: 12px;
+  padding-left: 22px;
+}
+.references a {
+  color: var(--cyan);
+}
+@media (max-width: 920px) {
+  .sim-toolbar,
+  .sim-grid,
+  .math-grid,
+  .term-list {
+    grid-template-columns: 1fr;
+  }
+}

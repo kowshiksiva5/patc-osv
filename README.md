@@ -1,6 +1,16 @@
 # PATC Company Site
 
-Static public company site for PATC. The homepage directly embeds the interactive city-network simulation, model telemetry, LWR-inspired/expected-state visualizations, field validation path, and generated timeline/cost plus M1 observation-request PDFs.
+Static public company site for PATC, Probabilistic Adaptive Traffic Control.
+
+The site is split into focused pages so the homepage stays fast:
+
+- `index.html`: problem, public benefit, safety boundary, and links.
+- `simulation.html`: lightweight multi-vehicle sector replay.
+- `math.html`: model explanation, formulas, term notes, and references.
+- `assets/site.css`: shared visual system.
+- `assets/technical.css`: simulation and math page styles.
+- `assets/light-sim.js`: sector replay logic.
+- `output/pdf/patc_timeline_cost.pdf`: timeline and cost one-pager.
 
 ## Run Locally
 

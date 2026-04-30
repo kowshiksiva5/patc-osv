@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PATC Simulation | Sector Replay</title>
+    <meta
+      name="description"
+      content="Interactive PATC sector replay with multiple vehicles, controllable demand, discharge, safety bias, and scenarios."
+    />
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/site.css" />
+    <link rel="stylesheet" href="assets/technical.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html" aria-label="PATC home">
+        <img src="assets/logo.svg" alt="" />
+        <span>
+          <strong>PATC</strong>
+          <small>Probabilistic Adaptive Traffic Control</small>
+        </span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="index.html">Home</a>
+        <a href="math.html">Math</a>
+        <a href="output/pdf/patc_timeline_cost.pdf">PDF</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero page-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Interactive sector replay</p>
+          <h1>Replay how a city sector clears traffic waves.</h1>
+          <p class="hero-lede">
+            Multiple vehicles move through a linked sector while demand,
+            discharge, and safety bias change the pressure on each movement.
+            The controller recommends which wave should be served next.
+          </p>
+        </div>
+      </section>
+
+      <section class="sim-shell" aria-label="PATC sector replay">
+        <div class="sim-toolbar">
+          <div>
+            <p class="eyebrow">Scenario</p>
+            <div class="scenario-buttons" role="group" aria-label="Scenario selector">
+              <button type="button" class="scenario-btn active" data-scenario="peak">Peak spillback</button>
+              <button type="button" class="scenario-btn" data-scenario="rain">Rain slowdown</button>
+              <button type="button" class="scenario-btn" data-scenario="event">Event surge</button>
+              <button type="button" class="scenario-btn" data-scenario="school">School release</button>
+            </div>
+          </div>
+          <div class="control-grid">
+            <label>
+              <span>Demand</span>
+              <input id="demandRange" type="range" min="70" max="150" value="112" />
+              <strong id="demandReadout">112%</strong>
+            </label>
+            <label>
+              <span>Discharge</span>
+              <input id="dischargeRange" type="range" min="65" max="120" value="92" />
+              <strong id="dischargeReadout">92%</strong>
+            </label>
+            <label>
+              <span>Safety bias</span>
+              <input id="safetyRange" type="range" min="80" max="140" value="110" />
+              <strong id="safetyReadout">110%</strong>
+            </label>
+          </div>
+        </div>
+
+        <div class="sim-grid">
+          <div class="canvas-wrap">
+            <canvas id="sectorCanvas" width="960" height="560" aria-label="Sector traffic replay"></canvas>
+            <div class="sim-actions">
+              <button type="button" id="pauseBtn">Pause</button>
+              <button type="button" id="restartBtn">Restart replay</button>
+              <button type="button" id="speedBtn">1x speed</button>
+            </div>
+          </div>
+          <aside class="sim-panel">
+            <p class="eyebrow">Live state</p>
+            <h2 id="scenarioTitle">Peak spillback</h2>
+            <p id="scenarioCopy">
+              Downstream pressure builds while arrivals keep feeding the sector.
+            </p>
+            <dl>
+              <div><dt>Completion</dt><dd id="completionValue">0%</dd></div>
+              <div><dt>Queue pressure</dt><dd id="pressureValue">Low</dd></div>
+              <div><dt>Signal phase</dt><dd id="phaseValue">E/W green</dd></div>
+              <div><dt>Recommendation</dt><dd id="recommendationValue">Collecting replay state</dd></div>
+            </dl>
+            <p class="simulation-note">
+              Completion only reaches 100% when all replay vehicles have
+              finished. Control changes restart the replay from a clean state.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section safety-strip">
+        <div>
+          <p class="eyebrow">Replay caveat</p>
+          <h2>This is a synthetic replay, not a field result.</h2>
+          <p>
+            The purpose is to make the control idea legible: arrivals, queues,
+            discharge, spillback, and safety bias. Field validation must replace
+            synthetic settings with observed site-hours.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>PATC</span>
+      <p>Replay-first adaptive signal intelligence.</p>
+      <a href="index.html">Home</a>
+      <a href="math.html">Math</a>
+      <a href="output/pdf/patc_timeline_cost.pdf">PDF</a>
+    </footer>
+    <script src="assets/light-sim.js"></script>
+  </body>
+</html>
