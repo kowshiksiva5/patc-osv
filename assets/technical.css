@@ -5,6 +5,11 @@
   margin: 0 auto 60px;
   max-width: 1380px;
   padding: 22px;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.replay-shell.fixed-mode {
+  border-color: rgba(255, 99, 88, 0.58);
+  box-shadow: 0 0 0 1px rgba(255, 99, 88, 0.16), 0 22px 70px rgba(255, 99, 88, 0.08);
 }
 .replay-toolbar,
 .replay-grid {
@@ -45,6 +50,10 @@
   border-radius: var(--radius);
   overflow-x: auto;
   padding: 16px;
+}
+.fixed-mode .canvas-stage,
+.fixed-mode .metric-panel {
+  border-color: rgba(255, 99, 88, 0.45);
 }
 #corridorCanvas {
   display: block;
@@ -101,12 +110,16 @@ input[type="range"] {
   accent-color: var(--amber);
   width: 100%;
 }
+.stack-grid,
 .math-grid,
 .contract-grid,
 .timeline-list {
   display: grid;
   gap: 16px;
   margin-top: 28px;
+}
+.stack-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .math-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -117,6 +130,7 @@ input[type="range"] {
 .contract-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+.stack-grid article,
 .math-grid article,
 .contract-grid article,
 .timeline-list article,
@@ -152,6 +166,22 @@ input[type="range"] {
   font-weight: 900;
   text-transform: uppercase;
 }
+.stack-grid span {
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.stack-grid p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.math-grid p,
+.timeline-list p,
+.equation-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
 code {
   background: #071017;
   border: 1px solid var(--line);
@@ -178,6 +208,7 @@ code {
   .replay-toolbar,
   .replay-grid,
   .control-grid,
+  .stack-grid,
   .math-grid,
   .contract-grid,
   .timeline-list {

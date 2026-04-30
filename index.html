@@ -43,10 +43,10 @@
           <p class="eyebrow">PATC - Probabilistic Adaptive Traffic Control</p>
           <h1>Traffic lights should learn the wave before it reaches the next signal.</h1>
           <p class="hero-lede">
-            Static timers miss the physics of the road: startup hesitation,
-            mixed traffic, rain, blocked exits, and vehicles moving in waves.
-            PATC predicts those waves and recommends safer green windows every
-            few seconds, first in shadow mode, before any live controller write.
+            Imagine crossing a corridor where each light is ready before your
+            vehicle arrives. That is not luck. It is traffic physics, probability,
+            and real-time optimization working together to reduce wasted time,
+            fuel, and clean air at every red light.
           </p>
           <div class="hero-actions">
             <a class="primary-action" href="simulation.html">Run the sector replay</a>
@@ -88,6 +88,27 @@
             <div><span>Predict</span><strong>Next pressure wave reaches J3 in 19s</strong></div>
             <div><span>Recommend</span><strong>Hold east-west green, do not feed blocked exit</strong></div>
             <div><span>Protect</span><strong>Pedestrian, emergency, stale-data, and manual override rules</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="motion-manifest" aria-label="PATC operating belief">
+        <div>
+          <p class="eyebrow">Operating belief</p>
+          <h2>Do not make one junction clever. Make the whole sector predictable.</h2>
+        </div>
+        <div class="manifest-copy">
+          <p>
+            PATC observes the current road state, predicts the next pressure wave,
+            tests the action in shadow mode, and recommends only the signal move
+            that clears pressure without pushing congestion downstream.
+          </p>
+          <div class="flow-ticker" aria-hidden="true">
+            <span>Observe density</span>
+            <span>Predict wave arrival</span>
+            <span>Score spillback risk</span>
+            <span>Recommend bounded green</span>
+            <span>Log every decision</span>
           </div>
         </div>
       </section>
@@ -157,8 +178,9 @@
           <p class="eyebrow">Product</p>
           <h2>A decision layer for connected signal sectors.</h2>
           <p class="section-lede">
-            PATC starts with a selected corridor, builds a trusted replay of how
-            traffic actually moves, and only then recommends timing changes.
+            PATC starts with a selected corridor, maps real signal geometry and
+            sensor positions, builds a trusted replay of how traffic actually
+            moves, and only then recommends timing changes.
           </p>
         </div>
         <div class="process-grid">

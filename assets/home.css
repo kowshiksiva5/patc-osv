@@ -271,6 +271,47 @@
   font-weight: 900;
   margin-top: 14px;
 }
+.motion-manifest {
+  align-items: end;
+  background: linear-gradient(135deg, #101813, #071017 54%, #0b161d);
+  border-bottom: 1px solid rgba(47, 214, 210, 0.22);
+  border-top: 1px solid rgba(255, 177, 42, 0.18);
+  display: grid;
+  gap: 34px;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+  overflow: hidden;
+  padding: 58px 54px;
+}
+.motion-manifest h2 {
+  margin-bottom: 0;
+  max-width: 760px;
+}
+.manifest-copy p {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.7;
+  max-width: 760px;
+}
+.flow-ticker {
+  border: 1px solid rgba(47, 214, 210, 0.26);
+  border-radius: var(--radius);
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+  overflow: hidden;
+  padding: 12px;
+}
+.flow-ticker span {
+  animation: chipPulse 4.5s ease-in-out infinite;
+  background: rgba(47, 214, 210, 0.08);
+  border: 1px solid rgba(47, 214, 210, 0.18);
+  border-radius: 999px;
+  color: var(--text);
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 10px 14px;
+}
 .safety-grid {
   display: grid;
   gap: 14px;
@@ -307,6 +348,11 @@
   0% { top: 104%; transform: rotate(-92deg); }
   100% { top: -12%; transform: rotate(-92deg); }
 }
+@keyframes chipPulse {
+  0%,
+  100% { box-shadow: 0 0 0 rgba(47, 214, 210, 0); }
+  50% { box-shadow: 0 0 18px rgba(47, 214, 210, 0.24); }
+}
 @media (prefers-reduced-motion: reduce) {
   .signal-node.live,
   .w1,
@@ -314,8 +360,21 @@
   .u1,
   .u2,
   .u3,
-  .u4 {
+  .u4,
+  .flow-ticker span {
     animation: none;
+  }
+}
+@media (max-width: 980px) {
+  .motion-manifest,
+  .impact-band,
+  .impact-grid {
+    grid-template-columns: 1fr;
+  }
+  .motion-manifest,
+  .impact-band {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 }
 @media (max-width: 980px) {

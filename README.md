@@ -4,10 +4,10 @@ Static public company site for PATC, Probabilistic Adaptive Traffic Control.
 
 The site is structured as a fast multi-page product website:
 
-- `index.html`: public product homepage for the Bengaluru traffic problem, PATC positioning, public benefit, safety boundary, and page links.
-- `simulation.html`: controllable connected-sector replay with scenarios, PATC shadow mode, fixed-time baseline, mixed traffic, queue pressure, delay, and completion checks.
-- `math.html`: technology deep dive for traffic-wave modeling, probabilistic state, constraints, validation path, and references.
-- `contact.html`: founding team contact page with LinkedIn links.
+- `index.html`: public product homepage for the Bengaluru traffic problem, PATC positioning, operating belief, public benefit, safety boundary, and page links.
+- `simulation.html`: controllable connected-sector replay with visibly different PATC shadow and fixed-time baseline behavior, mixed traffic, queue pressure, breakdowns, delay, and completion checks.
+- `math.html`: technology deep dive for the operating stack, traffic-wave modeling, probabilistic state, constraints, validation path, and references.
+- `contact.html`: clean founder contact page with LinkedIn links.
 - `assets/site.css`: shared dark visual system.
 - `assets/home.css`: homepage-only visual shell and evidence styling.
 - `assets/technical.css`: simulation and math page styling.

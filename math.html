@@ -63,6 +63,23 @@
         </div>
       </section>
 
+      <section class="section operating-stack-section">
+        <div class="section-head">
+          <p class="eyebrow">Operating stack</p>
+          <h2>The model behaves like a control room, not a black box.</h2>
+          <p class="section-lede">
+            This page is for reviewers who want to see how PATC turns noisy road
+            observations into safe, auditable timing recommendations.
+          </p>
+        </div>
+        <div class="stack-grid">
+          <article><span>01</span><h3>Sense</h3><p>Camera and field labels estimate queues, turns, stopped time, discharge, and downstream blockage.</p></article>
+          <article><span>02</span><h3>Estimate</h3><p>Uncertainty stays explicit because sparse cameras never observe the full corridor perfectly.</p></article>
+          <article><span>03</span><h3>Replay</h3><p>Candidate green windows are tested against the current wave, not against a generic timer.</p></article>
+          <article><span>04</span><h3>Recommend</h3><p>The output is a bounded action with confidence, reason, rejected alternatives, and fallback trigger.</p></article>
+        </div>
+      </section>
+
       <section class="section">
         <div class="section-head">
           <p class="eyebrow">Core equations</p>

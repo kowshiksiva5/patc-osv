@@ -15,8 +15,27 @@ const state = {
   frameIndex: 0,
   lastTs: 0,
   resetHandle: null,
+  issueEvents: 0,
   recommendation: "Collecting replay state",
 };
+const modeCopy = {
+  patc: {
+    label: "PATC shadow",
+    effect: "Coordinated waves",
+    overlay: "Predictive coordination protects downstream space",
+  },
+  fixed: {
+    label: "Fixed-time baseline",
+    effect: "Rigid cycle breakdowns",
+    overlay: "Rigid cycle feeds blocked links and creates stop-start waves",
+  },
+};
+function vehicleTargetCount() {
+  return state.mode === "fixed" ? 34 : 26;
+}
+function isFixedMode() {
+  return state.mode === "fixed";
+}
 function currentScenario() {
   return scenarios[state.scenarioKey];
 }
@@ -80,6 +99,8 @@ function createVehicle(index) {
   const scenario = currentScenario();
   const key = scenario.bias[index % scenario.bias.length];
   const kind = index % 5 === 0 || index % 7 === 0 ? "bike" : "car";
+  const clumpFactor = isFixedMode() ? 0.76 : 1.22;
+  const speedFactor = isFixedMode() ? 0.9 : 1.04;
   return {
     id: state.nextId++,
     kind,
@@ -87,8 +108,8 @@ function createVehicle(index) {
     route: routes[key],
     lane: index % 2,
     progress: 0,
-    delay: index * scenario.spacing * (1.45 - controlValue("demand") * 0.35),
-    speed: (kind === "bike" ? 0.041 : 0.035) + (index % 4) * 0.004,
+    delay: index * scenario.spacing * clumpFactor * (1.35 - controlValue("demand") * 0.28),
+    speed: ((kind === "bike" ? 0.041 : 0.035) + (index % 4) * 0.004) * speedFactor,
     wait: 0,
     stops: 0,
     complete: false,
@@ -102,7 +123,8 @@ function resetReplay() {
     j.timer = i * 1.5;
   });
   state.nextId = 1;
-  state.vehicles = Array.from({ length: 72 }, (_, index) => createVehicle(index));
+  state.issueEvents = 0;
+  state.vehicles = Array.from({ length: vehicleTargetCount() }, (_, index) => createVehicle(index));
   setPaused(false);
   updateScenarioText();
 }
@@ -129,14 +151,15 @@ function pressure(junctionId, phase) {
 function updateSignals(dt) {
   junctions.forEach((junction) => {
     junction.timer += dt;
-    const ew = pressure(junction.id, "EW") + downstreamPenalty(junction.id);
+    const downstreamRisk = downstreamPenalty(junction.id);
+    const ew = isFixedMode() ? pressure(junction.id, "EW") : pressure(junction.id, "EW") - downstreamRisk;
     const ns = pressure(junction.id, "NS");
-    const minGreen = 4.8 * controlValue("safety");
-    const maxGreen = state.mode === "fixed" ? 8.8 : 11.5;
+    const minGreen = (isFixedMode() ? 3.9 : 5.1) * controlValue("safety");
+    const maxGreen = isFixedMode() ? 7.2 : 12.2;
     const target = ew >= ns ? "EW" : "NS";
-    const urgent = Math.max(ew, ns) > Math.min(ew, ns) * 1.22 + 1.5;
-    const shouldPatcSwitch = state.mode === "patc" && target !== junction.phase && urgent && junction.timer > minGreen;
-    const shouldFixedSwitch = state.mode === "fixed" && junction.timer > 7.5;
+    const urgent = Math.max(ew, ns) > Math.min(ew, ns) * 1.18 + 1.35;
+    const shouldPatcSwitch = !isFixedMode() && target !== junction.phase && urgent && junction.timer > minGreen;
+    const shouldFixedSwitch = isFixedMode() && junction.timer > 6.4;
     if (shouldPatcSwitch || shouldFixedSwitch || junction.timer > maxGreen) {
       junction.phase = junction.phase === "EW" ? "NS" : "EW";
       junction.timer = 0;
@@ -156,6 +179,19 @@ function blockedBySignal(vehicle, dt) {
   const junction = junctions.find((item) => item.id === stop.id);
   const projected = vehicle.progress + vehicle.speed * controlValue("discharge") * dt;
   return projected >= stop.p && junction.phase !== vehicle.route.phase;
+}
+function blockedByRigidCycle(vehicle, projected) {
+  if (!isFixedMode() || vehicle.route.phase !== "EW") return false;
+  const stop = nextStop(vehicle);
+  if (!stop || stop.id === "J1") return false;
+  const nearStop = projected >= stop.p - 0.012 && vehicle.progress < stop.p + 0.008;
+  const pressureWave = pressure(stop.id, "EW") > 2.1 || controlValue("demand") > 1.06;
+  const pulse = Math.sin(state.frameIndex / 24 + vehicle.id * 0.71) > -0.22;
+  return nearStop && pressureWave && pulse;
+}
+function blockedByExitQueue(vehicle, projected) {
+  if (!isFixedMode() || vehicle.route.phase !== "EW") return false;
+  return projected > 0.88 && vehicle.id % 8 === 0;
 }
 function leaderGap(vehicle, projected) {
   return state.vehicles.reduce((min, other) => {
@@ -202,9 +238,18 @@ function updateVehicle(vehicle, dt) {
   const rain = state.scenarioKey === "rain" ? 0.76 : 1;
   const velocity = vehicle.speed * controlValue("discharge") * rain;
   const projected = Math.min(1, vehicle.progress + velocity * dt);
-  const blocked = blockedBySignal(vehicle, dt) || leaderGap(vehicle, projected) < 0.032 || physicalConflict(vehicle, projected);
+  const rigidBlocked = blockedByRigidCycle(vehicle, projected);
+  const exitBlocked = blockedByExitQueue(vehicle, projected);
+  const blocked = blockedBySignal(vehicle, dt)
+    || rigidBlocked
+    || exitBlocked
+    || leaderGap(vehicle, projected) < 0.032
+    || physicalConflict(vehicle, projected);
   vehicle.blocked = blocked;
   if (blocked) {
+    if ((rigidBlocked || exitBlocked) && state.frameIndex % 18 === 0) {
+      state.issueEvents = Math.min(24, state.issueEvents + 1);
+    }
     vehicle.wait += dt;
     if (vehicle.wait - vehicle.stops > 1) vehicle.stops += 1;
     return;
@@ -229,7 +274,12 @@ function updateRecommendation() {
   ranked.sort((a, b) => Math.max(b.ew, b.ns) - Math.max(a.ew, a.ns));
   const top = ranked[0];
   const phase = top.ew >= top.ns ? "EW" : "NS";
-  state.recommendation = `${top.j.id}: ${phase === top.j.phase ? "hold" : "prepare"} ${phase}`;
+  if (isFixedMode()) {
+    state.recommendation = `${top.j.id}: rigid timer; downstream spillback risk`;
+    return;
+  }
+  const risk = downstreamPenalty(top.j.id) > 1.6 ? "protect downstream gap" : `${phase === top.j.phase ? "hold" : "prepare"} ${phase}`;
+  state.recommendation = `${top.j.id}: ${risk}`;
 }
 function drawPath(points, width, color) {
   ctx.strokeStyle = color;
@@ -318,6 +368,53 @@ function drawSignals() {
     ctx.fillText(site.id, site.x + 10, site.y - 8);
   });
 }
+function drawModeOverlay() {
+  if (isFixedMode()) {
+    drawFixedIssues();
+    return;
+  }
+  drawPatcCoordination();
+}
+function drawPatcCoordination() {
+  ctx.save();
+  ctx.setLineDash([38, 24]);
+  ctx.lineDashOffset = -state.frameIndex * 1.3;
+  drawPath(routes.east.points, 14, "rgba(47,214,210,0.26)");
+  ctx.restore();
+  drawBadge(710, 92, modeCopy.patc.overlay, colors.green);
+}
+function drawFixedIssues() {
+  [
+    [612, 266, "spillback"],
+    [800, 238, "blocked exit"],
+    [460, 386, "stop-start wave"],
+  ].forEach(([x, y, label], index) => {
+    const pulse = 0.45 + Math.sin(state.frameIndex / 18 + index) * 0.15;
+    ctx.fillStyle = `rgba(255,99,88,${pulse})`;
+    ctx.strokeStyle = "rgba(255,177,42,0.72)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 18);
+    ctx.lineTo(x + 18, y + 16);
+    ctx.lineTo(x - 18, y + 16);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    drawBadge(x + 24, y - 24, label, colors.red);
+  });
+}
+function drawBadge(x, y, label, color) {
+  ctx.fillStyle = "rgba(5,7,10,0.82)";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x, y, Math.max(118, label.length * 7.8), 28, 6);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = colors.text;
+  ctx.font = "700 12px sans-serif";
+  ctx.fillText(label, x + 10, y + 18);
+}
 function displayPose(vehicle, used) {
   const pose = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
   let attempts = 0;
@@ -360,14 +457,15 @@ function drawVehicles() {
 function drawDashboardOverlay() {
   const complete = state.vehicles.filter((vehicle) => vehicle.complete).length;
   ctx.fillStyle = "rgba(5,7,10,0.72)";
-  ctx.fillRect(24, 24, 310, 96);
+  ctx.fillRect(24, 24, 356, 108);
   ctx.fillStyle = colors.text;
   ctx.font = "700 15px sans-serif";
-  ctx.fillText("PATC connected-sector shadow replay", 42, 54);
+  ctx.fillText(modeCopy[state.mode].label, 42, 54);
   ctx.fillStyle = colors.muted;
   ctx.font = "13px sans-serif";
-  ctx.fillText(`${complete}/72 complete | ${state.mode.toUpperCase()}`, 42, 80);
+  ctx.fillText(`${complete}/${state.vehicles.length} complete | ${modeCopy[state.mode].effect}`, 42, 80);
   ctx.fillText(state.recommendation, 42, 100);
+  ctx.fillText(modeCopy[state.mode].overlay, 42, 120);
 }
 function completionPercent() {
   const done = state.vehicles.filter((vehicle) => vehicle.complete).length;
@@ -378,9 +476,15 @@ function updatePanel() {
   const active = state.vehicles.filter((vehicle) => !vehicle.complete && vehicle.delay <= 0).length;
   const avgDelay = state.vehicles.reduce((sum, vehicle) => sum + vehicle.wait, 0) / state.vehicles.length;
   const maxPressure = Math.max(...junctions.flatMap((j) => [pressure(j.id, "EW"), pressure(j.id, "NS")]));
+  const breakdowns = isFixedMode()
+    ? Math.min(24, Math.max(state.issueEvents, state.vehicles.filter((vehicle) => vehicle.blocked && vehicle.wait > 0.7).length))
+    : 0;
+  document.querySelector(".replay-shell").classList.toggle("fixed-mode", isFixedMode());
   document.getElementById("completionValue").textContent = `${completionPercent()}%`;
   document.getElementById("activeValue").textContent = `${active}`;
   document.getElementById("delayValue").textContent = `${avgDelay.toFixed(1)}s`;
+  document.getElementById("breakdownValue").textContent = `${breakdowns}`;
+  document.getElementById("modeEffectValue").textContent = modeCopy[state.mode].effect;
   document.getElementById("pressureValue").textContent = maxPressure > 42 ? "High" : maxPressure > 18 ? "Medium" : "Low";
   document.getElementById("recommendationValue").textContent = state.recommendation;
 }
@@ -388,6 +492,7 @@ function render() {
   state.frameIndex += 1;
   drawRoads();
   drawSignals();
+  drawModeOverlay();
   drawVehicles();
   drawDashboardOverlay();
   updatePanel();
