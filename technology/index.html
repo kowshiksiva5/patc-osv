@@ -12,12 +12,14 @@
     <link rel="stylesheet" href="../assets/site.css" />
     <link rel="stylesheet" href="../assets/technical.css" />
     <style>
-      body { opacity: 1; transition: opacity 0.3s ease; }
+      body { opacity: 1; transition: opacity 0.25s ease; }
       body.page-enter { opacity: 0; }
-      body.page-exit { opacity: 0; transition: opacity 0.25s ease; }
+      body.page-exit  { opacity: 0; transition: opacity 0.2s ease; }
     </style>
   </head>
   <body>
+    <div class="scroll-progress" aria-hidden="true"></div>
+
     <header class="site-header">
       <a class="brand" href="../" aria-label="PATC home">
         <img src="../assets/logo.svg" alt="" />
@@ -29,7 +31,6 @@
       <nav aria-label="Primary navigation">
         <a href="../">Home</a>
         <a href="../simulation/">Simulation</a>
-        <a href="../contact/">Contact</a>
       </nav>
     </header>
 
@@ -52,7 +53,7 @@
           <p class="eyebrow">Model frame</p>
           <h2>Traffic is treated as a moving density field.</h2>
         </div>
-        <div class="rich-copy reveal-right">
+        <div class="section-inner reveal-right">
           <p>
             A road link changes state when arrivals, discharge, startup loss,
             and downstream capacity are not balanced. Bengaluru-style mixed
@@ -212,7 +213,6 @@
       <p>Technical model for replay-first traffic signal intelligence.</p>
       <a href="../">Home</a>
       <a href="../simulation/">Simulation</a>
-      <a href="../contact/">Contact</a>
     </footer>
     <script src="../assets/animations.js"></script>
   </body>
