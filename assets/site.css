@@ -516,6 +516,64 @@ footer a {
 }
 footer a:hover { color: var(--accent-hover); }
 
+/* Team footer (enhanced) */
+.team-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 0;
+}
+.footer-inner {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 28px 48px;
+}
+.footer-brand {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.footer-inner > p {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0 auto 0 0;
+}
+.footer-team {
+  display: flex;
+  gap: 28px;
+}
+.footer-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.footer-person strong {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.footer-links {
+  display: flex;
+  gap: 6px;
+}
+.footer-links a {
+  background: var(--accent-faint);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  transition: all 0.2s ease;
+}
+.footer-links a:hover {
+  background: rgba(var(--accent-rgb), 0.15);
+  border-color: rgba(var(--accent-rgb), 0.3);
+}
+
 /* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .site-header { padding: 10px 20px; }
@@ -524,6 +582,9 @@ footer a:hover { color: var(--accent-hover); }
   .split-section, .safety-panel { grid-template-columns: 1fr; }
   .process-grid { grid-template-columns: repeat(2, 1fr); }
   footer { padding: 20px; }
+  .footer-inner { padding: 20px; }
+  .footer-team { flex-direction: column; gap: 12px; }
+  .footer-person { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
 @media (max-width: 640px) {
   .process-grid, .benefit-grid, .page-links, .impact-grid, .team-grid {

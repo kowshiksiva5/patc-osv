@@ -1027,9 +1027,12 @@ Object.values(controls).forEach((control) => {
 document.getElementById("startBtn").addEventListener("click", () => setPaused(false));
 document.getElementById("stopBtn").addEventListener("click", () => setPaused(true));
 document.getElementById("restartBtn").addEventListener("click", resetReplay);
-document.getElementById("speedBtn").addEventListener("click", () => {
-  state.speed = state.speed === 1 ? 2 : state.speed === 2 ? 0.5 : 1;
-  document.getElementById("speedBtn").textContent = `${state.speed}x speed`;
+document.querySelectorAll(".speed-selector button").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    state.speed = Number(btn.dataset.speed) || 1;
+    document.querySelectorAll(".speed-selector button").forEach((b) => b.classList.remove("active-control"));
+    btn.classList.add("active-control");
+  });
 });
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) setPaused(true);

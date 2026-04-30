@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════
-   PATC — Home v5 · Corridor scroll-story with progressive reveal
+   PATC — Home v6 · Cinematic dark opener + scroll story
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Animated grid background ─────────────────────────────────── */
 body::before {
   background-image:
-    linear-gradient(rgba(61, 191, 176, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(61, 191, 176, 0.035) 1px, transparent 1px);
+    linear-gradient(rgba(61, 191, 176, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(61, 191, 176, 0.025) 1px, transparent 1px);
   background-size: 80px 80px;
   content: '';
   inset: 0;
@@ -15,13 +15,13 @@ body::before {
   z-index: -2;
 }
 body::after {
-  animation: gridWave 10s linear infinite;
+  animation: gridWave 12s linear infinite;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(61, 191, 176, 0.025) 20%,
-    rgba(61, 191, 176, 0.05) 50%,
-    rgba(61, 191, 176, 0.025) 80%,
+    rgba(61, 191, 176, 0.02) 20%,
+    rgba(61, 191, 176, 0.04) 50%,
+    rgba(61, 191, 176, 0.02) 80%,
     transparent 100%
   );
   content: '';
@@ -38,23 +38,23 @@ body::after {
   100% { left: 100%; }
 }
 
-/* ── CHAPTER: Full-bleed immersive hero ───────────────────────── */
-.story-hero {
+/* ═══ ACT 1 — CINEMATIC OPENER ═══════════════════════════════ */
+.cinema-opener {
   align-items: center;
   display: grid;
   gap: 48px;
-  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 420px);
+  grid-template-columns: minmax(0, 1.1fr) minmax(380px, 1fr);
   margin: 0 auto;
-  max-width: 1200px;
-  min-height: 92vh;
-  padding: 120px 48px 80px;
+  max-width: 1400px;
+  min-height: 100vh;
+  padding: 100px 60px 80px;
   position: relative;
 }
-.story-hero::before {
+.cinema-opener::before {
   background: radial-gradient(
-    ellipse at 25% 30%,
-    rgba(61, 191, 176, 0.09),
-    transparent 55%
+    ellipse at 20% 40%,
+    rgba(61, 191, 176, 0.07),
+    transparent 50%
   );
   content: '';
   inset: -200px;
@@ -63,92 +63,128 @@ body::after {
   z-index: -1;
 }
 
-/* Corridor animation canvas */
-.corridor-visual {
-  align-self: center;
-  background: var(--bg-elevated);
+/* Title */
+.cinema-title {
+  font-size: clamp(38px, 5vw, 68px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.06;
+  margin-bottom: 24px;
+}
+.accent-glow {
+  background: linear-gradient(135deg, #3DBFB0, #34D399);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.text-accent {
+  color: var(--accent);
+}
+.cinema-sub {
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.7;
+  max-width: 520px;
+}
+
+/* Canvas wrap */
+.cinema-canvas-wrap {
+  aspect-ratio: 16 / 10;
+  background: rgba(10, 15, 26, 0.6);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   overflow: hidden;
   position: relative;
-  aspect-ratio: 4 / 3;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
-.corridor-visual:hover {
+.cinema-canvas-wrap:hover {
   border-color: rgba(var(--accent-rgb), 0.25);
+  box-shadow: 0 0 60px rgba(var(--accent-rgb), 0.06);
 }
-#corridorHero {
+#storyCanvas {
   display: block;
   height: 100%;
   width: 100%;
 }
+.canvas-legend {
+  align-items: center;
+  background: rgba(10, 15, 26, 0.8);
+  border-radius: 999px;
+  bottom: 12px;
+  color: var(--text-muted);
+  display: flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  left: 50%;
+  padding: 6px 16px;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.legend-dot {
+  border-radius: 50%;
+  display: inline-block;
+  height: 8px;
+  width: 8px;
+}
 
-/* ── CHAPTER: Corridor flow — horizontal scroll-reveal strip ──── */
-.corridor-flow {
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-subtle);
+/* ═══ ACT 2 — STORY CHAPTERS ════════════════════════════════ */
+.story-chapter {
   border-top: 1px solid var(--border-subtle);
   overflow: hidden;
   position: relative;
 }
-.corridor-flow-inner {
-  display: grid;
-  gap: 48px;
-  grid-template-columns: minmax(240px, 0.45fr) minmax(0, 1fr);
-  margin: 0 auto;
-  max-width: 1200px;
-  padding: 80px 48px;
-}
-.corridor-flow-inner h2 { margin-bottom: 0; }
-.corridor-flow-copy {
-  color: var(--text-secondary);
-  font-size: 16px;
-  line-height: 1.7;
-}
-.corridor-flow-copy p { max-width: 640px; }
-
-/* Flow ticker — animated chip strip */
-.flow-ticker {
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-  overflow: hidden;
-  padding: 10px 14px;
-  position: relative;
-}
-.flow-ticker::before {
-  background: linear-gradient(90deg,
-    var(--bg-elevated) 0%,
-    transparent 15%,
-    transparent 85%,
-    var(--bg-elevated) 100%
+.story-chapter::before {
+  background: radial-gradient(
+    ellipse at 80% 50%,
+    rgba(61, 191, 176, 0.03),
+    transparent 60%
   );
   content: '';
   inset: 0;
   pointer-events: none;
   position: absolute;
-  z-index: 2;
 }
-.flow-ticker span {
-  animation: tickerScroll 24s linear infinite;
-  background: var(--accent-faint);
-  border: 1px solid var(--border-subtle);
-  border-radius: 999px;
-  color: var(--text-primary);
-  flex: 0 0 auto;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 7px 16px;
-  white-space: nowrap;
+.story-chapter-highlight {
+  background: rgba(52, 211, 153, 0.02);
+  border-top-color: rgba(52, 211, 153, 0.15);
 }
-@keyframes tickerScroll {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-240px); }
+.chapter-inner {
+  align-items: center;
+  display: grid;
+  gap: 40px;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 100px 60px;
+}
+.chapter-number {
+  color: var(--border-strong);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(72px, 10vw, 120px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  opacity: 0.15;
+}
+.chapter-number.accent {
+  color: var(--accent);
+  opacity: 0.25;
+}
+.chapter-content h2 {
+  font-size: clamp(26px, 3.5vw, 44px);
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+.chapter-content p {
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.75;
+  max-width: 600px;
 }
 
-/* ── CHAPTER: Problem — big stat + cards ──────────────────────── */
+/* ── Problem section ──────────────────────────────────────────── */
 .story-problem {
   margin: 0 auto;
   max-width: 1200px;
@@ -181,68 +217,14 @@ body::after {
   text-align: right;
 }
 
-/* ── CHAPTER: Safety — appears early for civic trust ──────────── */
-/* Uses site.css .safety-panel */
-
-/* ── CHAPTER: Process — 4 numbered steps ──────────────────────── */
+/* ── Process section ──────────────────────────────────────────── */
 .story-process {
   margin: 0 auto;
   max-width: 1200px;
   padding: 80px 48px 120px;
 }
 
-/* ── CHAPTER: Problem detail — split narrative ────────────────── */
-/* Uses site.css .split-section */
-
-/* ── CHAPTER: Explore — 2 page link cards ─────────────────────── */
-/* Uses site.css .page-links */
-
-/* ── CHAPTER: Contact — 3 equal cards ─────────────────────────── */
-.story-contact {
-  background: var(--bg-elevated);
-  border-top: 1px solid var(--border-subtle);
-}
-.contact-inner {
-  display: grid;
-  gap: 48px;
-  grid-template-columns: minmax(240px, 0.4fr) minmax(0, 1fr);
-  margin: 0 auto;
-  max-width: 1200px;
-  padding: 80px 48px;
-}
-.contact-inner h2 { margin-bottom: 4px; }
-.contact-cards {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: repeat(3, 1fr);
-}
-.contact-card {
-  background: var(--bg-overlay);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  transition: border-color 0.25s ease, transform 0.25s ease;
-}
-.contact-card:hover {
-  border-color: rgba(var(--accent-rgb), 0.35);
-  transform: translateY(-2px);
-}
-.contact-card h3 {
-  font-size: 15px;
-  margin-bottom: 10px;
-}
-.contact-card p {
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.55;
-  margin: 0;
-}
-.contact-card .profile-link {
-  margin-top: 12px;
-  font-size: 13px;
-}
-
-/* ── Scroll-story junction markers (decorative) ───────────────── */
+/* ── Junction markers ─────────────────────────────────────────── */
 .junction-marker {
   align-items: center;
   display: flex;
@@ -264,10 +246,67 @@ body::after {
   height: 1px;
 }
 
+/* ═══ TEAM FOOTER ════════════════════════════════════════════ */
+.team-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 0;
+}
+.footer-inner {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 28px 48px;
+}
+.footer-brand {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.footer-inner > p {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0 auto 0 0;
+}
+.footer-team {
+  display: flex;
+  gap: 28px;
+}
+.footer-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.footer-person strong {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.footer-links {
+  display: flex;
+  gap: 6px;
+}
+.footer-links a {
+  background: var(--accent-faint);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  transition: all 0.2s ease;
+}
+.footer-links a:hover {
+  background: rgba(var(--accent-rgb), 0.15);
+  border-color: rgba(var(--accent-rgb), 0.3);
+}
+
 /* ── Reduced motion ───────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   body::after { animation: none; }
-  .flow-ticker span { animation: none; }
   .reveal, .reveal-left, .reveal-right, .reveal-scale {
     opacity: 1 !important;
     transform: none !important;
@@ -277,25 +316,25 @@ body::after {
 
 /* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 1024px) {
-  .story-hero {
+  .cinema-opener {
     grid-template-columns: 1fr;
     min-height: auto;
     padding: 80px 20px 48px;
     gap: 32px;
   }
-  .corridor-visual { max-width: 480px; }
-  .corridor-flow-inner {
+  .cinema-canvas-wrap { max-width: 600px; }
+  .chapter-inner {
     grid-template-columns: 1fr;
-    padding: 48px 20px;
+    padding: 60px 20px;
+    gap: 16px;
   }
+  .chapter-number { font-size: 56px; }
   .story-problem { padding: 80px 20px 48px; }
   .problem-head { grid-template-columns: 1fr; }
   .big-stat { text-align: left; }
   .story-process { padding: 48px 20px 80px; }
-  .contact-inner {
-    grid-template-columns: 1fr;
-    padding: 48px 20px;
-  }
-  .contact-cards { grid-template-columns: 1fr; }
   .junction-marker { padding: 0 20px; }
+  .footer-inner { padding: 20px; }
+  .footer-team { flex-direction: column; gap: 12px; }
+  .footer-person { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
