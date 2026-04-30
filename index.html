@@ -11,10 +11,16 @@
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="assets/site.css" />
     <link rel="stylesheet" href="assets/home.css" />
+    <style>
+      /* Page transition styles */
+      body { opacity: 1; transition: opacity 0.3s ease; }
+      body.page-enter { opacity: 0; }
+      body.page-exit { opacity: 0; transition: opacity 0.25s ease; }
+    </style>
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="index.html" aria-label="PATC home">
+      <a class="brand" href="./" aria-label="PATC home">
         <img src="assets/logo.svg" alt="" />
         <span>
           <strong>PATC</strong>
@@ -22,14 +28,24 @@
         </span>
       </a>
       <nav aria-label="Primary navigation">
-        <a href="simulation.html">Simulation</a>
-        <a href="math.html">Technology</a>
-        <a href="contact.html">Contact</a>
+        <a href="simulation/">Simulation</a>
+        <a href="technology/">Technology</a>
+        <a href="contact/">Contact</a>
       </nav>
     </header>
 
     <main>
+      <!-- ═══ HERO ═══ -->
       <section class="hero product-hero">
+        <!-- Particle canvas background -->
+        <canvas id="heroParticles" aria-hidden="true"></canvas>
+
+        <!-- Floating orbs -->
+        <div class="orb hero-orb-1" aria-hidden="true"></div>
+        <div class="orb hero-orb-2" aria-hidden="true"></div>
+        <div class="orb hero-orb-3" aria-hidden="true"></div>
+
+        <!-- Decorative map lines -->
         <div class="hero-map-bg" aria-hidden="true">
           <span class="map-line ml1"></span>
           <span class="map-line ml2"></span>
@@ -39,25 +55,31 @@
           <span class="map-node mn2"></span>
           <span class="map-node mn3"></span>
         </div>
+
+        <!-- Hero copy -->
         <div class="hero-copy">
-          <p class="eyebrow">PATC - Probabilistic Adaptive Traffic Control</p>
-          <h1>Traffic lights should learn the wave before it reaches the next signal.</h1>
-          <p class="hero-lede">
+          <p class="eyebrow reveal" style="--reveal-delay: 0s">PATC — Probabilistic Adaptive Traffic Control</p>
+          <h1 class="reveal" style="--reveal-delay: 0.1s">Traffic lights should learn the wave before it reaches the next signal.</h1>
+          <p class="hero-lede reveal" style="--reveal-delay: 0.2s">
             Imagine crossing a corridor where each light is ready before your
             vehicle arrives. That is not luck. It is traffic physics, probability,
             and real-time optimization working together to reduce wasted time,
             fuel, and clean air at every red light.
           </p>
-          <div class="hero-actions">
-            <a class="primary-action" href="simulation.html">Run the sector replay</a>
-            <a class="secondary-action" href="math.html">See the technology</a>
+          <div class="hero-actions reveal" style="--reveal-delay: 0.3s">
+            <a class="primary-action" href="simulation/">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="margin-right:4px"><polygon points="4,2 14,8 4,14" fill="currentColor"/></svg>
+              Run the sector replay
+            </a>
+            <a class="secondary-action" href="technology/">See the technology →</a>
           </div>
         </div>
 
-        <div class="operating-layer" aria-label="PATC connected corridor operating layer">
+        <!-- Operating layer panel -->
+        <div class="operating-layer reveal-scale" aria-label="PATC connected corridor operating layer">
           <div class="layer-topline">
             <span>Connected sector intelligence</span>
-            <strong>Shadow mode active</strong>
+            <strong>● Shadow mode active</strong>
           </div>
           <div class="network-board">
             <span class="grid-road horizontal h1"></span>
@@ -92,12 +114,15 @@
         </div>
       </section>
 
+      <hr class="section-divider" />
+
+      <!-- ═══ OPERATING BELIEF ═══ -->
       <section class="motion-manifest" aria-label="PATC operating belief">
-        <div>
+        <div class="reveal-left">
           <p class="eyebrow">Operating belief</p>
           <h2>Do not make one junction clever. Make the whole sector predictable.</h2>
         </div>
-        <div class="manifest-copy">
+        <div class="manifest-copy reveal-right">
           <p>
             PATC observes the current road state, predicts the next pressure wave,
             tests the action in shadow mode, and recommends only the signal move
@@ -109,12 +134,17 @@
             <span>Score spillback risk</span>
             <span>Recommend bounded green</span>
             <span>Log every decision</span>
+            <!-- Duplicate for seamless loop -->
+            <span>Observe density</span>
+            <span>Predict wave arrival</span>
+            <span>Score spillback risk</span>
           </div>
         </div>
       </section>
 
+      <!-- ═══ IMPACT STATS ═══ -->
       <section class="impact-band" aria-label="Bengaluru traffic problem">
-        <div>
+        <div class="reveal">
           <p class="eyebrow">Problem first</p>
           <h2>Bengaluru is not just crowded. Its signals are still solving the previous queue.</h2>
           <p>
@@ -123,35 +153,36 @@
           </p>
         </div>
         <div class="impact-grid">
-          <article>
-            <strong>168 hours</strong>
+          <article class="reveal reveal-delay-1">
+            <strong data-count="168" data-suffix=" hrs">0</strong>
             <span>lost per driver in rush-hour traffic in TomTom's 2025 Bengaluru estimate</span>
-            <a href="https://www.tomtom.com/traffic-index/city/bengaluru">TomTom 2025</a>
+            <a href="https://www.tomtom.com/traffic-index/city/bengaluru" target="_blank" rel="noreferrer">TomTom 2025 →</a>
           </article>
-          <article>
+          <article class="reveal reveal-delay-2">
             <strong>45m 27s</strong>
             <span>for a 10 km evening rush-hour drive in Bengaluru</span>
-            <a href="https://www.tomtom.com/traffic-index/city/bengaluru">TomTom city page</a>
+            <a href="https://www.tomtom.com/traffic-index/city/bengaluru" target="_blank" rel="noreferrer">TomTom city page →</a>
           </article>
-          <article>
-            <strong>20-33%</strong>
+          <article class="reveal reveal-delay-3">
+            <strong>20–33%</strong>
             <span>reported travel-time reduction on Bengaluru ATCS corridors, showing better control matters</span>
-            <a href="https://www.newindianexpress.com/cities/bengaluru/2024/Nov/25/traffic-down-by-20-per-cent-at-75-key-junctions-are-ai-signals-helping">ATCS report</a>
+            <a href="https://www.newindianexpress.com/cities/bengaluru/2024/Nov/25/traffic-down-by-20-per-cent-at-75-key-junctions-are-ai-signals-helping" target="_blank" rel="noreferrer">ATCS report →</a>
           </article>
-          <article>
-            <strong>Rs 20k cr</strong>
+          <article class="reveal reveal-delay-4">
+            <strong>₹20k cr</strong>
             <span>public estimate of annual productivity loss from congestion</span>
-            <a href="https://economictimes.indiatimes.com/news/india/bengaluru-paying-rs-20000-crore-in-lost-productivity-due-to-congestion-on-roads-says-it-minister-priyank-kharge/articleshow/113915488.cms">Economic Times</a>
+            <a href="https://economictimes.indiatimes.com/news/india/bengaluru-paying-rs-20000-crore-in-lost-productivity-due-to-congestion-on-roads-says-it-minister-priyank-kharge/articleshow/113915488.cms" target="_blank" rel="noreferrer">Economic Times →</a>
           </article>
         </div>
       </section>
 
+      <!-- ═══ PROBLEM DETAIL ═══ -->
       <section class="section split-section">
-        <div>
+        <div class="reveal-left">
           <p class="eyebrow">Problem</p>
           <h2>One green can make the next junction worse.</h2>
         </div>
-        <div class="rich-copy">
+        <div class="rich-copy reveal-right">
           <p>
             In corridors like HSR, Silk Board, and Bommanahalli, the failure is
             often coordination. One signal releases vehicles into a downstream
@@ -173,8 +204,11 @@
         </div>
       </section>
 
+      <hr class="section-divider" />
+
+      <!-- ═══ PRODUCT PROCESS ═══ -->
       <section class="section">
-        <div class="section-head">
+        <div class="section-head reveal">
           <p class="eyebrow">Product</p>
           <h2>A decision layer for connected signal sectors.</h2>
           <p class="section-lede">
@@ -184,22 +218,22 @@
           </p>
         </div>
         <div class="process-grid">
-          <article>
+          <article class="reveal reveal-delay-1">
             <span>01</span>
             <h3>Map the sector</h3>
             <p>Existing cameras, signals, stop lines, bus stops, footpaths, turns, blind spots, and sensor points are marked before data collection.</p>
           </article>
-          <article>
+          <article class="reveal reveal-delay-2">
             <span>02</span>
             <h3>Measure the wave</h3>
             <p>Temporary observation, phase notes, weather, events, and labels estimate queues, discharge, startup loss, and downstream block risk.</p>
           </article>
-          <article>
+          <article class="reveal reveal-delay-3">
             <span>03</span>
             <h3>Replay safely</h3>
             <p>The model compares observed behavior with candidate timing choices before recommending anything operational.</p>
           </article>
-          <article>
+          <article class="reveal reveal-delay-4">
             <span>04</span>
             <h3>Coordinate</h3>
             <p>Operators see an action, reason, confidence score, safety constraints, and a replay trace for audit.</p>
@@ -207,8 +241,9 @@
         </div>
       </section>
 
+      <!-- ═══ PUBLIC BENEFIT ═══ -->
       <section class="section benefit-section">
-        <div class="section-head">
+        <div class="section-head reveal">
           <p class="eyebrow">Public benefit</p>
           <h2>The city benefit is not a faster demo. It is less wasted life at red lights.</h2>
           <p class="section-lede">
@@ -217,22 +252,23 @@
           </p>
         </div>
         <div class="benefit-grid">
-          <article>
+          <article class="reveal reveal-delay-1">
             <strong>For commuters</strong>
             <p>Fewer unnecessary stops, shorter queue cascades, and more life outside traffic.</p>
           </article>
-          <article>
+          <article class="reveal reveal-delay-2">
             <strong>For traffic police</strong>
             <p>Replay-backed recommendations reduce manual guesswork and make each timing change explainable.</p>
           </article>
-          <article>
+          <article class="reveal reveal-delay-3">
             <strong>For cities</strong>
             <p>Existing infrastructure gets a better coordination layer before expensive civil works are considered.</p>
           </article>
         </div>
       </section>
 
-      <section class="section safety-panel">
+      <!-- ═══ SAFETY ═══ -->
+      <section class="section safety-panel reveal-scale">
         <div>
           <p class="eyebrow">Safety boundary</p>
           <h2>No black-box control. No direct live writes in year one.</h2>
@@ -244,21 +280,24 @@
         </div>
       </section>
 
+      <hr class="section-divider" />
+
+      <!-- ═══ EXPLORE LINKS ═══ -->
       <section class="section link-section">
-        <div class="section-head">
+        <div class="section-head reveal">
           <p class="eyebrow">Explore</p>
           <h2>See the product from the city, system, and team levels.</h2>
         </div>
         <div class="page-links">
-          <a href="simulation.html">
+          <a href="simulation/" class="reveal reveal-delay-1">
             <span>Simulation</span>
             <strong>Control demand, discharge, safety bias, and replay a connected sector with cars and two-wheelers.</strong>
           </a>
-          <a href="math.html">
+          <a href="technology/" class="reveal reveal-delay-2">
             <span>Technology</span>
             <strong>Traffic-wave model, startup filter, probabilistic estimator, optimization objective, and safety contract.</strong>
           </a>
-          <a href="contact.html">
+          <a href="contact/" class="reveal reveal-delay-3">
             <span>Contact</span>
             <strong>Reach the founders for technical review, pilot discussion, and civic validation.</strong>
           </a>
@@ -269,9 +308,11 @@
     <footer>
       <span>PATC</span>
       <p>Probabilistic Adaptive Traffic Control for connected city corridors.</p>
-      <a href="simulation.html">Simulation</a>
-      <a href="math.html">Technology</a>
-      <a href="contact.html">Contact</a>
+      <a href="simulation/">Simulation</a>
+      <a href="technology/">Technology</a>
+      <a href="contact/">Contact</a>
     </footer>
+
+    <script src="assets/animations.js"></script>
   </body>
 </html>

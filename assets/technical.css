@@ -1,22 +1,39 @@
+/* ═══════════════════════════════════════════════════════════════
+   PATC — Technical pages (Simulation + Technology) v2
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Replay shell ─────────────────────────────────────────────── */
 .replay-shell {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  background: linear-gradient(
+    145deg,
+    rgba(var(--cyan-rgb), 0.02),
+    rgba(var(--bg-rgb), 0.95) 40%
+  );
+  border: 1px solid rgba(var(--cyan-rgb), 0.08);
+  border-radius: var(--radius-lg);
   margin: 0 auto 60px;
   max-width: 1380px;
-  padding: 22px;
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  padding: 24px;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+}
+.replay-shell:hover {
+  border-color: rgba(var(--cyan-rgb), 0.14);
 }
 .replay-shell.fixed-mode {
-  border-color: rgba(255, 99, 88, 0.58);
-  box-shadow: 0 0 0 1px rgba(255, 99, 88, 0.16), 0 22px 70px rgba(255, 99, 88, 0.08);
+  border-color: rgba(var(--red-rgb), 0.4);
+  box-shadow: 0 0 0 1px rgba(var(--red-rgb), 0.1),
+              0 24px 70px rgba(var(--red-rgb), 0.06);
 }
+
+/* Toolbar + grid */
 .replay-toolbar,
 .replay-grid {
   display: grid;
   gap: 20px;
   grid-template-columns: minmax(0, 1fr) 360px;
 }
+
+/* Buttons */
 .scenario-buttons,
 .mode-switch,
 .replay-actions {
@@ -27,62 +44,74 @@
 .scenario-btn,
 .mode-btn,
 .replay-actions button {
-  background: #0b161d;
-  border: 1px solid var(--line);
+  background: rgba(var(--bg-rgb), 0.6);
+  border: 1px solid rgba(var(--cyan-rgb), 0.1);
   border-radius: var(--radius);
   color: var(--text);
   cursor: pointer;
-  font-weight: 900;
-  padding: 12px 15px;
+  font-weight: 800;
+  padding: 12px 16px;
+  transition: all 0.25s ease;
+}
+.scenario-btn:hover,
+.mode-btn:hover,
+.replay-actions button:hover {
+  border-color: rgba(var(--cyan-rgb), 0.3);
+  box-shadow: 0 0 20px rgba(var(--cyan-rgb), 0.08);
 }
 .scenario-btn.active,
 .mode-btn.active,
-.replay-actions button.active-control,
-.replay-actions button:hover {
-  background: var(--amber);
-  border-color: var(--amber);
-  color: #061015;
+.replay-actions button.active-control {
+  background: linear-gradient(135deg, var(--amber), #ffcf4a);
+  border-color: rgba(var(--amber-rgb), 0.4);
+  box-shadow: 0 4px 20px rgba(var(--amber-rgb), 0.2);
+  color: #0a0a0a;
 }
+
+/* Canvas & metric panel */
 .canvas-stage,
 .metric-panel {
-  background: #071017;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  background: rgba(var(--bg-rgb), 0.6);
+  border: 1px solid rgba(var(--cyan-rgb), 0.08);
+  border-radius: var(--radius-lg);
   overflow-x: auto;
   padding: 16px;
 }
 .fixed-mode .canvas-stage,
 .fixed-mode .metric-panel {
-  border-color: rgba(255, 99, 88, 0.45);
+  border-color: rgba(var(--red-rgb), 0.3);
 }
 #corridorCanvas {
   display: block;
   height: auto;
   width: 100%;
 }
-.replay-actions {
-  margin-top: 14px;
-}
+.replay-actions { margin-top: 14px; }
+
+/* Metric list */
 .metric-list {
   display: grid;
   gap: 12px;
   margin: 22px 0 0;
 }
 .metric-list div {
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid rgba(var(--cyan-rgb), 0.06);
   padding-bottom: 12px;
 }
 .metric-list dt {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .metric-list dd {
   font-size: 21px;
-  font-weight: 900;
+  font-weight: 800;
   margin: 4px 0 0;
 }
+
+/* Control sliders */
 .control-grid {
   display: grid;
   gap: 14px;
@@ -90,120 +119,145 @@
   margin-top: 20px;
 }
 .control-grid label {
-  background: #071017;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  background: rgba(var(--bg-rgb), 0.6);
+  border: 1px solid rgba(var(--cyan-rgb), 0.08);
+  border-radius: var(--radius-lg);
   display: grid;
   gap: 8px;
-  padding: 14px;
+  padding: 16px;
+  transition: border-color 0.3s ease;
+}
+.control-grid label:hover {
+  border-color: rgba(var(--cyan-rgb), 0.18);
 }
 .control-grid span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.control-grid strong {
-  color: var(--green);
-}
+.control-grid strong { color: var(--green); }
 input[type="range"] {
   accent-color: var(--amber);
   width: 100%;
 }
+
+/* ── Tech grids ───────────────────────────────────────────────── */
 .stack-grid,
 .math-grid,
 .contract-grid,
 .timeline-list {
   display: grid;
-  gap: 16px;
-  margin-top: 28px;
+  gap: 18px;
+  margin-top: 32px;
 }
-.stack-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-.math-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.timeline-list {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.contract-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
+.stack-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.math-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.timeline-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.contract-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
 .stack-grid article,
 .math-grid article,
 .contract-grid article,
 .timeline-list article,
 .equation-card {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 22px;
+  background: linear-gradient(
+    145deg,
+    rgba(var(--cyan-rgb), 0.03),
+    rgba(var(--bg-rgb), 0.7) 70%
+  );
+  border: 1px solid rgba(var(--cyan-rgb), 0.08);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
+.stack-grid article:hover,
+.math-grid article:hover,
+.contract-grid article:hover,
+.timeline-list article:hover,
+.equation-card:hover {
+  border-color: rgba(var(--cyan-rgb), 0.2);
+  box-shadow: 0 12px 44px rgba(0,0,0,0.3);
+  transform: translateY(-4px);
+}
+
+/* Contract grid details */
 .contract-grid dl {
   display: grid;
   gap: 12px;
   margin: 14px 0 0;
 }
 .contract-grid div {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid rgba(var(--cyan-rgb), 0.06);
   padding-top: 12px;
 }
 .contract-grid dt {
   color: var(--amber);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .contract-grid dd {
   color: var(--muted);
-  line-height: 1.5;
+  line-height: 1.55;
   margin: 4px 0 0;
 }
+
+/* Math & stack labels */
 .math-grid span {
   color: var(--amber);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 .stack-grid span {
   color: var(--cyan);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.stack-grid p {
-  color: var(--muted);
-  line-height: 1.6;
-}
+.stack-grid p { color: var(--muted); line-height: 1.65; }
 .math-grid p,
 .timeline-list p,
 .equation-card p {
   color: var(--muted);
-  line-height: 1.55;
+  line-height: 1.6;
 }
+
+/* Code blocks */
 code {
-  background: #071017;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  background: rgba(var(--bg-rgb), 0.7);
+  border: 1px solid rgba(var(--green-rgb), 0.1);
+  border-radius: var(--radius);
   color: var(--green);
   display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
   overflow-x: auto;
-  padding: 12px;
+  padding: 14px;
 }
-.equation-card {
-  margin: 24px 0;
-}
+
+.equation-card { margin: 28px 0; }
+
+/* References */
 .references ol {
   color: var(--muted);
   display: grid;
-  gap: 12px;
-  line-height: 1.6;
-  padding-left: 22px;
+  gap: 14px;
+  line-height: 1.65;
+  padding-left: 24px;
 }
 .references a {
   color: var(--cyan);
+  transition: color 0.2s ease;
 }
+.references a:hover { color: #6eeae6; }
+
+/* ── Responsive ───────────────────────────────────────────────── */
 @media (max-width: 980px) {
   .replay-toolbar,
   .replay-grid,
@@ -214,7 +268,5 @@ code {
   .timeline-list {
     grid-template-columns: 1fr;
   }
-  #corridorCanvas {
-    min-width: 0;
-  }
+  #corridorCanvas { min-width: 0; }
 }
