@@ -39,8 +39,119 @@ const FIXED_APPROACH_STOP_ZONE = 0.034;
 const FIXED_DWELL_BASE = 0.62;
 const MIN_VEHICLE_GAP = 0.04;
 const ROUTE_PRIORITY = ["east", "west", "feeder", "south", "north"];
+const CANVAS_LAYOUT = {
+  width: 1700,
+  height: 860,
+  scaleX: 1.38,
+  scaleY: 1.12,
+  offsetX: 52,
+  offsetY: 42,
+};
+ensureSimulationStyles();
+configureCanvas();
+applySimulationGeometry();
 function vehicleTargetCount() {
   return 22;
+}
+function ensureSimulationStyles() {
+  if (document.querySelector('link[href$="simulation.css"]')) return;
+  const scriptUrl = document.currentScript ? document.currentScript.src : "";
+  const href = scriptUrl ? new URL("simulation.css", scriptUrl).href : "assets/simulation.css";
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  document.head.appendChild(link);
+}
+function configureCanvas() {
+  canvas.width = CANVAS_LAYOUT.width;
+  canvas.height = CANVAS_LAYOUT.height;
+}
+function applySimulationGeometry() {
+  if (globalThis.__patcGeometryApplied) return;
+  if (usesExpandedSourceGeometry()) {
+    widenExpandedFeederGeometry();
+    globalThis.__patcGeometryApplied = true;
+    return;
+  }
+  widenFeederSourceGeometry();
+  transformSimulationGeometry();
+  globalThis.__patcGeometryApplied = true;
+}
+function usesExpandedSourceGeometry() {
+  const extent = routeExtent();
+  return extent.maxX > 1300 || extent.maxY > 720;
+}
+function routeExtent() {
+  return Object.values(routes).flatMap((route) => route.points).reduce((extent, point) => ({
+    maxX: Math.max(extent.maxX, point[0]),
+    maxY: Math.max(extent.maxY, point[1]),
+  }), { maxX: 0, maxY: 0 });
+}
+function widenExpandedFeederGeometry() {
+  const j2 = junctions.find((node) => node.id === "J2");
+  const f3 = supportNodes.find((node) => node.id === "F3");
+  const f4 = supportNodes.find((node) => node.id === "F4");
+  if (!j2 || !f3 || !f4) return;
+  moveGridBackedNode(f3, Math.max(f3.x, j2.x + 80), Math.min(f3.y, 98));
+  moveGridBackedNode(f4, Math.min(f4.x, j2.x - 80), Math.max(f4.y, 684));
+}
+function moveGridBackedNode(node, x, y) {
+  replaceGridPoint(node.x, node.y, x, y);
+  node.x = x;
+  node.y = y;
+}
+function widenFeederSourceGeometry() {
+  moveSupportNode("F3", 456, 62);
+  moveSupportNode("F4", 550, 618);
+  replaceGridPoint(500, 70, 456, 62);
+  replaceGridPoint(502, 580, 550, 618);
+  routes.south.points = [[474, 10], [500, 318], [456, 690]];
+  routes.north.points = [[562, 690], [500, 318], [576, 10]];
+  routes.feeder.points = [[70, 590], [345, 535], [500, 318], [772, 95], [1060, 52]];
+}
+function moveSupportNode(id, x, y) {
+  const node = supportNodes.find((item) => item.id === id);
+  if (!node) return;
+  node.x = x;
+  node.y = y;
+}
+function replaceGridPoint(fromX, fromY, toX, toY) {
+  gridLinks.forEach((points) => {
+    points.forEach((point) => {
+      if (point[0] !== fromX || point[1] !== fromY) return;
+      point[0] = toX;
+      point[1] = toY;
+    });
+  });
+}
+function transformSimulationGeometry() {
+  [...junctions, ...supportNodes, ...sensorSites].forEach(transformNode);
+  gridLinks.forEach((points) => points.forEach(transformPoint));
+  cityBlocks.forEach(transformRect);
+  Object.values(routes).forEach((route) => route.points.forEach(transformPoint));
+}
+function transformNode(node) {
+  const [x, y] = layoutPoint(node.x, node.y);
+  node.x = x;
+  node.y = y;
+}
+function transformPoint(point) {
+  const [x, y] = layoutPoint(point[0], point[1]);
+  point[0] = x;
+  point[1] = y;
+}
+function transformRect(rect) {
+  const [x, y] = layoutPoint(rect[0], rect[1]);
+  rect[0] = x;
+  rect[1] = y;
+  rect[2] = Math.round(rect[2] * CANVAS_LAYOUT.scaleX);
+  rect[3] = Math.round(rect[3] * CANVAS_LAYOUT.scaleY);
+}
+function layoutPoint(x, y) {
+  return [
+    Math.round(x * CANVAS_LAYOUT.scaleX + CANVAS_LAYOUT.offsetX),
+    Math.round(y * CANVAS_LAYOUT.scaleY + CANVAS_LAYOUT.offsetY),
+  ];
 }
 function controlledNodes() {
   return [...junctions, ...coordinatedNodes()];
@@ -216,6 +327,7 @@ function createVehicle(index) {
     complete: false,
     blocked: false,
     blockReason: "",
+    visualPose: null,
   };
 }
 function laneForRoute(key, index) {
@@ -254,7 +366,8 @@ function scheduleReset() {
 }
 function updateScenarioText() {
   document.getElementById("scenarioTitle").textContent = currentScenario().title;
-  document.getElementById("scenarioCopy").textContent = currentScenario().copy;
+  const scenarioCopy = document.getElementById("scenarioCopy");
+  if (scenarioCopy) scenarioCopy.textContent = currentScenario().copy;
 }
 function nextStop(vehicle) {
   return vehicle.route.stopProgress.find((stop) => stop.p > vehicle.progress + 0.0005);
@@ -560,6 +673,7 @@ function bodyConflict(vehicle, projected) {
   const pose = pointAt(vehicle.route, projected, vehicle.lane);
   return state.vehicles.some((other) => {
     if (other === vehicle || other.complete || other.delay > 0) return false;
+    if (other.routeKey === vehicle.routeKey && other.lane === vehicle.lane) return false;
     const otherPose = pointAt(other.route, other.progress, other.lane);
     return bodyOverlap(pose, vehicleDimensions(vehicle), otherPose, vehicleDimensions(other));
   });
@@ -717,18 +831,28 @@ function drawRoads() {
     }
   }
   drawBlocks();
-  gridLinks.forEach((points) => drawPath(points, 38, "#0f2230"));
+  gridLinks.forEach((points) => drawPath(points, 44, "#0f2230"));
   drawFeederCrossroads();
-  Object.values(routes).forEach((route) => drawPath(route.points, 58, colors.road));
+  Object.values(routes).forEach((route) => drawPath(route.points, 68, colors.road));
   gridLinks.forEach((points) => drawLaneDash(points, "rgba(244,247,242,0.10)"));
   Object.values(routes).forEach((route) => drawLaneDash(route.points, colors.lane));
 }
 function drawFeederCrossroads() {
   const road = "#123040";
-  drawPath([[390, 120], [500, 120], [625, 120]], 58, road);
-  drawPath([[500, 68], [500, 120], [500, 188]], 52, road);
-  drawPath([[392, 520], [502, 520], [626, 520]], 58, road);
-  drawPath([[502, 454], [502, 520], [502, 590]], 52, road);
+  const f3 = nodeById("F3");
+  const f4 = nodeById("F4");
+  const j2 = nodeById("J2");
+  if (!f3 || !f4 || !j2) return;
+  drawPath([offsetPoint(f3, -160, 58), offsetPoint(f3, 0, 28), offsetPoint(f3, 230, 42)], 66, road);
+  drawPath([offsetPoint(f3, -10, -28), offsetPoint(f3, 0, 28), midPoint(f3, j2, 0.42)], 58, road);
+  drawPath([offsetPoint(f4, -170, -40), offsetPoint(f4, 0, -28), offsetPoint(f4, 230, -80)], 66, road);
+  drawPath([midPoint(f4, j2, 0.42), offsetPoint(f4, 0, -28), offsetPoint(f4, 12, 30)], 58, road);
+}
+function offsetPoint(node, dx, dy) {
+  return [node.x + dx, node.y + dy];
+}
+function midPoint(a, b, t) {
+  return [lerp(a.x, b.x, t), lerp(a.y, b.y, t)];
 }
 function drawSignals() {
   drawApproachSignals();
@@ -789,9 +913,15 @@ function drawApproachSignal(routeKey, route, point) {
   ctx.restore();
 }
 function approachSignalColor(routeKey, point) {
-  if (!isFixedMode()) return routeKey === "south" || routeKey === "north" ? colors.cyan : colors.green;
   const node = nodeById(point.id);
-  return node && fixedGroupAllowed(node, point) ? colors.green : colors.red;
+  if (!node) return colors.red;
+  if (isFixedMode()) return fixedGroupAllowed(node, point) ? movementColor(routeKey) : colors.red;
+  return node.phase === controlPhase(point) ? movementColor(routeKey) : colors.red;
+}
+function movementColor(routeKey) {
+  if (routeKey === "south" || routeKey === "north") return colors.cyan;
+  if (routeKey === "feeder") return routes.feeder.color;
+  return colors.green;
 }
 function drawFieldSignal(node, radius) {
   const active = !isFixedMode();
@@ -849,8 +979,17 @@ function drawPatcCoordination() {
     ctx.arc(node.x, node.y, node.id.startsWith("S") ? 17 : 20, 0, Math.PI * 2);
     ctx.stroke();
   });
-  drawBadge(660, 92, modeCopy.patc.overlay, colors.green);
-  drawBadge(708, 532, "F1-F6 + S1-S4 synced", colors.cyan);
+  const f5 = nodeById("F5");
+  const f4 = nodeById("F4");
+  if (!f5 || !f4) return;
+  drawBadge(badgeX(f5.x - 100), badgeY(f5.y - 40), modeCopy.patc.overlay, colors.green);
+  drawBadge(badgeX(f4.x + 100), badgeY(f4.y - 18), "F1-F6 + S1-S4 synced", colors.cyan);
+}
+function badgeX(x) {
+  return Math.min(Math.max(32, x), canvas.width - 420);
+}
+function badgeY(y) {
+  return Math.min(Math.max(44, y), canvas.height - 44);
 }
 function closestJunction(node) {
   return junctions.reduce((best, junction) => {
@@ -893,9 +1032,30 @@ function drawBadge(x, y, label, color) {
   ctx.fillText(label, x + 10, y + 18);
 }
 function displayPose(vehicle, used) {
-  const pose = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
+  const pose = vehicleVisualPose(vehicle);
   used.push({ ...pose, vehicle });
   return pose;
+}
+function vehicleVisualPose(vehicle) {
+  const target = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
+  if (!vehicle.visualPose) {
+    vehicle.visualPose = { ...target };
+    return target;
+  }
+  const distance = Math.hypot(target.x - vehicle.visualPose.x, target.y - vehicle.visualPose.y);
+  if (distance > 80) {
+    vehicle.visualPose = { ...target };
+    return target;
+  }
+  const alpha = vehicle.blocked ? 0.3 : 0.48;
+  vehicle.visualPose.x = lerp(vehicle.visualPose.x, target.x, alpha);
+  vehicle.visualPose.y = lerp(vehicle.visualPose.y, target.y, alpha);
+  vehicle.visualPose.angle = smoothAngle(vehicle.visualPose.angle, target.angle, alpha);
+  return vehicle.visualPose;
+}
+function smoothAngle(current, target, alpha) {
+  const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
+  return current + delta * alpha;
 }
 function drawVehicles() {
   const used = [];

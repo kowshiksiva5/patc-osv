@@ -15,6 +15,36 @@
       body { opacity: 1; transition: opacity 0.25s ease; }
       body.page-enter { opacity: 0; }
       body.page-exit  { opacity: 0; transition: opacity 0.2s ease; }
+      @media (max-width: 1024px) {
+        .story-sticky {
+          align-content: center;
+          gap: 28px;
+          grid-template-columns: 1fr;
+          height: auto;
+          min-height: 100vh;
+          padding: 84px 20px 44px;
+        }
+        .story-visual {
+          min-height: 300px;
+          width: 100%;
+        }
+        .story-copy h1 {
+          font-size: clamp(34px, 9vw, 58px);
+          line-height: 1.02;
+        }
+      }
+      @media (max-width: 640px) {
+        .story-hero { min-height: 230vh; }
+        .story-copy p[data-home-story-copy] { font-size: 15px; }
+        .story-visual { min-height: 250px; }
+        .story-legend {
+          border-radius: 16px;
+          bottom: 10px;
+          gap: 8px;
+          left: 10px;
+          right: 10px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -31,83 +61,41 @@
       <nav aria-label="Primary navigation">
         <a href="simulation/">Simulation</a>
         <a href="technology/">Technology</a>
+        <a href="#contact">Contact</a>
       </nav>
     </header>
 
     <main>
-      <!-- ═══ ACT 1 — CINEMATIC DARK OPENER ═══ -->
-      <section class="cinema-opener" id="opener">
-        <div class="cinema-text">
-          <h1 class="cinema-title reveal" style="--reveal-delay: 0s">
-            What if traffic lights<br/>
-            <span class="accent-glow">knew you were coming?</span>
-          </h1>
-          <p class="cinema-sub reveal" style="--reveal-delay: 200ms">
-            PATC uses traffic physics, probability, and real-time optimization
-            to make every signal ready before your vehicle arrives.
-          </p>
-        </div>
-        <div class="cinema-canvas-wrap reveal-scale" style="--reveal-delay: 100ms">
-          <canvas id="storyCanvas" aria-label="Interactive grid-road animation showing traffic coordination"></canvas>
-          <div class="canvas-legend">
-            <span class="legend-dot" style="background:#F59E0B"></span> Your car
-            <span class="legend-dot" style="background:#F87171; margin-left:14px"></span> Red light
-            <span class="legend-dot" style="background:#34D399; margin-left:14px"></span> Green wave
-          </div>
-        </div>
-      </section>
-
-      <!-- ═══ ACT 2 — THE STORY (scroll-triggered phases) ═══ -->
-      <section class="story-chapter" data-story-phase="empty">
-        <div class="chapter-inner">
-          <div class="chapter-number">01</div>
-          <div class="chapter-content reveal-left">
-            <h2>Imagine driving on an empty grid.</h2>
-            <p>
-              No traffic at all. Just you and the road. But you still
-              wait at every junction — red lights don't know you're
-              the only car. Every stop costs you 15–30 seconds.
+      <section class="story-hero" id="opener" aria-label="PATC opening traffic story">
+        <div class="story-sticky">
+          <div class="story-copy">
+            <p class="story-kicker">PATC</p>
+            <h1 data-home-story-title aria-live="polite">
+              Imagine driving across an empty grid. No traffic at all. Just you on the road.
+            </h1>
+            <p data-home-story-copy>
+              Fixed lights still make you wait because the signal does not know the road is empty.
             </p>
+            <div class="story-status" aria-hidden="true">
+              <span class="story-pill active" data-phase-pill="empty">Empty grid</span>
+              <span class="story-pill" data-phase-pill="traffic">Rush hour</span>
+              <span class="story-pill" data-phase-pill="patc">PATC wave</span>
+            </div>
+          </div>
+          <div class="story-visual">
+            <canvas id="storyCanvas" aria-label="Animated grid-road story showing one car, rush hour, and PATC coordination"></canvas>
+            <div class="story-legend">
+              <span><i class="legend-you"></i>You</span>
+              <span><i class="legend-fixed"></i>Fixed lights</span>
+              <span><i class="legend-patc"></i>PATC release</span>
+            </div>
           </div>
         </div>
-      </section>
-
-      <div class="junction-marker" aria-hidden="true"><span class="dot"></span><span class="line"></span></div>
-
-      <section class="story-chapter" data-story-phase="traffic">
-        <div class="chapter-inner">
-          <div class="chapter-number">02</div>
-          <div class="chapter-content reveal-left">
-            <h2>Now add rush hour.</h2>
-            <p>
-              Cars from every direction. Each signal releases vehicles into
-              a link that's already jammed. One green makes the next junction
-              worse. Two-wheelers fill gaps, buses block discharge, and
-              you wait 45 minutes for a 10 km drive.
-            </p>
-          </div>
+        <div class="story-final">
+          <p>What if traffic lights knew you were coming?</p>
+          <span>PATC turns signal timing into corridor intelligence.</span>
         </div>
       </section>
-
-      <div class="junction-marker" aria-hidden="true"><span class="dot"></span><span class="line"></span></div>
-
-      <section class="story-chapter story-chapter-highlight" data-story-phase="patc">
-        <div class="chapter-inner">
-          <div class="chapter-number accent">03</div>
-          <div class="chapter-content reveal-left">
-            <h2>Now let <span class="text-accent">PATC</span> coordinate.</h2>
-            <p>
-              The system observes the density wave, predicts when it'll arrive
-              at each junction, and makes every green ready before you get
-              there. Not luck — corridor-level intelligence. Your car moves
-              faster even in traffic, because the <em>signals</em> are
-              learning the wave.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <hr class="section-divider" />
 
       <!-- ═══ ACT 3 — THE PROBLEM (big stat) ═══ -->
       <section class="story-problem">
@@ -243,31 +231,28 @@
       </section>
     </main>
 
-    <footer class="team-footer">
+    <footer class="team-footer" id="contact">
       <div class="footer-inner">
         <span class="footer-brand">PATC</span>
         <p>Adaptive corridor intelligence for connected city sectors.</p>
         <div class="footer-team">
           <div class="footer-person">
-            <strong>Kowshik Sivasankaran</strong>
+            <strong>Kowshik Motepalli</strong>
             <div class="footer-links">
-              <a href="https://www.linkedin.com/in/kowshiksiva5/" target="_blank" rel="noreferrer">LinkedIn</a>
-              <a href="mailto:kowshiksiva5@gmail.com">Email</a>
-              <a href="https://github.com/kowshiksiva5" target="_blank" rel="noreferrer">GitHub</a>
+              <a href="https://www.linkedin.com/in/kowshik-motepalli/" target="_blank" rel="noreferrer">LinkedIn</a>
             </div>
           </div>
           <div class="footer-person">
             <strong>Sidvik Basa</strong>
             <div class="footer-links">
               <a href="https://www.linkedin.com/in/sidvikbasa/" target="_blank" rel="noreferrer">LinkedIn</a>
-              <a href="mailto:sidvikb@gmail.com">Email</a>
             </div>
           </div>
         </div>
       </div>
     </footer>
 
-    <script src="assets/story-engine.js"></script>
+    <script src="assets/home-story.js"></script>
     <script src="assets/animations.js"></script>
   </body>
 </html>

@@ -11,6 +11,7 @@
     <link rel="icon" href="../assets/logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../assets/site.css" />
     <link rel="stylesheet" href="../assets/technical.css" />
+    <link rel="stylesheet" href="../assets/simulation.css" />
     <style>
       body { opacity: 1; transition: opacity 0.25s ease; }
       body.page-enter { opacity: 0; }
@@ -57,6 +58,7 @@
               <button type="button" class="scenario-btn active" data-scenario="peak">Peak spillback</button>
               <button type="button" class="scenario-btn" data-scenario="school">School release</button>
             </div>
+            <p class="scenario-copy" id="scenarioCopy">Office traffic releases into a saturated downstream link.</p>
           </div>
           <div>
             <div class="mode-switch" role="group" aria-label="Control mode">
@@ -68,7 +70,7 @@
 
         <!-- Full-width canvas -->
         <div class="canvas-stage canvas-full">
-          <canvas id="corridorCanvas" width="1400" height="680" aria-label="Multi-junction traffic replay"></canvas>
+          <canvas id="corridorCanvas" width="1600" height="760" aria-label="Multi-junction traffic replay"></canvas>
           <div class="replay-controls-bar">
             <div class="replay-actions">
               <button type="button" id="startBtn" class="primary-action">▶ Start</button>
@@ -157,24 +159,21 @@
       </section>
     </main>
 
-    <footer class="team-footer">
+    <footer class="team-footer" id="contact">
       <div class="footer-inner">
         <span class="footer-brand">PATC</span>
         <p>Adaptive corridor intelligence for connected city sectors.</p>
         <div class="footer-team">
           <div class="footer-person">
-            <strong>Kowshik Sivasankaran</strong>
+            <strong>Kowshik Motepalli</strong>
             <div class="footer-links">
-              <a href="https://www.linkedin.com/in/kowshiksiva5/" target="_blank" rel="noreferrer">LinkedIn</a>
-              <a href="mailto:kowshiksiva5@gmail.com">Email</a>
-              <a href="https://github.com/kowshiksiva5" target="_blank" rel="noreferrer">GitHub</a>
+              <a href="https://www.linkedin.com/in/kowshik-motepalli/" target="_blank" rel="noreferrer">LinkedIn</a>
             </div>
           </div>
           <div class="footer-person">
             <strong>Sidvik Basa</strong>
             <div class="footer-links">
               <a href="https://www.linkedin.com/in/sidvikbasa/" target="_blank" rel="noreferrer">LinkedIn</a>
-              <a href="mailto:sidvikb@gmail.com">Email</a>
             </div>
           </div>
         </div>

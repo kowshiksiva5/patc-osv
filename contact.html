@@ -1,12 +1,89 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta http-equiv="refresh" content="0; url=contact/" />
-  <link rel="canonical" href="contact/" />
-  <title>Redirecting…</title>
-</head>
-<body>
-  <p>Redirecting to <a href="contact/">contact</a>…</p>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PATC Contact</title>
+    <meta
+      name="description"
+      content="Contact the PATC team through LinkedIn."
+    />
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/site.css" />
+    <style>
+      body { opacity: 1; transition: opacity 0.25s ease; }
+      body.page-enter { opacity: 0; }
+      body.page-exit  { opacity: 0; transition: opacity 0.2s ease; }
+    </style>
+  </head>
+  <body>
+    <div class="scroll-progress" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="PATC home">
+        <img src="assets/logo.svg" alt="" />
+        <span>
+          <strong>PATC</strong>
+          <small>Adaptive Corridor Intelligence</small>
+        </span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="./">Home</a>
+        <a href="simulation/">Simulation</a>
+        <a href="technology/">Technology</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero page-hero">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">Contact</p>
+          <h1>Talk to the PATC team.</h1>
+          <p class="hero-lede">
+            Reach out through LinkedIn for pilot discussions, technical review,
+            or collaboration around adaptive corridor intelligence.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head reveal">
+          <p class="eyebrow">Team</p>
+          <h2>LinkedIn contacts.</h2>
+        </div>
+        <div class="team-grid">
+          <article class="reveal reveal-delay-1">
+            <h3>Kowshik Motepalli</h3>
+            <a class="profile-link" href="https://www.linkedin.com/in/kowshik-motepalli/" target="_blank" rel="noreferrer">LinkedIn</a>
+          </article>
+          <article class="reveal reveal-delay-2">
+            <h3>Sidvik Basa</h3>
+            <a class="profile-link" href="https://www.linkedin.com/in/sidvikbasa/" target="_blank" rel="noreferrer">LinkedIn</a>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="team-footer">
+      <div class="footer-inner">
+        <span class="footer-brand">PATC</span>
+        <p>Adaptive corridor intelligence for connected city sectors.</p>
+        <div class="footer-team">
+          <div class="footer-person">
+            <strong>Kowshik Motepalli</strong>
+            <div class="footer-links">
+              <a href="https://www.linkedin.com/in/kowshik-motepalli/" target="_blank" rel="noreferrer">LinkedIn</a>
+            </div>
+          </div>
+          <div class="footer-person">
+            <strong>Sidvik Basa</strong>
+            <div class="footer-links">
+              <a href="https://www.linkedin.com/in/sidvikbasa/" target="_blank" rel="noreferrer">LinkedIn</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+    <script src="assets/animations.js"></script>
+  </body>
 </html>

@@ -31,6 +31,7 @@
       <nav aria-label="Primary navigation">
         <a href="../">Home</a>
         <a href="../simulation/">Simulation</a>
+        <a href="../#contact">Contact</a>
       </nav>
     </header>
 
@@ -41,10 +42,55 @@
           <h1>From traffic waves to safe signal recommendations.</h1>
           <p class="hero-lede">
             PATC combines traffic-flow physics, probabilistic state estimation,
-            and constrained optimization. The goal is not to make an opaque AI
-            controller. The goal is to make every recommendation replayable,
-            bounded, and explainable.
+            and constrained optimization. Every recommendation is replayable,
+            bounded, and explainable before it reaches an operator.
           </p>
+          <div class="hero-actions">
+            <a class="primary-action" href="#replay-frame">Open replay frame</a>
+            <a class="secondary-action" href="#model-contract">Review constraints</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="replay-shell reveal-scale" id="replay-frame" aria-label="PATC technology replay frame">
+        <div class="replay-toolbar-row">
+          <div>
+            <p class="eyebrow">Explore the model</p>
+            <div class="scenario-buttons" role="group" aria-label="Technology sections">
+              <a class="scenario-btn active" href="#core-equations">Equations</a>
+              <a class="scenario-btn" href="#scoring">Scoring</a>
+              <a class="scenario-btn" href="#model-contract">Contract</a>
+            </div>
+          </div>
+          <div class="mode-switch" role="group" aria-label="Model mode">
+            <a class="mode-btn active" href="#validation">Shadow mode</a>
+            <a class="mode-btn" href="#references">Audit trail</a>
+          </div>
+        </div>
+
+        <div class="canvas-stage canvas-full">
+          <canvas id="corridorHero" width="1120" height="360" aria-label="Animated corridor wave showing coordinated junction state"></canvas>
+        </div>
+
+        <div class="metrics-below">
+          <div class="metric-row">
+            <div class="metric-chip">
+              <span class="metric-label">State</span>
+              <span class="metric-value">Density field</span>
+            </div>
+            <div class="metric-chip">
+              <span class="metric-label">Horizon</span>
+              <span class="metric-value">2-5 windows</span>
+            </div>
+            <div class="metric-chip">
+              <span class="metric-label">Safety</span>
+              <span class="metric-value">Hard-gated</span>
+            </div>
+            <div class="metric-chip wide">
+              <span class="metric-label">Output</span>
+              <span class="metric-value">Shadow recommendation with reason</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -62,9 +108,9 @@
             from one window to the next.
           </p>
           <p>
-            The model therefore estimates the current state and predicts a short
-            horizon. Only after the state is estimated does PATC ask what math
-            can do for the next few signal windows.
+            PATC estimates the current state and predicts a short horizon. Only
+            after the state is estimated does it ask what timing action is safe
+            enough to recommend.
           </p>
         </div>
       </section>
@@ -76,8 +122,8 @@
           <p class="eyebrow">Operating stack</p>
           <h2>The model behaves like a control room, not a black box.</h2>
           <p class="section-lede">
-            This page is for reviewers who want to see how PATC turns noisy road
-            observations into safe, auditable timing recommendations.
+            Noisy road observations are converted into safe, auditable timing
+            recommendations through a compact operating loop.
           </p>
         </div>
         <div class="stack-grid">
@@ -88,7 +134,7 @@
         </div>
       </section>
 
-      <section class="section">
+      <section class="section" id="core-equations">
         <div class="section-head reveal">
           <p class="eyebrow">Core equations</p>
           <h2>The small set of equations that drive the replay.</h2>
@@ -123,7 +169,7 @@
 
       <hr class="section-divider" />
 
-      <section class="section">
+      <section class="section" id="scoring">
         <div class="section-head reveal">
           <p class="eyebrow">What the math does</p>
           <h2>It scores the next action, then explains why.</h2>
@@ -132,9 +178,9 @@
           <code>min E[delay + queue + spillback + stops + safety_penalty]</code>
           <p>
             Candidate signal windows are scored against predicted pressure,
-            downstream blockage, startup loss, and safety constraints. The output
-            is a shadow recommendation: action, reason, confidence, expected
-            effect, and fallback trigger.
+            downstream blockage, startup loss, and safety constraints. The
+            output is a shadow recommendation: action, reason, confidence,
+            expected effect, and fallback trigger.
           </p>
         </div>
         <div class="process-grid">
@@ -145,7 +191,7 @@
         </div>
       </section>
 
-      <section class="section">
+      <section class="section" id="model-contract">
         <div class="section-head reveal">
           <p class="eyebrow">Model contract</p>
           <h2>What must be measured, bounded, and logged.</h2>
@@ -181,7 +227,7 @@
         </div>
       </section>
 
-      <section class="section">
+      <section class="section" id="validation">
         <div class="section-head reveal">
           <p class="eyebrow">Validation path</p>
           <h2>The model earns trust through data, not claims.</h2>
@@ -193,7 +239,7 @@
         </div>
       </section>
 
-      <section class="section references">
+      <section class="section references" id="references">
         <div class="section-head reveal">
           <p class="eyebrow">References</p>
           <h2>Terms and model lineage.</h2>
@@ -214,18 +260,15 @@
         <p>Technical model for replay-first traffic signal intelligence.</p>
         <div class="footer-team">
           <div class="footer-person">
-            <strong>Kowshik Sivasankaran</strong>
+            <strong>Kowshik Motepalli</strong>
             <div class="footer-links">
-              <a href="https://www.linkedin.com/in/kowshiksiva5/" target="_blank" rel="noreferrer">LinkedIn</a>
-              <a href="mailto:kowshiksiva5@gmail.com">Email</a>
-              <a href="https://github.com/kowshiksiva5" target="_blank" rel="noreferrer">GitHub</a>
+              <a href="https://www.linkedin.com/in/kowshik-motepalli/" target="_blank" rel="noreferrer">LinkedIn</a>
             </div>
           </div>
           <div class="footer-person">
             <strong>Sidvik Basa</strong>
             <div class="footer-links">
               <a href="https://www.linkedin.com/in/sidvikbasa/" target="_blank" rel="noreferrer">LinkedIn</a>
-              <a href="mailto:sidvikb@gmail.com">Email</a>
             </div>
           </div>
         </div>
