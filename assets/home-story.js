@@ -28,14 +28,9 @@
 
   /* ── Story copy ─────────────────────────────────────────────── */
   const COPY = {
-    intro: {
-      h: 'Imagine being stuck in traffic\u2026',
-      p: 'You see the road ahead is clear, but the signal won\u2019t budge.',
-      chip: 'The problem',
-    },
     rush: {
-      h: 'Rush hour.<br/><span class="accent-glow">Every junction fights alone.</span>',
-      p: 'Each signal optimizes itself. The corridor jams because no junction sees the full picture.',
+      h: 'Imagine being stuck in traffic<br/><span class="accent-glow">during a rush hour.</span>',
+      p: 'Every junction fights alone. Each signal optimizes itself. The corridor jams because no junction sees the full picture.',
       chip: 'Full traffic load',
     },
     quiet: {
@@ -48,23 +43,28 @@
       p: 'The system predicts your arrival, opens the right greens, and holds cross-traffic at signals.',
       chip: 'Coordinated faster run',
     },
+    done: {
+      h: 'The corridor clears.<br/><span class="accent-glow">Ready for the next wave.</span>',
+      p: 'Once the wave passes, the system resets efficiently without leaving stranded vehicles.',
+      chip: 'Clear road',
+    }
   };
 
-  /* 3-layer sequence: rush → quiet → PATC */
+  /* 4-layer sequence: rush → quiet → PATC → done */
   const SEQUENCE = [
-    { id: 'intro', ms: 3200 },
-    { id: 'rush', ms: 9000 },
+    { id: 'rush', ms: 10000 },
     { id: 'quiet', ms: 8000 },
-    { id: 'patc', ms: 7000 },
+    { id: 'patc', ms: 8000 },
+    { id: 'done', ms: 4000 },
   ];
 
   /* Traffic vehicles for rush/quiet scenes */
-  const TRAFFIC = Array.from({ length: 24 }, (_, i) => ({
+  const TRAFFIC = Array.from({ length: 28 }, (_, i) => ({
     axis: i % 4 === 0 ? 'v' : 'h',
     lane: i % 5,
     offset: ((i * 37) % 100) / 100,
     speed: 0.016 + (i % 7) * 0.004,
-    size: 7 + (i % 4),
+    size: i % 8 === 0 ? 11 : 7 + (i % 4), /* Add longer buses occasionally */
     shade: i % 3,
   }));
 
@@ -81,7 +81,7 @@
 
   function showCopy(id) {
     if (activePhase === id) return;
-    const copy = COPY[id] || COPY.intro;
+    const copy = COPY[id] || COPY.rush;
     activePhase = id;
     phaseStart = performance.now();
     typedUntil = 0;
@@ -118,7 +118,7 @@
       if (elapsed < end) return makeState(phase.id, elapsed - start, phase.ms);
       start = end;
     }
-    return makeState('patc', Math.max(0, elapsed - start), 7000);
+    return makeState('done', Math.max(0, elapsed - start), 4000);
   }
 
   function makeState(id, ageMs, totalMs) {
@@ -136,7 +136,6 @@
     const hero = getHero(state, layout);
     drawBackground(now / 1000, state.id);
     updateTyping(now, state.id);
-    if (state.id === 'intro') return;
     drawRoadGrid(layout, roadReveal(state));
     drawPatcWave(layout, state);
     drawSignals(layout, state, hero);
@@ -149,7 +148,6 @@
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = C.bg;
     ctx.fillRect(0, 0, width, height);
-    if (id === 'intro') return;
     const glow = ctx.createRadialGradient(width * 0.68, height * 0.28, 0, width * 0.68, height * 0.28, width * 0.7);
     glow.addColorStop(0, id === 'rush' ? 'rgba(248,113,113,0.06)' : isPatc(id) ? 'rgba(52,211,153,0.07)' : 'rgba(245,158,11,0.05)');
     glow.addColorStop(1, 'rgba(7,11,18,0)');
@@ -159,11 +157,11 @@
 
   /* ── Typing animation ──────────────────────────────────────── */
   function updateTyping(now, id) {
-    const copy = COPY[id] || COPY.intro;
+    const copy = COPY[id] || COPY.rush;
     const elapsed = now - phaseStart;
     const titleText = stripTags(copy.h);
-    const charDelay = id === 'intro' ? 55 : 36;
-    const bodyDelay = id === 'intro' ? 30 : 20;
+    const charDelay = 36;
+    const bodyDelay = 20;
     const titleCount = Math.min(titleText.length, Math.floor(elapsed / charDelay));
     const bodyCount = Math.min(copy.p.length, Math.floor(Math.max(0, elapsed - titleText.length * charDelay * 0.6) / bodyDelay));
     if (titleCount === typedUntil) return;
@@ -243,8 +241,10 @@
       }
       return C.red;
     }
+    if (state.id === 'done') return 'rgba(232,236,244,0.08)';
     if (state.id === 'rush') {
-      return (col + row + Math.floor(state.age * 0.7)) % 4 === 0 ? C.green : C.red;
+      /* Better sync: if hero is near, make that signal red occasionally, but cycle based on position */
+      return (col + row + Math.floor(state.age * 0.5)) % 3 === 0 ? C.green : C.red;
     }
     if (state.id === 'quiet') {
       /* Fewer reds but hero still waits at some */
@@ -322,7 +322,7 @@
 
   /* ── Hero car — zigzag path across grid (top-left start) ──── */
   function getHero(state, layout) {
-    if (state.id === 'intro') return null;
+    if (state.id === 'done') return null;
     const color = isPatc(state.id) ? C.green : state.id === 'rush' ? C.red : C.amber;
     const label = 'you';
     const p = heroZigzagProgress(state);
@@ -464,8 +464,8 @@
   }
 
   function trafficAlpha(state) {
-    if (state.id === 'intro') return 0;
-    if (state.id === 'rush') return clamp(state.progress * 3, 0, 1);
+    if (state.id === 'done') return Math.max(0, 1 - state.progress * 4); // Fade out quickly
+    if (state.id === 'rush') return clamp(state.progress * 5, 0, 1);
     if (state.id === 'quiet') return clamp(state.progress * 2, 0, 0.5);
     if (isPatc(state.id)) return 0.85;
     return 0;
@@ -593,6 +593,13 @@
 
   const replayBtn = document.getElementById('storyReplayBtn');
   if (replayBtn) replayBtn.addEventListener('click', replayStory);
+
+  document.querySelectorAll('[data-phase-pill]').forEach((pill) => {
+    pill.style.cursor = 'pointer';
+    pill.addEventListener('click', () => {
+      setManualPhase(pill.dataset.phasePill);
+    });
+  });
 
   window.HomeStory = { setPhase: setManualPhase, replay: replayStory };
   start();
