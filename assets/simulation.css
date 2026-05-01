@@ -1,5 +1,22 @@
 .replay-shell {
-  max-width: 1540px;
+  max-width: 1640px;
+}
+
+.compact-hero {
+  padding-top: 32px;
+  padding-bottom: 24px;
+}
+
+.compact-hero h1 {
+  font-size: clamp(28px, 3.4vw, 44px);
+  line-height: 1.1;
+  margin: 8px 0 12px;
+}
+
+.compact-hero .hero-lede {
+  font-size: 15px;
+  line-height: 1.55;
+  max-width: 720px;
 }
 
 .scenario-copy {
@@ -7,7 +24,7 @@
   font-size: 13px;
   line-height: 1.5;
   margin: 10px 0 0;
-  max-width: 460px;
+  max-width: 540px;
 }
 
 .canvas-stage {

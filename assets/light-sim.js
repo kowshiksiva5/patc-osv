@@ -320,11 +320,11 @@ function updateJunction(j, dt) {
     }
     return;
   }
-  /* Currently green — decide whether to swap */
   const safety = controlValue("safety");
 
   if (isFixedMode()) {
-    const greenLen = (j.phase === "MAIN" ? FIXED_GREEN_MAIN : FIXED_GREEN_SIDE) * safety;
+    /* Blind cycle — every junction flips on its own clock regardless of demand */
+    const greenLen = j.phase === "MAIN" ? FIXED_GREEN_MAIN : FIXED_GREEN_SIDE;
     if (j.timer >= greenLen) {
       j.pendingPhase = j.phase === "MAIN" ? "SIDE" : "MAIN";
       j.subphase = "amber";
@@ -333,16 +333,32 @@ function updateJunction(j, dt) {
     return;
   }
 
-  /* PATC mode */
-  const mainPressure = approachPressure(j.id, "MAIN") + arrivalPressure(j.id, "MAIN") - downstreamPressure(j.id) * 0.25 + greenWaveBoost(j);
+  /* PATC: coordinated green wave on the mainline; only pulse SIDE when
+     side-road queue is materially building. Mainline vehicles pass through
+     a sequence of greens without stopping. */
   const sidePressure = approachPressure(j.id, "SIDE") + arrivalPressure(j.id, "SIDE");
-  const target = mainPressure >= sidePressure ? "MAIN" : "SIDE";
+  const mainPressure = approachPressure(j.id, "MAIN") + arrivalPressure(j.id, "MAIN");
   const minGreen = PATC_MIN_GREEN * safety;
-  const maxGreen = PATC_MAX_GREEN;
-  const urgent = Math.max(mainPressure, sidePressure) > Math.min(mainPressure, sidePressure) * 1.05 + 0.4;
-  const shouldSwitch = (target !== j.phase && urgent && j.timer >= minGreen) || j.timer >= maxGreen;
-  if (shouldSwitch && !junctionOccupied(j)) {
-    j.pendingPhase = target !== j.phase ? target : (j.phase === "MAIN" ? "SIDE" : "MAIN");
+
+  if (j.phase === "SIDE") {
+    /* Brief side pulse — return to MAIN as soon as min-green elapsed and
+       side queue has thinned. */
+    const sideExhausted = sidePressure < 1.0 || j.timer >= 7.0;
+    if (j.timer >= minGreen && sideExhausted) {
+      j.pendingPhase = "MAIN";
+      j.subphase = "amber";
+      j.timer = 0;
+    }
+    return;
+  }
+
+  /* Currently MAIN-green. Flip to SIDE if side has queue AND we have served
+     mainline long enough. Tuned so side-road vehicles never wait > ~7s. */
+  const sideHot = sidePressure > 0.9 && j.timer >= minGreen;
+  const mainQuiet = mainPressure < 0.6 && sidePressure > 0.3;
+  const safetyForceFlip = j.timer >= 8.5 && sidePressure > 0.2;
+  if ((sideHot || mainQuiet || safetyForceFlip) && !junctionOccupied(j)) {
+    j.pendingPhase = "SIDE";
     j.subphase = "amber";
     j.timer = 0;
   }
@@ -510,12 +526,66 @@ function updateRecommendation() {
 
 /* ─── Render: roads ───────────────────────────────────────── */
 function drawBackground() {
-  ctx.fillStyle = colors.bg;
+  /* Base bg with subtle radial vignette */
+  const grad = ctx.createRadialGradient(CANVAS_W / 2, CANVAS_H / 2, 200, CANVAS_W / 2, CANVAS_H / 2, 1100);
+  grad.addColorStop(0, "#070d18");
+  grad.addColorStop(1, "#03070b");
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-  /* Subtle grass strips top/bottom */
-  ctx.fillStyle = "#0a1410";
-  ctx.fillRect(0, 0, CANVAS_W, 24);
-  ctx.fillRect(0, CANVAS_H - 24, CANVAS_W, 24);
+  /* Grass strips */
+  ctx.fillStyle = "#0a1812";
+  ctx.fillRect(0, 0, CANVAS_W, 28);
+  ctx.fillRect(0, CANVAS_H - 28, CANVAS_W, 28);
+  /* Sidewalk / soft ground tone */
+  ctx.fillStyle = "#0d1320";
+  ctx.fillRect(0, 28, CANVAS_W, 16);
+  ctx.fillRect(0, CANVAS_H - 44, CANVAS_W, 16);
+}
+
+function drawCityBlocks() {
+  cityBlocks.forEach(([x, y, w, h, color]) => {
+    ctx.fillStyle = color || "#1a2433";
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+    ctx.lineWidth = 0.6;
+    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    /* Window grid hint */
+    ctx.fillStyle = "rgba(255,200,120,0.08)";
+    for (let yy = y + 8; yy < y + h - 6; yy += 8) {
+      for (let xx = x + 6; xx < x + w - 6; xx += 10) {
+        ctx.fillRect(xx, yy, 4, 3);
+      }
+    }
+  });
+}
+
+function drawLandmarks() {
+  if (typeof landmarks === "undefined") return;
+  landmarks.forEach((lm) => {
+    /* Card body */
+    ctx.fillStyle = lm.color;
+    ctx.strokeStyle = lm.border;
+    ctx.lineWidth = 1.5;
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(lm.x, lm.y, lm.w, lm.h, 6);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.fillRect(lm.x, lm.y, lm.w, lm.h);
+      ctx.strokeRect(lm.x, lm.y, lm.w, lm.h);
+    }
+    /* Label */
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.font = "700 12px ui-sans-serif, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(lm.label, lm.x + lm.w / 2, lm.y + 26);
+    if (lm.sub) {
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.font = "10px ui-sans-serif, system-ui, sans-serif";
+      ctx.fillText(lm.sub, lm.x + lm.w / 2, lm.y + 44);
+    }
+  });
 }
 
 function strokePath(points, width, color, lineDash) {
@@ -525,28 +595,60 @@ function strokePath(points, width, color, lineDash) {
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   if (lineDash) ctx.setLineDash(lineDash);
+  /* Smooth curve through control points using simple quadratic interpolation */
   ctx.beginPath();
   ctx.moveTo(points[0][0], points[0][1]);
-  points.slice(1).forEach((p) => ctx.lineTo(p[0], p[1]));
+  if (points.length === 2) {
+    ctx.lineTo(points[1][0], points[1][1]);
+  } else {
+    for (let i = 1; i < points.length - 1; i += 1) {
+      const xc = (points[i][0] + points[i + 1][0]) / 2;
+      const yc = (points[i][1] + points[i + 1][1]) / 2;
+      ctx.quadraticCurveTo(points[i][0], points[i][1], xc, yc);
+    }
+    ctx.lineTo(points[points.length - 1][0], points[points.length - 1][1]);
+  }
   ctx.stroke();
   ctx.restore();
 }
 
+function offsetPath(points, lateral) {
+  /* Offset a polyline laterally by `lateral` px (positive = right of travel). */
+  const out = [];
+  for (let i = 0; i < points.length; i += 1) {
+    const prev = points[Math.max(0, i - 1)];
+    const next = points[Math.min(points.length - 1, i + 1)];
+    const dx = next[0] - prev[0];
+    const dy = next[1] - prev[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    out.push([points[i][0] + nx * lateral, points[i][1] + ny * lateral]);
+  }
+  return out;
+}
+
 function drawRoads() {
-  /* Asphalt strips */
   roads.forEach((road) => {
     /* Curb / outline */
-    strokePath(road.centerline, road.width + 4, colors.curb);
+    strokePath(road.centerline, road.width + 6, colors.curb);
     /* Asphalt body */
     strokePath(road.centerline, road.width, colors.asphalt);
+    /* Inner asphalt highlight (slightly lighter strip down the centre) */
+    strokePath(road.centerline, Math.max(2, road.width - 6), "rgba(255,255,255,0.018)");
   });
-  /* Lane markings — center-line dash on two-way roads (median) */
+  /* White edge lines on each road (solid) */
+  roads.forEach((road) => {
+    const half = road.width / 2 - 2;
+    strokePath(offsetPath(road.centerline, half), 1, "rgba(255,255,255,0.32)");
+    strokePath(offsetPath(road.centerline, -half), 1, "rgba(255,255,255,0.32)");
+  });
+  /* Lane markings — yellow median dash on two-way; white centre dash on one-way */
   roads.forEach((road) => {
     if (road.type === "two-way") {
-      strokePath(road.centerline, 1.5, colors.median, [10, 12]);
+      strokePath(road.centerline, 2, colors.median, [12, 14]);
     } else {
-      /* Direction arrow stripe down centre of one-way */
-      strokePath(road.centerline, 1, colors.laneDash, [4, 18]);
+      strokePath(road.centerline, 1.2, "rgba(255,255,255,0.22)", [6, 16]);
     }
   });
 }
@@ -829,6 +931,8 @@ function step(dt) {
 function render() {
   state.frameIndex += 1;
   drawBackground();
+  drawCityBlocks();
+  drawLandmarks();
   drawRoads();
   drawJunctionPads();
   drawSignalHeads();
