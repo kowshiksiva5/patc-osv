@@ -1,4 +1,4 @@
-/* PATC homepage opening story: sentence -> grid -> traffic -> coordinated run. */
+/* PATC homepage opening story: rush hour → quieter road → PATC wave. */
 (function () {
   'use strict';
 
@@ -26,46 +26,44 @@
     panel: 'rgba(10,15,26,0.78)',
   };
 
+  /* ── Story copy ─────────────────────────────────────────────── */
   const COPY = {
     intro: {
-      h: 'What if traffic lights knew you were coming?',
-      p: 'Imagine driving across an empty grid. No traffic at all. Just you on the road.',
-      chip: 'Sentence first',
+      h: 'Imagine being stuck in traffic\u2026',
+      p: 'You see the road ahead is clear, but the signal won\u2019t budge.',
+      chip: 'The problem',
     },
-    empty: {
-      h: 'The road is empty,<br/><span class="accent-glow">but the lights are blind.</span>',
-      p: 'Your car moves through the same grid and pauses at junctions that have no real conflict.',
-      chip: 'Single labeled user car',
+    rush: {
+      h: 'Rush hour.<br/><span class="accent-glow">Every junction fights alone.</span>',
+      p: 'Each signal optimizes itself. The corridor jams because no junction sees the full picture.',
+      chip: 'Full traffic load',
     },
-    traffic: {
-      h: 'Now rush hour arrives<br/><span class="accent-glow">from every direction.</span>',
-      p: 'The same trip slows down because each junction is solving itself, not the whole corridor.',
-      chip: 'Rush-hour load',
+    quiet: {
+      h: 'Traffic eases,<br/><span class="accent-glow">but the wait stays.</span>',
+      p: 'Fewer cars, same fixed timers. You still stop at signals with no cross-traffic.',
+      chip: 'Lighter load, same delays',
     },
     patc: {
       h: 'PATC sees the corridor<br/><span class="accent-glow">and opens a green wave.</span>',
-      p: 'The system predicts arrival, opens the right greens, and lets the same route move faster.',
+      p: 'The system predicts your arrival, opens the right greens, and holds cross-traffic at signals.',
       chip: 'Coordinated faster run',
-    },
-    tagline: {
-      h: 'What if traffic lights<br/><span class="accent-glow">knew you were coming?</span>',
-      p: 'PATC makes every signal part of the same corridor intelligence.',
-      chip: 'Final question',
     },
   };
 
+  /* 3-layer sequence: rush → quiet → PATC */
   const SEQUENCE = [
     { id: 'intro', ms: 3200 },
-    { id: 'empty', ms: 8000 },
-    { id: 'traffic', ms: 8000 },
-    { id: 'patc', ms: 6000 },
+    { id: 'rush', ms: 9000 },
+    { id: 'quiet', ms: 8000 },
+    { id: 'patc', ms: 7000 },
   ];
 
-  const TRAFFIC = Array.from({ length: 22 }, (_, i) => ({
+  /* Traffic vehicles for rush/quiet scenes */
+  const TRAFFIC = Array.from({ length: 24 }, (_, i) => ({
     axis: i % 4 === 0 ? 'v' : 'h',
     lane: i % 5,
     offset: ((i * 37) % 100) / 100,
-    speed: 0.018 + (i % 7) * 0.004,
+    speed: 0.016 + (i % 7) * 0.004,
     size: 7 + (i % 4),
     shade: i % 3,
   }));
@@ -89,9 +87,7 @@
     typedUntil = 0;
     document.documentElement.dataset.storyPhase = id;
     document.querySelectorAll('[data-phase-pill]').forEach((pill) => {
-      const phase = pill.dataset.phasePill;
-      const active = phase === id || (id === 'intro' && phase === 'empty') || (id === 'tagline' && phase === 'patc');
-      pill.classList.toggle('active', active);
+      pill.classList.toggle('active', pill.dataset.phasePill === id);
     });
   }
 
@@ -122,7 +118,7 @@
       if (elapsed < end) return makeState(phase.id, elapsed - start, phase.ms);
       start = end;
     }
-    return makeState('patc', Math.max(0, elapsed - start), 6000);
+    return makeState('patc', Math.max(0, elapsed - start), 7000);
   }
 
   function makeState(id, ageMs, totalMs) {
@@ -130,10 +126,11 @@
   }
 
   function currentState(now) {
-    if (manualPhase) return makeState(manualPhase, now - manualStart, 2200);
+    if (manualPhase) return makeState(manualPhase, now - manualStart, 4000);
     return stateForElapsed(now - sequenceStart);
   }
 
+  /* ── Main render ─────────────────────────────────────────────── */
   function render(now, state) {
     const layout = sceneLayout();
     const hero = getHero(state, layout);
@@ -154,21 +151,22 @@
     ctx.fillRect(0, 0, width, height);
     if (id === 'intro') return;
     const glow = ctx.createRadialGradient(width * 0.68, height * 0.28, 0, width * 0.68, height * 0.28, width * 0.7);
-    glow.addColorStop(0, id === 'traffic' ? 'rgba(248,113,113,0.06)' : 'rgba(61,191,176,0.07)');
+    glow.addColorStop(0, id === 'rush' ? 'rgba(248,113,113,0.06)' : isPatc(id) ? 'rgba(52,211,153,0.07)' : 'rgba(245,158,11,0.05)');
     glow.addColorStop(1, 'rgba(7,11,18,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, width, height);
   }
 
+  /* ── Typing animation ──────────────────────────────────────── */
   function updateTyping(now, id) {
     const copy = COPY[id] || COPY.intro;
     const elapsed = now - phaseStart;
     const titleText = stripTags(copy.h);
-    const charDelay = id === 'intro' ? 65 : 40;
-    const bodyDelay = id === 'intro' ? 35 : 24;
+    const charDelay = id === 'intro' ? 55 : 36;
+    const bodyDelay = id === 'intro' ? 30 : 20;
     const titleCount = Math.min(titleText.length, Math.floor(elapsed / charDelay));
-    const bodyCount = Math.min(copy.p.length, Math.floor(Math.max(0, elapsed - titleText.length * charDelay * 0.7) / bodyDelay));
-    if (titleCount === typedUntil && id !== 'tagline') return;
+    const bodyCount = Math.min(copy.p.length, Math.floor(Math.max(0, elapsed - titleText.length * charDelay * 0.6) / bodyDelay));
+    if (titleCount === typedUntil) return;
     typedUntil = titleCount;
     if (titleEl) {
       if (titleCount >= titleText.length) {
@@ -184,13 +182,14 @@
     return html.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, '');
   }
 
+  /* ── Road grid ──────────────────────────────────────────────── */
   function drawRoadGrid(layout, reveal) {
     const lanes = [
       ...layout.ys.map((y) => ['h', y]),
       ...layout.xs.map((x) => ['v', x]),
     ];
     lanes.forEach(([axis, pos], index) => {
-      const shown = clamp((reveal - index * 0.045) / 0.55, 0, 1);
+      const shown = clamp((reveal - index * 0.04) / 0.5, 0, 1);
       if (axis === 'h') roadLine(0, pos, width, pos, shown);
       else roadLine(pos, 0, pos, height, shown);
     });
@@ -212,6 +211,7 @@
     ctx.setLineDash([]);
   }
 
+  /* ── Signals ────────────────────────────────────────────────── */
   function drawSignals(layout, state, hero) {
     layout.ys.forEach((y, row) => {
       layout.xs.forEach((x, col) => {
@@ -234,34 +234,65 @@
 
   function signalColor(x, y, col, row, state, hero) {
     if (isPatc(state.id)) {
-      const nearHero = hero && Math.hypot(x - hero.x, y - hero.y) < width * 0.16;
-      return Math.abs(x - waveX(state)) < width * 0.13 || nearHero ? C.green : 'rgba(52,211,153,0.26)';
+      /* In PATC: hero's row gets green wave, other rows are RED (cross-traffic stops) */
+      const heroRow = hero ? closestRow(hero.y, state) : 1;
+      const onHeroPath = isOnHeroPath(col, row, state);
+      if (onHeroPath) {
+        const nearWave = Math.abs(x - waveX(state)) < width * 0.18;
+        return nearWave ? C.green : 'rgba(52,211,153,0.3)';
+      }
+      return C.red;
     }
-    if (state.id === 'traffic') {
-      return (col + row + Math.floor(state.age * 0.8)) % 4 === 0 ? C.green : C.red;
+    if (state.id === 'rush') {
+      return (col + row + Math.floor(state.age * 0.7)) % 4 === 0 ? C.green : C.red;
     }
-    if (hero && Math.abs(x - hero.x) < width * 0.12 && row === 1) return C.red;
+    if (state.id === 'quiet') {
+      /* Fewer reds but hero still waits at some */
+      if (hero && Math.abs(x - hero.x) < width * 0.10 && Math.abs(y - hero.y) < height * 0.12) return C.red;
+      return col % 3 === 0 ? C.red : 'rgba(248,113,113,0.35)';
+    }
     return col % 2 === 0 ? C.red : 'rgba(248,113,113,0.42)';
+  }
+
+  function isOnHeroPath(col, row, state) {
+    /* Hero zigzags: row 0→col 0..1, row 1→col 1..3, row 2→col 3..4 */
+    const p = heroZigzagProgress(state);
+    if (row === 0 && col <= 1 && p < 0.35) return true;
+    if (row === 1 && col >= 1 && col <= 3 && p > 0.15 && p < 0.75) return true;
+    if (row === 2 && col >= 3 && p > 0.6) return true;
+    return false;
+  }
+
+  function closestRow(y, state) {
+    const layout = sceneLayout();
+    let best = 0;
+    let bestDist = Infinity;
+    layout.ys.forEach((rowY, i) => {
+      const d = Math.abs(y - rowY);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    return best;
   }
 
   function drawPatcWave(layout, state) {
     if (!isPatc(state.id)) return;
     const x = waveX(state);
     const wave = ctx.createRadialGradient(x, layout.midY, 0, x, layout.midY, width * 0.28);
-    wave.addColorStop(0, 'rgba(52,211,153,0.16)');
-    wave.addColorStop(0.45, 'rgba(52,211,153,0.06)');
+    wave.addColorStop(0, 'rgba(52,211,153,0.14)');
+    wave.addColorStop(0.45, 'rgba(52,211,153,0.05)');
     wave.addColorStop(1, 'rgba(52,211,153,0)');
     ctx.fillStyle = wave;
     ctx.fillRect(0, 0, width, height);
   }
 
+  /* ── Traffic vehicles ──────────────────────────────────────── */
   function drawTraffic(layout, state, hero) {
     const alpha = trafficAlpha(state);
     if (alpha <= 0) return;
     const used = hero ? [hero] : [];
     TRAFFIC.forEach((vehicle) => {
       const point = trafficPoint(vehicle, layout, state);
-      if (isTooClose(point, used, 28)) return;
+      if (isTooClose(point, used, 24)) return;
       used.push(point);
       const color = trafficColor(vehicle, state.id);
       drawVehicle(point.x, point.y, point.angle, vehicle.size, color, alpha, isPatc(state.id));
@@ -270,8 +301,8 @@
 
   function trafficPoint(vehicle, layout, state) {
     const fast = isPatc(state.id);
-    const raw = (vehicle.offset + state.age * vehicle.speed * (fast ? 4.2 : 1.25)) % 1;
-    const progress = fast ? raw : queuedProgress(raw);
+    const base = (vehicle.offset + state.age * vehicle.speed * (fast ? 3.5 : 1.1)) % 1;
+    const progress = fast ? base : queuedProgress(base);
     if (vehicle.axis === 'v') {
       return { x: layout.xs[vehicle.lane % 5], y: lerp(-30, height + 30, progress), angle: Math.PI / 2 };
     }
@@ -279,27 +310,40 @@
   }
 
   function trafficColor(vehicle, id) {
-    if (isPatc(id)) return vehicle.shade === 0 ? 'rgba(52,211,153,0.74)' : 'rgba(232,236,244,0.58)';
-    if (vehicle.shade === 0) return 'rgba(248,113,113,0.68)';
-    if (vehicle.shade === 1) return 'rgba(245,158,11,0.70)';
-    return 'rgba(232,236,244,0.50)';
+    if (isPatc(id)) return vehicle.shade === 0 ? 'rgba(52,211,153,0.65)' : 'rgba(232,236,244,0.50)';
+    if (id === 'rush') {
+      if (vehicle.shade === 0) return 'rgba(248,113,113,0.68)';
+      if (vehicle.shade === 1) return 'rgba(245,158,11,0.65)';
+      return 'rgba(232,236,244,0.45)';
+    }
+    /* quiet — fewer, muted */
+    return 'rgba(232,236,244,0.35)';
   }
 
+  /* ── Hero car — zigzag path across grid (top-left start) ──── */
   function getHero(state, layout) {
     if (state.id === 'intro') return null;
-    const color = isPatc(state.id) ? C.green : C.amber;
-    const label = state.id === 'empty' ? 'you' : 'your car';
-    return { ...heroPose(layout, heroProgress(state)), color, label };
+    const color = isPatc(state.id) ? C.green : state.id === 'rush' ? C.red : C.amber;
+    const label = 'you';
+    const p = heroZigzagProgress(state);
+    return { ...heroPose(layout, p), color, label };
   }
 
-  function heroProgress(state) {
-    if (state.id === 'empty') return stoppedProgress(state.progress);
-    if (state.id === 'traffic') {
-      const base = 0.18 + state.progress * 0.33;
-      const wobble = Math.sin(state.age * 2.5) * 0.003;
-      return clamp(base + wobble, 0, 0.56);
+  function heroZigzagProgress(state) {
+    if (state.id === 'rush') {
+      /* Slow, stuck in traffic — crawling with stops */
+      const raw = 0.02 + state.progress * 0.45;
+      const wobble = Math.sin(state.age * 2.0) * 0.004;
+      return clamp(raw + wobble, 0, 0.5);
     }
-    return (state.age * 0.14 + 0.04) % 1;
+    if (state.id === 'quiet') {
+      /* Bit faster, but still stops at some signals */
+      const raw = 0.05 + state.progress * 0.60;
+      const wobble = Math.sin(state.age * 1.5) * 0.003;
+      return clamp(raw + wobble, 0, 0.7);
+    }
+    /* PATC — fast, smooth traversal */
+    return clamp(state.age * 0.11 + 0.02, 0, 0.98);
   }
 
   function heroPose(layout, progress) {
@@ -325,15 +369,15 @@
     return { x: last.x, y: last.y, angle: Math.atan2(last.y - prev.y, last.x - prev.x) };
   }
 
+  /* Hero zigzags: top-left → east → down → east → down → east */
   function heroRoute(layout) {
     const points = [
-      { x: -30, y: layout.ys[1] },
-      { x: layout.xs[0], y: layout.ys[1] },
+      { x: -20, y: layout.ys[0] },
+      { x: layout.xs[1], y: layout.ys[0] },
       { x: layout.xs[1], y: layout.ys[1] },
-      { x: layout.xs[2], y: layout.ys[1] },
       { x: layout.xs[3], y: layout.ys[1] },
-      { x: layout.xs[4], y: layout.ys[1] },
-      { x: width + 30, y: layout.ys[1] },
+      { x: layout.xs[3], y: layout.ys[2] },
+      { x: width + 20, y: layout.ys[2] },
     ];
     const total = points.slice(1).reduce((sum, point, index) => {
       const prev = points[index];
@@ -342,19 +386,11 @@
     return { points, total };
   }
 
-  function stoppedProgress(progress) {
-    if (progress < 0.20) return ease(progress / 0.20) * 0.22;
-    if (progress < 0.38) return 0.22;
-    if (progress < 0.58) return 0.22 + ease((progress - 0.38) / 0.20) * 0.24;
-    if (progress < 0.72) return 0.46;
-    if (progress < 0.88) return 0.46 + ease((progress - 0.72) / 0.16) * 0.26;
-    return 0.72 + ease((progress - 0.88) / 0.12) * 0.18;
-  }
-
+  /* ── Drawing helpers ────────────────────────────────────────── */
   function drawHero(hero, state) {
     drawVehicle(hero.x, hero.y, hero.angle, 13, hero.color, 1, true);
     label(hero.label, hero.x, hero.y - 28);
-    if (state.id === 'traffic') waitBadge(hero.x, hero.y + 31);
+    if (state.id === 'rush') waitBadge(hero.x, hero.y + 31);
   }
 
   function drawVehicle(x, y, angle, size, color, alpha, glow) {
@@ -406,7 +442,7 @@
     ctx.fillStyle = C.panel;
     box(14, 14, w, 30, 15);
     ctx.fill();
-    ctx.fillStyle = id === 'traffic' ? C.red : C.green;
+    ctx.fillStyle = id === 'rush' ? C.red : id === 'quiet' ? C.amber : C.green;
     ctx.beginPath();
     ctx.arc(28, 29, 4, 0, Math.PI * 2);
     ctx.fill();
@@ -414,44 +450,34 @@
     ctx.fillText(text, 40, 33);
   }
 
-  function drawFinalBadge(state) {
-    ctx.save();
-    ctx.globalAlpha = ease(state.progress);
-    ctx.fillStyle = 'rgba(7,11,18,0.36)';
-    box(width - 146, 18, 126, 32, 16);
-    ctx.fill();
-    ctx.fillStyle = C.green;
-    ctx.font = '700 12px JetBrains Mono, monospace';
-    ctx.fillText('PATC ACTIVE', width - 130, 38);
-    ctx.restore();
-  }
-
   function queuedProgress(progress) {
-    for (const stop of [0.27, 0.50, 0.73]) {
-      if (progress > stop - 0.075 && progress < stop + 0.018) {
-        return stop - 0.055 + (progress - stop + 0.075) * 0.22;
+    for (const stop of [0.25, 0.48, 0.72]) {
+      if (progress > stop - 0.06 && progress < stop + 0.02) {
+        return stop - 0.04 + (progress - stop + 0.06) * 0.2;
       }
     }
     return progress;
   }
 
   function isTooClose(point, used, distance) {
-    return used.some((other) => Math.hypot(point.x - other.x, point.y - other.y) < distance + 14);
+    return used.some((other) => Math.hypot(point.x - other.x, point.y - other.y) < distance + 12);
   }
 
   function trafficAlpha(state) {
-    if (state.id === 'empty') return 0;
-    if (state.id === 'traffic') return clamp(state.progress * 3, 0, 1);
-    if (isPatc(state.id)) return 1;
+    if (state.id === 'intro') return 0;
+    if (state.id === 'rush') return clamp(state.progress * 3, 0, 1);
+    if (state.id === 'quiet') return clamp(state.progress * 2, 0, 0.5);
+    if (isPatc(state.id)) return 0.85;
     return 0;
   }
 
   function roadReveal(state) {
-    return state.id === 'empty' ? ease(state.progress) : 1;
+    if (state.id === 'rush') return ease(clamp(state.progress * 2, 0, 1));
+    return 1;
   }
 
   function waveX(state) {
-    return ((state.age * 0.36) % 1) * width;
+    return ((state.age * 0.30) % 1) * width;
   }
 
   function isPatc(id) {
@@ -470,10 +496,6 @@
     ctx.arcTo(x, y + h, x, y, r);
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
-  }
-
-  function textLines(lines, x, y, lineHeight) {
-    lines.forEach((text, index) => ctx.fillText(text, x, y + index * lineHeight));
   }
 
   function line(x1, y1, x2, y2) {
@@ -495,6 +517,7 @@
     return Math.min(max, Math.max(min, value));
   }
 
+  /* ── Main loop ──────────────────────────────────────────────── */
   function loop(now) {
     if (lastDraw && now - lastDraw < 24) {
       rafId = requestAnimationFrame(loop);
@@ -528,8 +551,8 @@
   function start() {
     resize();
     if (motionQuery.matches) {
-      showCopy('tagline');
-      render(performance.now(), { id: 'tagline', age: 8, progress: 1 });
+      showCopy('patc');
+      render(performance.now(), { id: 'patc', age: 8, progress: 1 });
       return;
     }
     initScrollPhases();
@@ -541,7 +564,7 @@
     clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
       resize();
-      if (motionQuery.matches) render(performance.now(), { id: 'tagline', age: 8, progress: 1 });
+      if (motionQuery.matches) render(performance.now(), { id: 'patc', age: 8, progress: 1 });
     }, 160);
   });
 

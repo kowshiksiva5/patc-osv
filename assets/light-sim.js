@@ -38,7 +38,7 @@ const ENTRY_RESERVATION_MARGIN = 0.012;
 const FIXED_APPROACH_STOP_ZONE = 0.034;
 const FIXED_DWELL_BASE = 0.62;
 const MIN_VEHICLE_GAP = 0.04;
-const ROUTE_PRIORITY = ["east", "west", "feeder", "south", "north"];
+const ROUTE_PRIORITY = ["east", "west", "feeder", "south", "north", "j1cross", "j4cross"];
 const CANVAS_LAYOUT = {
   width: 1700,
   height: 860,
@@ -68,40 +68,8 @@ function configureCanvas() {
 }
 function applySimulationGeometry() {
   if (globalThis.__patcGeometryApplied) return;
-  /* Always widen the V-junction first, then transform to canvas coordinates */
-  widenFeederSourceGeometry();
   transformSimulationGeometry();
   globalThis.__patcGeometryApplied = true;
-}
-function usesExpandedSourceGeometry() {
-  const extent = routeExtent();
-  return extent.maxX > 1300 || extent.maxY > 720;
-}
-function routeExtent() {
-  return Object.values(routes).flatMap((route) => route.points).reduce((extent, point) => ({
-    maxX: Math.max(extent.maxX, point[0]),
-    maxY: Math.max(extent.maxY, point[1]),
-  }), { maxX: 0, maxY: 0 });
-}
-function widenExpandedFeederGeometry() {
-  /* No longer used — unified path handles everything */
-}
-function moveGridBackedNode(node, x, y) {
-  replaceGridPoint(node.x, node.y, x, y);
-  node.x = x;
-  node.y = y;
-}
-function widenFeederSourceGeometry() {
-  /* Widen V-junction: push F3 north-east and F4 south-west for realistic V gap.
-     All routes MUST pass through J2 at (570,365) exactly. */
-  moveSupportNode("F3", 690, 38);
-  moveSupportNode("F4", 450, 710);
-  replaceGridPoint(640, 48, 690, 38);
-  replaceGridPoint(500, 748, 450, 710);
-  /* Spread south/north routes for wider V */
-  routes.south.points = [[700, 10], [650, 150], [570, 365], [480, 720]];
-  routes.north.points = [[430, 720], [500, 530], [570, 365], [520, 14]];
-  routes.feeder.points = [[88, 640], [380, 540], [570, 365], [895, 180], [1560, 60]];
 }
 function moveSupportNode(id, x, y) {
   const node = supportNodes.find((item) => item.id === id);
@@ -836,28 +804,20 @@ function drawRoads() {
   drawJunctionCrossroads();
   /* Main EW corridor — draw once using east route coords (west shares them) */
   drawPath(routes.east.points, 60, colors.road);
-  /* NS routes, feeder */
+  /* NS routes, feeder, cross-traffic */
   ["south", "north", "feeder"].forEach((key) => drawPath(routes[key].points, 48, colors.road));
+  ["j1cross", "j4cross"].forEach((key) => { if (routes[key]) drawPath(routes[key].points, 40, colors.road); });
   /* Lane dashes */
   gridLinks.forEach((points) => drawLaneDash(points, "rgba(244,247,242,0.08)"));
   Object.values(routes).forEach((route) => drawLaneDash(route.points, colors.lane));
 }
 function drawJunctionCrossroads() {
   const armColor = "#132e3e";
-  /* Draw short EW crossing arms at each junction to widen the intersection area.
-     NS arms are already drawn by the grid links. */
+  /* Draw EW crossing arms at each junction to widen the intersection */
   junctions.forEach((j) => {
-    drawPath([[j.x - 60, j.y], [j.x + 60, j.y]], 48, armColor);
+    drawPath([[j.x - 70, j.y], [j.x + 70, j.y]], 52, armColor);
+    drawPath([[j.x, j.y - 50], [j.x, j.y + 50]], 44, armColor);
   });
-  /* V-junction minor crossroads at F3 and F4 */
-  const f3 = nodeById("F3");
-  const f4 = nodeById("F4");
-  if (f3) {
-    drawPath([offsetPoint(f3, -100, 36), [f3.x, f3.y], offsetPoint(f3, 120, 28)], 36, armColor);
-  }
-  if (f4) {
-    drawPath([offsetPoint(f4, -110, -30), [f4.x, f4.y], offsetPoint(f4, 130, -44)], 36, armColor);
-  }
 }
 function offsetPoint(node, dx, dy) {
   return [node.x + dx, node.y + dy];

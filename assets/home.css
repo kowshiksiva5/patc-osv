@@ -4,7 +4,7 @@
 
 /* Opening story */
 .story-hero {
-  min-height: 205vh;
+  min-height: 150vh;
   overflow: clip;
   position: relative;
 }
@@ -51,9 +51,11 @@
 }
 .story-copy p[data-home-story-copy] {
   color: var(--text-secondary);
-  font-size: clamp(16px, 1.35vw, 21px);
+  font-size: clamp(15px, 1.3vw, 20px);
   line-height: 1.65;
-  max-width: 580px;
+  max-width: 620px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .story-copy h1,
 .story-copy p[data-home-story-copy] {
