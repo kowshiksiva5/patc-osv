@@ -92,7 +92,8 @@
   background: rgba(6, 12, 20, 0.82);
   border: 1px solid rgba(232, 236, 244, 0.10);
   border-radius: 8px;
-  bottom: 52px;
+  top: 12px;
+  bottom: auto;
   color: var(--text-secondary);
   display: flex;
   font-family: 'JetBrains Mono', monospace;
@@ -116,8 +117,10 @@
 .cards-container {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 20px 16px 48px;
+  gap: 22px;
+  margin: 0 auto;
+  max-width: 1140px;
+  padding: 24px 28px 56px;
 }
 .pop-card {
   background: var(--bg-elevated);
@@ -146,9 +149,28 @@
 .pop-card > .story-problem,
 .pop-card > .story-process,
 .pop-card > .section,
-.pop-card > .safety-wrapper {
+.pop-card > .safety-panel,
+.pop-card > section {
   margin: 0;
   max-width: none;
+}
+
+/* Floating animation for impact-grid cards — staggered so they bob independently */
+@keyframes cardFloat {
+  0%, 100% { transform: translateY(0);   }
+  50%       { transform: translateY(-6px); }
+}
+.impact-grid article.visible {
+  animation: cardFloat 3.2s ease-in-out infinite;
+}
+.impact-grid article.reveal-delay-1.visible { animation-delay: 0s;    }
+.impact-grid article.reveal-delay-2.visible { animation-delay: 0.8s;  }
+.impact-grid article.reveal-delay-3.visible { animation-delay: 1.6s;  }
+.impact-grid article.reveal-delay-4.visible { animation-delay: 2.4s;  }
+/* Override site.css hover transform so float animation isn't interrupted */
+.impact-grid article:hover {
+  border-color: rgba(var(--accent-rgb), 0.3);
+  transform: translateY(-8px);
 }
 .story-status {
   display: flex;
