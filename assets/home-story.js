@@ -56,8 +56,8 @@
         axis,
         lane,
         pos: (carsPerLane[key] * 0.3 + Math.random() * 0.1) % 1,
-        maxSpeed: 0.18 + Math.random() * 0.08,
-        currentSpeed: 0.1,
+        maxSpeed: 200 + Math.random() * 100, // 200-300 px/s
+        currentSpeed: 100,
         size: i % 8 === 0 ? 11 : 7 + (i % 4),
         shade: i % 3,
         id: i
@@ -65,7 +65,7 @@
     }
     // Add the "hero" car
     SIM_CARS.push({
-      axis: 'h', lane: 1, pos: 0.05, maxSpeed: 0.22, currentSpeed: 0.1, size: 9, shade: 99, id: 'hero'
+      axis: 'h', lane: 1, pos: 0.05, maxSpeed: 350, currentSpeed: 100, size: 9, shade: 99, id: 'hero'
     });
   }
 
@@ -73,9 +73,20 @@
     if (activePhase === id) return;
     const copy = COPY[id] || COPY.fixed;
     activePhase = id;
-    phaseStart = performance.now();
-    typedTitleUntil = -1;
-    typedBodyUntil = -1;
+    
+    if (titleEl) {
+      titleEl.innerHTML = copy.h;
+      titleEl.style.animation = 'none';
+      titleEl.offsetHeight;
+      titleEl.style.animation = null; 
+    }
+    if (copyEl) {
+      copyEl.innerHTML = copy.p;
+      copyEl.style.animation = 'none';
+      copyEl.offsetHeight;
+      copyEl.style.animation = null;
+    }
+
     document.documentElement.dataset.storyPhase = id;
     document.querySelectorAll('[data-phase-pill]').forEach((pill) => {
       pill.classList.toggle('active', pill.dataset.phasePill === id);
@@ -143,8 +154,10 @@
 
   function updatePhysics(dt, stateId) {
     simTime += dt;
-    const BRAKING_DIST = 90;
-    const STOP_DIST = 26;
+    const BRAKING_DIST = 150;
+    const STOP_DIST = 30;
+    const SAFE_GAP = 45;
+    const FOLLOW_DIST = 120;
 
     for (const car of SIM_CARS) {
       let nextPos = -1;
@@ -179,7 +192,7 @@
         let dist = nextPos - currentPos;
         if (dist > 0 && dist < BRAKING_DIST) {
           // If already inside the intersection boundaries and moving, clear it to avoid stopping in the middle
-          if (dist < 20 && car.currentSpeed > 0.04) {
+          if (dist < 26 && car.currentSpeed > 50) {
             // Commit to clearing the intersection
           } else {
             targetSpeed = dist < STOP_DIST ? 0 : car.maxSpeed * ((dist - STOP_DIST) / (BRAKING_DIST - STOP_DIST));
@@ -198,15 +211,17 @@
           if (d > 0 && d < distToAhead) distToAhead = d;
         }
       }
-      const SAFE_GAP = 35;
-      const FOLLOW_DIST = 75;
+      
       if (distToAhead < SAFE_GAP) targetSpeed = 0;
       else if (distToAhead < FOLLOW_DIST) targetSpeed = Math.min(targetSpeed, car.maxSpeed * ((distToAhead - SAFE_GAP)/(FOLLOW_DIST - SAFE_GAP)));
 
-      // Smoother acceleration, faster braking
-      const lerpFactor = targetSpeed < car.currentSpeed ? 0.20 : 0.08;
-      car.currentSpeed = lerp(car.currentSpeed, targetSpeed, lerpFactor);
-      car.pos += (car.currentSpeed * 100 * dt) / span;
+      // Linear acceleration/deceleration physics
+      const accel = targetSpeed < car.currentSpeed ? -600 : 300; // px/s^2
+      car.currentSpeed += accel * dt;
+      if (accel < 0) car.currentSpeed = Math.max(car.currentSpeed, targetSpeed);
+      if (accel > 0) car.currentSpeed = Math.min(car.currentSpeed, targetSpeed);
+
+      car.pos += (car.currentSpeed * dt) / span;
       if (car.pos > 1) car.pos -= 1;
     }
   }
@@ -225,7 +240,6 @@
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, width, height);
 
-    updateTyping(now, state.id);
     drawRoadGrid(layout, 1);
     
     // Draw Signals
@@ -274,27 +288,7 @@
     drawStageChip(state.id);
   }
 
-  function updateTyping(now, id) {
-    const copy = COPY[id] || COPY.fixed;
-    const elapsed = now - phaseStart;
-    const titleText = stripTags(copy.h);
-    const charDelay = 36;
-    const bodyDelay = 20;
-    const titleCount = Math.min(titleText.length, Math.floor(elapsed / charDelay));
-    const bodyCount = Math.min(copy.p.length, Math.floor(Math.max(0, elapsed - titleText.length * charDelay * 0.6) / bodyDelay));
-    
-    if (titleCount === typedTitleUntil && bodyCount === typedBodyUntil) return;
-    typedTitleUntil = titleCount;
-    typedBodyUntil = bodyCount;
 
-    if (titleEl) {
-      if (titleCount >= titleText.length) titleEl.innerHTML = copy.h;
-      else titleEl.innerHTML = titleText.slice(0, titleCount) + '<span class="cursor-blink">|</span>';
-    }
-    if (copyEl) copyEl.textContent = copy.p.slice(0, bodyCount);
-  }
-
-  function stripTags(html) { return html.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, ''); }
 
   function drawRoadGrid(layout, reveal) {
     const lanes = [...layout.ys.map((y) => ['h', y]), ...layout.xs.map((x) => ['v', x])];
