@@ -60,7 +60,7 @@
   animation: storyTextIn 900ms cubic-bezier(.22,1,.36,1) both;
 }
 .story-status {
-  display: none;
+  display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 28px;
@@ -93,8 +93,7 @@ html[data-story-phase="intro"] .site-header {
   transform: translateY(-14px);
 }
 html[data-story-phase="intro"] .story-kicker,
-html[data-story-phase="intro"] .story-legend,
-html[data-story-phase="intro"] .story-final {
+html[data-story-phase="intro"] .story-legend {
   opacity: 0;
 }
 .story-visual {
@@ -158,34 +157,26 @@ html[data-story-phase="tagline"] .story-visual {
 .legend-you { background: var(--signal-amber); }
 .legend-fixed { background: var(--signal-red); }
 .legend-patc { background: var(--signal-green); }
-.story-final {
-  bottom: 6vh;
-  left: 50%;
-  max-width: 880px;
-  opacity: 0.88;
-  padding: 0 32px;
-  position: absolute;
-  text-align: center;
-  transform: translateX(-50%);
-  width: 100%;
-  z-index: 2;
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
-html:not([data-story-phase="tagline"]) .story-final {
-  opacity: 0;
-  transform: translate(-50%, 18px);
-}
-.story-final p {
-  color: var(--text-primary);
-  font-size: clamp(24px, 3.5vw, 44px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-bottom: 12px;
-}
-.story-final span {
+.story-replay-btn {
+  background: rgba(3, 7, 11, 0.72);
+  border: 1px solid rgba(232, 236, 244, 0.12);
+  border-radius: 999px;
   color: var(--text-secondary);
-  font-size: 16px;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 16px;
+  position: absolute;
+  right: 18px;
+  top: 16px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  z-index: 3;
+}
+.story-replay-btn:hover {
+  background: rgba(var(--accent-rgb), 0.14);
+  border-color: rgba(var(--accent-rgb), 0.34);
+  color: var(--accent);
 }
 @keyframes storyTextIn {
   from { opacity: 0; transform: translateY(26px); }

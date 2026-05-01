@@ -42,10 +42,10 @@ const ROUTE_PRIORITY = ["east", "west", "feeder", "south", "north"];
 const CANVAS_LAYOUT = {
   width: 1700,
   height: 860,
-  scaleX: 1.02,
-  scaleY: 1.04,
-  offsetX: 70,
-  offsetY: 30,
+  scaleX: 1.06,
+  scaleY: 1.06,
+  offsetX: 40,
+  offsetY: 18,
 };
 ensureSimulationStyles();
 configureCanvas();
@@ -92,15 +92,16 @@ function moveGridBackedNode(node, x, y) {
   node.y = y;
 }
 function widenFeederSourceGeometry() {
-  /* Widen the V-junction: push F3 north-east, F4 south-west */
-  moveSupportNode("F3", 700, 32);
-  moveSupportNode("F4", 440, 770);
-  replaceGridPoint(640, 48, 700, 32);
-  replaceGridPoint(500, 748, 440, 770);
+  /* Widen V-junction: push F3 north-east and F4 south-west for realistic V gap.
+     All routes MUST pass through J2 at (570,365) exactly. */
+  moveSupportNode("F3", 690, 38);
+  moveSupportNode("F4", 450, 710);
+  replaceGridPoint(640, 48, 690, 38);
+  replaceGridPoint(500, 748, 450, 710);
   /* Spread south/north routes for wider V */
-  routes.south.points = [[720, 10], [660, 140], [570, 365], [480, 780]];
-  routes.north.points = [[420, 780], [500, 540], [570, 365], [480, 22]];
-  routes.feeder.points = [[88, 666], [420, 575], [570, 365], [930, 130], [1560, 70]];
+  routes.south.points = [[700, 10], [650, 150], [570, 365], [480, 720]];
+  routes.north.points = [[430, 720], [500, 530], [570, 365], [520, 14]];
+  routes.feeder.points = [[88, 640], [380, 540], [570, 365], [895, 180], [1560, 60]];
 }
 function moveSupportNode(id, x, y) {
   const node = supportNodes.find((item) => item.id === id);
@@ -478,10 +479,7 @@ function updateFieldNode(node) {
   }
 }
 function updateJunctionNode(junction) {
-  if (!isFixedMode() && junction.id !== "J2") {
-    junction.phase = "EW";
-    return;
-  }
+  /* In PATC mode ALL junctions participate in adaptive switching, not just J2 */
   const downstreamRisk = downstreamPenalty(junction.id);
   const ewLive = pressure(junction.id, "EW");
   const nsLive = pressure(junction.id, "NS");
@@ -499,8 +497,9 @@ function updateJunctionNode(junction) {
   const shouldFixedSwitch = isFixedMode() && junction.timer > 10.2;
   const shouldPatcMaxSwitch = !isFixedMode() && target !== junction.phase && junction.timer > maxGreen;
   const shouldMaxSwitch = isFixedMode() && junction.timer > maxGreen;
-  if ((shouldPatcSwitch || shouldPatcMaxSwitch || shouldFixedSwitch || shouldMaxSwitch) && junctionOccupied(junction.id)) return;
-  if (shouldPatcSwitch || shouldPatcMaxSwitch) {
+  const forceSwitch = junction.timer > 16;
+  if (!forceSwitch && (shouldPatcSwitch || shouldPatcMaxSwitch || shouldFixedSwitch || shouldMaxSwitch) && junctionOccupied(junction.id)) return;
+  if (shouldPatcSwitch || shouldPatcMaxSwitch || forceSwitch) {
     junction.phase = target;
     junction.timer = 0;
     return;
@@ -523,8 +522,11 @@ function blockedBySignal(vehicle, projected) {
   if (!point || projected < point.p) return false;
   if (inControlWindow(vehicle, point)) return false;
   const node = nodeById(point.id);
-  if (!node || !isFixedMode()) return false;
-  return !fixedGroupAllowed(node, point);
+  if (!node) return false;
+  /* In fixed mode: use fixed-group check. In PATC: block when junction phase disagrees. */
+  if (isFixedMode()) return !fixedGroupAllowed(node, point);
+  if (isFieldNode(node)) return false;
+  return node.phase !== controlPhase(point);
 }
 function leaderInfo(vehicle, projected) {
   return state.vehicles.reduce((closest, other) => {
@@ -728,13 +730,10 @@ function updateVehicle(vehicle, dt) {
   const projected = Math.min(1, vehicle.progress + velocity * dt);
   const signalBlocked = blockedBySignal(vehicle, projected);
   const dwellBlocked = fixedDwellBlocked(vehicle, projected, dt);
-  const conflictBlocked = isFixedMode() && (
-    crossingConflict(vehicle, projected) || junctionEntryConflict(vehicle, projected) || physicalConflict(vehicle, projected)
-  );
+  const conflictBlocked = crossingConflict(vehicle, projected) || junctionEntryConflict(vehicle, projected) || physicalConflict(vehicle, projected);
   const leader = leaderInfo(vehicle, projected);
   const spacingBlocked = queueSpacingBlocked(vehicle, leader);
-  const canClearPatcWindow = !isFixedMode() && insideAnyControlWindow(vehicle);
-  const bodyBlocked = !spacingBlocked && !canClearPatcWindow && !(!isFixedMode() && distanceToStop(vehicle) < 0.10) && bodyConflict(vehicle, projected);
+  const bodyBlocked = !spacingBlocked && bodyConflict(vehicle, projected);
   const blocked = signalBlocked || dwellBlocked || conflictBlocked || spacingBlocked || bodyBlocked;
   const fixedSignalHold = isFixedMode() && conflictBlocked && distanceToStop(vehicle) < 0.16;
   vehicle.blocked = blocked;
@@ -831,22 +830,34 @@ function drawRoads() {
   ctx.fillStyle = colors.bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   drawBlocks();
-  gridLinks.forEach((points) => drawPath(points, 42, "#0f2230"));
-  drawFeederCrossroads();
-  Object.values(routes).forEach((route) => drawPath(route.points, 64, colors.road));
-  gridLinks.forEach((points) => drawLaneDash(points, "rgba(244,247,242,0.10)"));
+  /* Cross-streets at each junction */
+  gridLinks.forEach((points) => drawPath(points, 44, "#0c1c2a"));
+  /* Draw crossing arms */
+  drawJunctionCrossroads();
+  /* Main EW corridor — draw once using east route coords (west shares them) */
+  drawPath(routes.east.points, 60, colors.road);
+  /* NS routes, feeder */
+  ["south", "north", "feeder"].forEach((key) => drawPath(routes[key].points, 48, colors.road));
+  /* Lane dashes */
+  gridLinks.forEach((points) => drawLaneDash(points, "rgba(244,247,242,0.08)"));
   Object.values(routes).forEach((route) => drawLaneDash(route.points, colors.lane));
 }
-function drawFeederCrossroads() {
-  const road = "#123040";
+function drawJunctionCrossroads() {
+  const armColor = "#132e3e";
+  /* Draw short EW crossing arms at each junction to widen the intersection area.
+     NS arms are already drawn by the grid links. */
+  junctions.forEach((j) => {
+    drawPath([[j.x - 60, j.y], [j.x + 60, j.y]], 48, armColor);
+  });
+  /* V-junction minor crossroads at F3 and F4 */
   const f3 = nodeById("F3");
   const f4 = nodeById("F4");
-  const j2 = nodeById("J2");
-  if (!f3 || !f4 || !j2) return;
-  drawPath([offsetPoint(f3, -210, 78), offsetPoint(f3, 0, 22), offsetPoint(f3, 280, 66)], 62, road);
-  drawPath([offsetPoint(f3, -38, -58), offsetPoint(f3, 0, 22), midPoint(f3, j2, 0.48)], 54, road);
-  drawPath([offsetPoint(f4, -220, -62), offsetPoint(f4, 0, -24), offsetPoint(f4, 285, -104)], 62, road);
-  drawPath([midPoint(f4, j2, 0.48), offsetPoint(f4, 0, -24), offsetPoint(f4, -38, 62)], 54, road);
+  if (f3) {
+    drawPath([offsetPoint(f3, -100, 36), [f3.x, f3.y], offsetPoint(f3, 120, 28)], 36, armColor);
+  }
+  if (f4) {
+    drawPath([offsetPoint(f4, -110, -30), [f4.x, f4.y], offsetPoint(f4, 130, -44)], 36, armColor);
+  }
 }
 function offsetPoint(node, dx, dy) {
   return [node.x + dx, node.y + dy];
@@ -859,28 +870,47 @@ function drawSignals() {
   supportNodes.forEach((node) => {
     drawFieldSignal(node, 10);
   });
+  /* Draw each junction with 4 directional signal lights */
   junctions.forEach((j) => {
-    const color = j.phase === "EW" ? colors.amber : colors.cyan;
+    const ewGreen = j.phase === "EW";
+    const signalDist = 30;
+    /* Junction center */
     ctx.fillStyle = "#071017";
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 12;
     ctx.beginPath();
-    ctx.arc(j.x, j.y, 21, 0, Math.PI * 2);
+    ctx.arc(j.x, j.y, 16, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = "rgba(232,236,244,0.15)";
+    ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(j.x, j.y, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
+    /* 4 directional lights: E, W = EW phase; N, S = NS phase */
+    const directions = [
+      { dx: signalDist, dy: 0, green: ewGreen },   /* East */
+      { dx: -signalDist, dy: 0, green: ewGreen },  /* West */
+      { dx: 0, dy: -signalDist, green: !ewGreen },  /* North */
+      { dx: 0, dy: signalDist, green: !ewGreen },   /* South */
+    ];
+    directions.forEach(({ dx, dy, green }) => {
+      const color = green ? colors.green : colors.red;
+      ctx.save();
+      ctx.fillStyle = "#071017";
+      ctx.beginPath();
+      ctx.arc(j.x + dx, j.y + dy, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = green ? 14 : 6;
+      ctx.beginPath();
+      ctx.arc(j.x + dx, j.y + dy, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+    /* Junction label */
     ctx.fillStyle = colors.text;
     ctx.font = "700 13px sans-serif";
-    ctx.fillText(j.id, j.x + 18, j.y - 12);
+    ctx.fillText(j.id, j.x + 34, j.y - 8);
     ctx.fillStyle = colors.muted;
     ctx.font = "12px sans-serif";
-    ctx.fillText(`${j.phase} ${j.timer.toFixed(0)}s`, j.x + 18, j.y + 6);
+    ctx.fillText(`${j.phase} ${j.timer.toFixed(0)}s`, j.x + 34, j.y + 10);
   });
   sensorSites.forEach((site) => {
     drawFieldSignal(site, 8);
@@ -1051,9 +1081,7 @@ function drawVehicles() {
   });
 }
 function vehicleColor(vehicle) {
-  if (vehicle.blockReason === "conflict") return colors.red;
-  if (vehicle.blockReason === "signal" && isFixedMode() && vehicle.wait > 2.8) return colors.red;
-  if (vehicle.blockReason === "signal") return colors.amber;
+  /* Always use the route color — the user doesn't want cars changing color */
   return vehicle.route.color;
 }
 function drawDashboardOverlay() {

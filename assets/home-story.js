@@ -55,10 +55,10 @@
   };
 
   const SEQUENCE = [
-    { id: 'intro', ms: 3600 },
-    { id: 'empty', ms: 7000 },
-    { id: 'traffic', ms: 7000 },
-    { id: 'patc', ms: 5400 },
+    { id: 'intro', ms: 3200 },
+    { id: 'empty', ms: 8000 },
+    { id: 'traffic', ms: 8000 },
+    { id: 'patc', ms: 6000 },
   ];
 
   const TRAFFIC = Array.from({ length: 22 }, (_, i) => ({
@@ -122,7 +122,7 @@
       if (elapsed < end) return makeState(phase.id, elapsed - start, phase.ms);
       start = end;
     }
-    return makeState('tagline', Math.max(0, elapsed - start), 2400);
+    return makeState('patc', Math.max(0, elapsed - start), 6000);
   }
 
   function makeState(id, ageMs, totalMs) {
@@ -146,7 +146,6 @@
     drawTraffic(layout, state, hero);
     if (hero) drawHero(hero, state);
     drawStageChip(state.id);
-    if (state.id === 'tagline') drawFinalBadge(state);
   }
 
   function drawBackground(time, id) {
@@ -441,8 +440,10 @@
   }
 
   function trafficAlpha(state) {
-    if (state.id === 'traffic') return ease(state.progress);
-    return isPatc(state.id) ? 1 : 0;
+    if (state.id === 'empty') return 0;
+    if (state.id === 'traffic') return clamp(state.progress * 3, 0, 1);
+    if (isPatc(state.id)) return 1;
+    return 0;
   }
 
   function roadReveal(state) {
@@ -454,7 +455,7 @@
   }
 
   function isPatc(id) {
-    return id === 'patc' || id === 'tagline';
+    return id === 'patc';
   }
 
   function box(x, y, w, h, r) {
@@ -555,6 +556,21 @@
   if (motionQuery.addEventListener) motionQuery.addEventListener('change', () => window.location.reload());
   else motionQuery.addListener(() => window.location.reload());
 
-  window.HomeStory = { setPhase: setManualPhase };
+  function replayStory() {
+    cancelAnimationFrame(rafId);
+    sequenceStart = 0;
+    manualPhase = '';
+    manualStart = 0;
+    activePhase = '';
+    typedUntil = 0;
+    phaseStart = 0;
+    lastDraw = 0;
+    rafId = requestAnimationFrame(loop);
+  }
+
+  const replayBtn = document.getElementById('storyReplayBtn');
+  if (replayBtn) replayBtn.addEventListener('click', replayStory);
+
+  window.HomeStory = { setPhase: setManualPhase, replay: replayStory };
   start();
 })();
