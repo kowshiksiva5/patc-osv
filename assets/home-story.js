@@ -43,7 +43,7 @@
       chip: 'Rush-hour load',
     },
     patc: {
-      h: 'PATC coordinates<br/><span class="accent-glow">before the wave reaches you.</span>',
+      h: 'PATC sees the corridor<br/><span class="accent-glow">and opens a green wave.</span>',
       p: 'The system predicts arrival, opens the right greens, and lets the same route move faster.',
       chip: 'Coordinated faster run',
     },
@@ -55,10 +55,10 @@
   };
 
   const SEQUENCE = [
-    { id: 'intro', ms: 2400 },
-    { id: 'empty', ms: 5200 },
-    { id: 'traffic', ms: 5200 },
-    { id: 'patc', ms: 4600 },
+    { id: 'intro', ms: 3600 },
+    { id: 'empty', ms: 7000 },
+    { id: 'traffic', ms: 7000 },
+    { id: 'patc', ms: 5400 },
   ];
 
   const TRAFFIC = Array.from({ length: 22 }, (_, i) => ({
@@ -155,25 +155,29 @@
     ctx.fillRect(0, 0, width, height);
     if (id === 'intro') return;
     const glow = ctx.createRadialGradient(width * 0.68, height * 0.28, 0, width * 0.68, height * 0.28, width * 0.7);
-    glow.addColorStop(0, id === 'traffic' ? 'rgba(248,113,113,0.09)' : 'rgba(61,191,176,0.10)');
+    glow.addColorStop(0, id === 'traffic' ? 'rgba(248,113,113,0.06)' : 'rgba(61,191,176,0.07)');
     glow.addColorStop(1, 'rgba(7,11,18,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, width, height);
-    ctx.strokeStyle = 'rgba(61,191,176,0.035)';
-    ctx.lineWidth = 1;
-    for (let x = -64 + (time * 3) % 64; x < width; x += 64) line(x, 0, x, height);
-    for (let y = 0; y < height; y += 64) line(0, y, width, y);
   }
 
   function updateTyping(now, id) {
     const copy = COPY[id] || COPY.intro;
     const elapsed = now - phaseStart;
     const titleText = stripTags(copy.h);
-    const titleCount = Math.min(titleText.length, Math.floor(elapsed / 34));
-    const bodyCount = Math.min(copy.p.length, Math.floor(Math.max(0, elapsed - titleText.length * 22) / 22));
+    const charDelay = id === 'intro' ? 65 : 40;
+    const bodyDelay = id === 'intro' ? 35 : 24;
+    const titleCount = Math.min(titleText.length, Math.floor(elapsed / charDelay));
+    const bodyCount = Math.min(copy.p.length, Math.floor(Math.max(0, elapsed - titleText.length * charDelay * 0.7) / bodyDelay));
     if (titleCount === typedUntil && id !== 'tagline') return;
     typedUntil = titleCount;
-    if (titleEl) titleEl.innerHTML = titleCount >= titleText.length ? copy.h : titleText.slice(0, titleCount);
+    if (titleEl) {
+      if (titleCount >= titleText.length) {
+        titleEl.innerHTML = copy.h;
+      } else {
+        titleEl.innerHTML = titleText.slice(0, titleCount) + '<span class="cursor-blink">|</span>';
+      }
+    }
     if (copyEl) copyEl.textContent = copy.p.slice(0, bodyCount);
   }
 
@@ -291,8 +295,12 @@
 
   function heroProgress(state) {
     if (state.id === 'empty') return stoppedProgress(state.progress);
-    if (state.id === 'traffic') return clamp(0.18 + state.progress * 0.33 + Math.sin(state.age * 4) * 0.005, 0, 0.56);
-    return (state.age * 0.20 + 0.04) % 1;
+    if (state.id === 'traffic') {
+      const base = 0.18 + state.progress * 0.33;
+      const wobble = Math.sin(state.age * 2.5) * 0.003;
+      return clamp(base + wobble, 0, 0.56);
+    }
+    return (state.age * 0.14 + 0.04) % 1;
   }
 
   function heroPose(layout, progress) {
@@ -320,12 +328,13 @@
 
   function heroRoute(layout) {
     const points = [
-      { x: layout.xs[0] - 46, y: layout.ys[0] - 28 },
-      { x: layout.xs[0], y: layout.ys[0] },
+      { x: -30, y: layout.ys[1] },
       { x: layout.xs[0], y: layout.ys[1] },
       { x: layout.xs[1], y: layout.ys[1] },
-      { x: layout.xs[1], y: layout.ys[2] },
-      { x: layout.xs[3], y: layout.ys[2] },
+      { x: layout.xs[2], y: layout.ys[1] },
+      { x: layout.xs[3], y: layout.ys[1] },
+      { x: layout.xs[4], y: layout.ys[1] },
+      { x: width + 30, y: layout.ys[1] },
     ];
     const total = points.slice(1).reduce((sum, point, index) => {
       const prev = points[index];
@@ -354,9 +363,11 @@
     ctx.globalAlpha = alpha;
     ctx.translate(x, y);
     ctx.rotate(angle);
-    ctx.shadowColor = glow ? color : 'transparent';
-    ctx.shadowBlur = glow ? 10 : 0;
     ctx.fillStyle = color;
+    if (glow) {
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 8;
+    }
     box(-size, -size * 0.48, size * 2, size * 0.96, 4);
     ctx.fill();
     ctx.shadowBlur = 0;
@@ -426,7 +437,7 @@
   }
 
   function isTooClose(point, used, distance) {
-    return used.some((other) => Math.hypot(point.x - other.x, point.y - other.y) < distance);
+    return used.some((other) => Math.hypot(point.x - other.x, point.y - other.y) < distance + 14);
   }
 
   function trafficAlpha(state) {

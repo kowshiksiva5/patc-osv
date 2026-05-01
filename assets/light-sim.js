@@ -31,7 +31,7 @@ const modeCopy = {
 };
 const STOP_LINE_OFFSET = 56;
 const FIELD_STOP_OFFSET = 36;
-const CONTROL_NODE_RADIUS = 64;
+const CONTROL_NODE_RADIUS = 80;
 const CROSSING_CLEAR_TIME = 1.15;
 const FIXED_CONFLICT_LOOKAHEAD = 3.2;
 const ENTRY_RESERVATION_MARGIN = 0.012;
@@ -42,10 +42,10 @@ const ROUTE_PRIORITY = ["east", "west", "feeder", "south", "north"];
 const CANVAS_LAYOUT = {
   width: 1700,
   height: 860,
-  scaleX: 1.38,
-  scaleY: 1.12,
-  offsetX: 52,
-  offsetY: 42,
+  scaleX: 1.02,
+  scaleY: 1.04,
+  offsetX: 70,
+  offsetY: 30,
 };
 ensureSimulationStyles();
 configureCanvas();
@@ -68,11 +68,7 @@ function configureCanvas() {
 }
 function applySimulationGeometry() {
   if (globalThis.__patcGeometryApplied) return;
-  if (usesExpandedSourceGeometry()) {
-    widenExpandedFeederGeometry();
-    globalThis.__patcGeometryApplied = true;
-    return;
-  }
+  /* Always widen the V-junction first, then transform to canvas coordinates */
   widenFeederSourceGeometry();
   transformSimulationGeometry();
   globalThis.__patcGeometryApplied = true;
@@ -88,12 +84,7 @@ function routeExtent() {
   }), { maxX: 0, maxY: 0 });
 }
 function widenExpandedFeederGeometry() {
-  const j2 = junctions.find((node) => node.id === "J2");
-  const f3 = supportNodes.find((node) => node.id === "F3");
-  const f4 = supportNodes.find((node) => node.id === "F4");
-  if (!j2 || !f3 || !f4) return;
-  moveGridBackedNode(f3, Math.max(f3.x, j2.x + 80), Math.min(f3.y, 98));
-  moveGridBackedNode(f4, Math.min(f4.x, j2.x - 80), Math.max(f4.y, 684));
+  /* No longer used — unified path handles everything */
 }
 function moveGridBackedNode(node, x, y) {
   replaceGridPoint(node.x, node.y, x, y);
@@ -101,13 +92,15 @@ function moveGridBackedNode(node, x, y) {
   node.y = y;
 }
 function widenFeederSourceGeometry() {
-  moveSupportNode("F3", 456, 62);
-  moveSupportNode("F4", 550, 618);
-  replaceGridPoint(500, 70, 456, 62);
-  replaceGridPoint(502, 580, 550, 618);
-  routes.south.points = [[474, 10], [500, 318], [456, 690]];
-  routes.north.points = [[562, 690], [500, 318], [576, 10]];
-  routes.feeder.points = [[70, 590], [345, 535], [500, 318], [772, 95], [1060, 52]];
+  /* Widen the V-junction: push F3 north-east, F4 south-west */
+  moveSupportNode("F3", 700, 32);
+  moveSupportNode("F4", 440, 770);
+  replaceGridPoint(640, 48, 700, 32);
+  replaceGridPoint(500, 748, 440, 770);
+  /* Spread south/north routes for wider V */
+  routes.south.points = [[720, 10], [660, 140], [570, 365], [480, 780]];
+  routes.north.points = [[420, 780], [500, 540], [570, 365], [480, 22]];
+  routes.feeder.points = [[88, 666], [420, 575], [570, 365], [930, 130], [1560, 70]];
 }
 function moveSupportNode(id, x, y) {
   const node = supportNodes.find((item) => item.id === id);
@@ -741,7 +734,7 @@ function updateVehicle(vehicle, dt) {
   const leader = leaderInfo(vehicle, projected);
   const spacingBlocked = queueSpacingBlocked(vehicle, leader);
   const canClearPatcWindow = !isFixedMode() && insideAnyControlWindow(vehicle);
-  const bodyBlocked = !spacingBlocked && !canClearPatcWindow && bodyConflict(vehicle, projected);
+  const bodyBlocked = !spacingBlocked && !canClearPatcWindow && !(!isFixedMode() && distanceToStop(vehicle) < 0.10) && bodyConflict(vehicle, projected);
   const blocked = signalBlocked || dwellBlocked || conflictBlocked || spacingBlocked || bodyBlocked;
   const fixedSignalHold = isFixedMode() && conflictBlocked && distanceToStop(vehicle) < 0.16;
   vehicle.blocked = blocked;
@@ -752,6 +745,13 @@ function updateVehicle(vehicle, dt) {
       vehicle.wait += dt;
       vehicle.delayCost += dt;
       if (vehicle.wait - vehicle.stops > 1) vehicle.stops += 1;
+    }
+    /* Deadlock breaker: if a vehicle has been stuck for too long, force-release it */
+    if (vehicle.wait > 8) {
+      vehicle.blocked = false;
+      vehicle.blockReason = "";
+      vehicle.wait = 0;
+      vehicle.progress = Math.min(1, vehicle.progress + vehicle.speed * 0.012);
     }
     return;
   }
@@ -830,12 +830,6 @@ function drawLaneDash(points, color) {
 function drawRoads() {
   ctx.fillStyle = colors.bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "rgba(128,167,189,0.06)";
-  for (let x = 0; x < canvas.width; x += 32) {
-    for (let y = 0; y < canvas.height; y += 32) {
-      ctx.fillRect(x, y, 1, 1);
-    }
-  }
   drawBlocks();
   gridLinks.forEach((points) => drawPath(points, 42, "#0f2230"));
   drawFeederCrossroads();
@@ -904,12 +898,6 @@ function drawApproachSignal(routeKey, route, point) {
   const color = approachSignalColor(routeKey, point);
   const normal = { x: Math.cos(pose.angle + Math.PI / 2), y: Math.sin(pose.angle + Math.PI / 2) };
   ctx.save();
-  ctx.strokeStyle = "rgba(244,247,242,0.72)";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(pose.x - normal.x * 18, pose.y - normal.y * 18);
-  ctx.lineTo(pose.x + normal.x * 18, pose.y + normal.y * 18);
-  ctx.stroke();
   ctx.fillStyle = color;
   ctx.shadowColor = color;
   ctx.shadowBlur = 9;
@@ -955,27 +943,12 @@ function drawModeOverlay() {
   drawPatcCoordination();
 }
 function drawPatcCoordination() {
-  const pulse = 0.62 + Math.sin(state.frameIndex / 18) * 0.16;
   ctx.save();
   coordinatedNodes().forEach((node) => {
     const nearest = closestJunction(node);
     drawPath([[node.x, node.y], [nearest.x, nearest.y]], 1.2, "rgba(47,214,210,0.12)");
   });
   ctx.restore();
-  junctions.forEach((j, index) => {
-    ctx.strokeStyle = `rgba(82,210,115,${pulse * 0.75})`;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(j.x, j.y, 30 + Math.sin(state.frameIndex / 18 + index) * 2, 0, Math.PI * 2);
-    ctx.stroke();
-  });
-  coordinatedNodes().forEach((node, index) => {
-    ctx.strokeStyle = `rgba(47,214,210,${0.30 + Math.sin(state.frameIndex / 18 + index) * 0.08})`;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, node.id.startsWith("S") ? 14 : 17, 0, Math.PI * 2);
-    ctx.stroke();
-  });
 }
 function badgeX(x) {
   return Math.min(Math.max(32, x), canvas.width - 420);
@@ -1141,9 +1114,7 @@ function render() {
   state.frameIndex += 1;
   drawRoads();
   drawSignals();
-  drawModeOverlay();
   drawVehicles();
-  drawDashboardOverlay();
   updatePanel();
 }
 function frame(ts) {

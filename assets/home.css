@@ -43,10 +43,10 @@
   text-transform: uppercase;
 }
 .story-copy h1 {
-  font-size: clamp(42px, 5.6vw, 84px);
+  font-size: clamp(32px, 4.2vw, 58px);
   letter-spacing: -0.02em;
-  line-height: 0.98;
-  margin-bottom: 24px;
+  line-height: 1.06;
+  margin-bottom: 20px;
   text-wrap: balance;
 }
 .story-copy p[data-home-story-copy] {
@@ -113,7 +113,7 @@ html[data-story-phase="intro"] .story-final {
 }
 html[data-story-phase="intro"] .story-visual {
   opacity: 0;
-  transform: translateX(-90px) scale(0.96);
+  transform: translateX(-120px) scale(0.94);
 }
 html[data-story-phase="empty"] .story-visual,
 html[data-story-phase="traffic"] .story-visual,
@@ -177,10 +177,10 @@ html:not([data-story-phase="tagline"]) .story-final {
 }
 .story-final p {
   color: var(--text-primary);
-  font-size: clamp(30px, 4.4vw, 62px);
+  font-size: clamp(24px, 3.5vw, 44px);
   font-weight: 700;
   letter-spacing: -0.02em;
-  line-height: 1;
+  line-height: 1.1;
   margin-bottom: 12px;
 }
 .story-final span {
@@ -196,12 +196,13 @@ html:not([data-story-phase="tagline"]) .story-final {
   to { opacity: 1; transform: translateX(0) scale(1); }
 }
 
-/* Animated grid background */
+/* Animated background glow — no visible grid lines */
 body::before {
-  background-image:
-    linear-gradient(rgba(61, 191, 176, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(61, 191, 176, 0.025) 1px, transparent 1px);
-  background-size: 80px 80px;
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    rgba(61, 191, 176, 0.02),
+    transparent 60%
+  );
   content: '';
   inset: 0;
   pointer-events: none;
@@ -210,28 +211,22 @@ body::before {
   z-index: -2;
 }
 body::after {
-  animation: none;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(61, 191, 176, 0.02) 20%,
-    rgba(61, 191, 176, 0.04) 50%,
-    rgba(61, 191, 176, 0.02) 80%,
-    transparent 100%
-  );
   content: '';
-  height: 100%;
-  left: -100%;
-  pointer-events: none;
-  position: fixed;
-  top: 0;
-  transition: opacity 0.5s ease;
-  width: 100%;
-  z-index: -1;
+  display: none;
 }
-html[data-story-phase="intro"] body::before,
-html[data-story-phase="intro"] body::after {
+html[data-story-phase="intro"] body::before {
   opacity: 0;
+}
+
+/* Typewriter cursor blink */
+.cursor-blink {
+  animation: cursorBlink 0.7s step-end infinite;
+  color: var(--accent);
+  font-weight: 300;
+}
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 @keyframes gridWave {
   0%   { left: -100%; }
