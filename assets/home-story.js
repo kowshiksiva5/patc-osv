@@ -1,13 +1,14 @@
-/* PATC homepage — mini corridor simulation v4.
-   Phases: intro(2.5s) → fixed(12s) → patc (stays, no loop).
-   Fixed text: time-synced over 9s. PATC text: hero-position-synced.
-   Replay button restarts from scratch. */
+/* PATC homepage — mini corridor simulation v5.
+   Phases: fixed (12s) → patc (stays). No intro. No loop.
+   Text synced with hero car position on BOTH phases.
+   Canvas slides in from right after first word is typed.
+   Manual toggle: instant text + looping sim in that mode. */
 (function () {
   'use strict';
 
-  const canvas = document.getElementById('storyCanvas');
+  const canvas  = document.getElementById('storyCanvas');
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
+  const ctx     = canvas.getContext('2d');
   if (!ctx) return;
 
   const titleEl = document.querySelector('[data-home-story-title]');
@@ -29,11 +30,6 @@
 
   /* ── Copy ─────────────────────────────────────────────────── */
   const COPY = {
-    intro: {
-      h:    'Stuck in rush hour.\n<span class="accent-glow">Every junction. Another red.</span>',
-      p:    '',
-      chip: 'Your commute now',
-    },
     fixed: {
       line1: 'Rush hour — every junction forces a stop.',
       line2: 'Signals act alone. You pay the penalty every time.',
@@ -42,24 +38,33 @@
     },
     patc: {
       line1: 'PATC coordinates every junction ahead of you.',
-      line2: 'Every green works for you — near-zero stops.',
+      line2: 'Every green works for you.',
       p:     'One adaptive layer sees the whole corridor. A green wave opens before your vehicle arrives. Smooth flow, all the way through.',
       chip:  'With PATC',
     },
   };
 
-  /* ── Phases: intro → fixed → patc (stays) ────────────────── */
+  /* ── Phases: fixed → patc (stays, no loop) ───────────────── */
   const PHASES = [
-    { id: 'intro', ms: 2500  },
     { id: 'fixed', ms: 12000 },
     { id: 'patc',  ms: Infinity },
   ];
 
   /* ── State ────────────────────────────────────────────────── */
   let W = 0, H = 0, rafId = 0, lastDraw = 0, simTime = 0;
-  let seqStart = 0, manualPhase = '', manualStart = 0, lastPhaseId = '';
+  let seqStart = 0, manualPhase = '', manualStart = 0;
+  let lastPhaseId = '', manualJustSet = false;
   const stat = { fixed: { wait: 0, n: 0 }, patc: { wait: 0, n: 0 } };
   let mainY = 0, roadW = 0, jxs = [];
+
+  /* ── Canvas entrance (one-time, triggered after 1st word) ─── */
+  let canvasEntered = false;
+  function triggerCanvasEntrance() {
+    if (canvasEntered) return;
+    canvasEntered = true;
+    const visual = document.querySelector('.story-visual');
+    if (visual) visual.classList.add('canvas-entered');
+  }
 
   /* ── Vehicles ─────────────────────────────────────────────── */
   let HCARS = [], VCARS = [];
@@ -79,7 +84,8 @@
       HCARS.push({
         x: -60 - i * 55, speed: 0,
         maxSpd: 130 + (i % 5) * 16,
-        kind: kindOf(i), isHero: i === 4,
+        kind: kindOf(i),
+        isHero: i === 0,  /* lead car — enters screen fast */
         wait: 0, _crossed: false,
       });
     }
@@ -108,7 +114,9 @@
       sig.sub[i] = 'green'; sig.amberT[i] = 0;
       if (id === 'fixed') {
         sig.phase[i] = i % 2 === 0 ? 'MAIN' : 'SIDE';
-        sig.timer[i] = 0;
+        /* Advance J2+J4 timers so hero can cross in ~9s:
+           remaining SIDE = 4s (J2) + 2.2s transitions = ~6.2s until MAIN */
+        sig.timer[i] = (i === 1 || i === 3) ? 10 : 0;
       } else {
         sig.phase[i] = 'MAIN';
         sig.timer[i] = i * 0.8;  /* green-wave stagger */
@@ -121,8 +129,8 @@
       if (sig.sub[i] === 'amber') {
         sig.amberT[i] += dt;
         if (sig.amberT[i] >= AMBER) {
-          sig.phase[i]  = sig.phase[i] === 'MAIN' ? 'SIDE' : 'MAIN';
-          sig.sub[i]    = 'allred'; sig.amberT[i] = 0; sig.timer[i] = 0;
+          sig.phase[i] = sig.phase[i] === 'MAIN' ? 'SIDE' : 'MAIN';
+          sig.sub[i] = 'allred'; sig.amberT[i] = 0; sig.timer[i] = 0;
         }
         continue;
       }
@@ -208,46 +216,37 @@
       vc.speed += accel * dt;
       vc.speed  = Math.max(0, Math.min(vc.maxSpd, vc.speed));
       vc.y     += vc.dir * vc.speed * dt;
-      if (vc.dir === 1  && vc.y > H + 50) { vc.y = -50; vc.speed = 0; }
+      if (vc.dir === 1  && vc.y > H + 50) { vc.y = -50;    vc.speed = 0; }
       if (vc.dir === -1 && vc.y < -50)    { vc.y = H + 50; vc.speed = 0; }
     });
   }
 
-  /* ── Text sync (driven from renderFrame each tick) ──────── */
+  /* ── Text sync (hero-position-driven both phases) ─────────── */
   let tsPhase = '', tsDone = false, tsLastN = -1, tsDescShown = false;
 
-  function updateSyncedTitle(id, elapsedMs) {
+  function updateSyncedTitle(id) {
     const copy = COPY[id];
-    if (!copy || !copy.line1) return;
+    if (!copy) return;
 
-    /* Reset when phase changes */
     if (tsPhase !== id) {
       tsPhase = id; tsDone = false; tsLastN = -1; tsDescShown = false;
-      if (titleEl) titleEl.innerHTML = '';
+      if (titleEl) titleEl.innerHTML = '<span class="tw-cursor">|</span>';
       if (copyEl)  { copyEl.innerHTML = ''; copyEl.style.opacity = '0'; }
     }
     if (tsDone) return;
 
     const hero = HCARS.find(c => c.isHero);
-    if (!hero) return;
+    if (!hero || hero.x < 0) return;  /* wait until hero on screen */
 
-    let progress = 0;
-    if (id === 'fixed') {
-      /* Time-based: types over 9 s, starting 0.5 s into phase */
-      progress = Math.min(Math.max(elapsedMs - 500, 0) / 9000, 1.0);
-    } else if (id === 'patc') {
-      /* Position-based: synced with hero crossing canvas l→r */
-      if (hero._crossed) {
-        progress = 1.0;
-      } else if (hero.x >= 0) {
-        progress = Math.min(hero.x / W, 1.0);
-      }
-    }
-
-    const full = copy.line1 + ' ' + copy.line2;
-    const n    = Math.min(Math.floor(progress * full.length), full.length);
+    const full     = copy.line1 + ' ' + copy.line2;
+    const progress = hero._crossed ? 1.0 : Math.min(hero.x / W, 1.0);
+    const n        = Math.min(Math.floor(progress * full.length), full.length);
     if (n === tsLastN) return;
     tsLastN = n;
+
+    /* Trigger canvas entrance after first word */
+    const firstSpace = full.indexOf(' ');
+    if (n > firstSpace) triggerCanvasEntrance();
 
     const shown  = full.slice(0, n);
     const isDone = n >= full.length;
@@ -267,7 +266,7 @@
       tsDescShown = true; tsDone = true;
       if (copyEl && copy.p) {
         copyEl.innerHTML = copy.p;
-        copyEl.style.transition = 'opacity 0.8s ease';
+        copyEl.style.transition = 'opacity 0.7s ease';
         requestAnimationFrame(() => { if (copyEl) copyEl.style.opacity = '1'; });
       }
     }
@@ -379,7 +378,7 @@
     [...HCARS].reverse().forEach((car) => {
       if (car.x < -car.kind.len) return;
       drawCar(car.x, mainY - 4, 0, car.kind, car.isHero, id);
-      /* Badge only when fully stopped at a red — avoids false positives during deceleration */
+      /* Show "waiting" badge only when hero is fully stopped */
       if (car.isHero && car.speed < 1 && id === 'fixed') {
         ctx.font = '700 9px JetBrains Mono, monospace';
         ctx.fillStyle = 'rgba(248,113,113,0.88)'; ctx.textAlign = 'center';
@@ -401,7 +400,7 @@
     ctx.font = '700 10px JetBrains Mono, monospace';
     const label = copy.chip || '';
     const w = ctx.measureText(label).width + 26;
-    const color = id === 'patc' ? C.green : id === 'fixed' ? C.red : C.amber;
+    const color = id === 'patc' ? C.green : C.red;
     ctx.fillStyle = C.panel; ctx.strokeStyle = color; ctx.lineWidth = 0.8;
     if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(12, 12, w, 26, 13); ctx.fill(); ctx.stroke(); }
     else { ctx.fillRect(12, 12, w, 26); ctx.strokeRect(12, 12, w, 26); }
@@ -410,7 +409,6 @@
     ctx.shadowBlur = 0; ctx.fillStyle = color; ctx.fillText(label, 34, 29);
   }
 
-  /* Update the HTML delay chips only — no canvas overlay */
   function updateDelayChips() {
     const fAvg = stat.fixed.n > 0 ? (stat.fixed.wait / stat.fixed.n).toFixed(1) : null;
     const pAvg = stat.patc.n  > 0 ? (stat.patc.wait  / stat.patc.n ).toFixed(1) : null;
@@ -421,12 +419,12 @@
   }
 
   /* ── Render frame ──────────────────────────────────────────── */
-  function renderFrame(id, dt, elapsedMs) {
+  function renderFrame(id, dt) {
     simTime += dt;
     updateSignals(dt, id);
     updateHCars(dt, id);
     updateVCars(dt);
-    if (id !== 'intro') updateSyncedTitle(id, elapsedMs);
+    updateSyncedTitle(id);
 
     ctx.clearRect(0, 0, W, H);
     drawBackground(id);
@@ -442,28 +440,39 @@
       ctx.fillStyle = wg; ctx.fillRect(0, mainY - 80, W, 160);
     }
 
-    drawVCars(id);
-    drawHCars(id);
-    drawModeChip(id);
-    updateDelayChips();
+    drawVCars(id); drawHCars(id); drawModeChip(id); updateDelayChips();
   }
 
-  /* ── showCopy: pills + intro static heading ───────────────── */
-  function showCopy(id) {
+  /* ── showCopy: set pills + text ───────────────────────────── */
+  function showCopy(id, instant) {
     document.documentElement.dataset.storyPhase = id;
     document.querySelectorAll('[data-phase-pill]').forEach((p) => {
       p.classList.toggle('active',
         (id === 'fixed' && p.dataset.phasePill === 'fixed') ||
         (id === 'patc'  && p.dataset.phasePill === 'patc'));
     });
-    if (id === 'intro') {
-      const c = COPY.intro;
-      if (titleEl) titleEl.innerHTML = (c.h || '').replace(/\n/g, '<br/>');
-      if (copyEl)  copyEl.innerHTML  = c.p || '';
+
+    const copy = COPY[id];
+    if (!copy) return;
+
+    if (instant) {
+      /* Manual toggle: show full text right away, no typing */
+      if (titleEl) {
+        titleEl.innerHTML =
+          copy.line1 + '<br/><span class="accent-glow">' + copy.line2 + '</span>';
+      }
+      if (copyEl) { copyEl.innerHTML = copy.p || ''; copyEl.style.opacity = '1'; }
+      tsPhase = id; tsDone = true; tsDescShown = true; tsLastN = 99999;
+      triggerCanvasEntrance();
+    } else {
+      /* Auto-play: clear and let updateSyncedTitle handle typing */
+      if (titleEl) titleEl.innerHTML = '<span class="tw-cursor">|</span>';
+      if (copyEl)  { copyEl.innerHTML = ''; copyEl.style.opacity = '0'; }
+      tsPhase = '';
     }
   }
 
-  /* ── Phase machine: no loop — stays on patc ───────────────── */
+  /* ── Phase machine: no loop ────────────────────────────────── */
   function currentPhase(now) {
     if (manualPhase) return { id: manualPhase, elapsed: now - manualStart };
     if (!seqStart) seqStart = now;
@@ -482,12 +491,14 @@
     if (!lastDraw) lastDraw = now;
     const dt = Math.min((now - lastDraw) / 1000, 0.05);
     lastDraw = now;
-    const { id, elapsed } = currentPhase(now);
+    const { id } = currentPhase(now);
     if (id !== lastPhaseId) {
       lastPhaseId = id; simTime = 0;
-      initHCars(); initVCars(); resetSignals(id); showCopy(id);
+      initHCars(); initVCars(); resetSignals(id);
+      showCopy(id, manualJustSet);
+      manualJustSet = false;
     }
-    renderFrame(id, dt, elapsed);
+    renderFrame(id, dt);
     rafId = requestAnimationFrame(loop);
   }
 
@@ -511,30 +522,45 @@
   /* ── Manual controls ───────────────────────────────────────── */
   function setPhase(id) {
     if (!COPY[id]) return;
-    manualPhase = id; manualStart = performance.now();
+    manualJustSet = true;
+    manualPhase   = id;
+    manualStart   = performance.now();
   }
 
   function replay() {
     cancelAnimationFrame(rafId);
     seqStart = 0; manualPhase = ''; lastPhaseId = ''; lastDraw = 0; simTime = 0;
+    manualJustSet = false;
     tsPhase = ''; tsDone = false; tsLastN = -1; tsDescShown = false;
     stat.fixed.wait = 0; stat.fixed.n = 0; stat.patc.wait = 0; stat.patc.n = 0;
+    /* Reset canvas entrance for replay */
+    canvasEntered = false;
+    const visual = document.querySelector('.story-visual');
+    if (visual) visual.classList.remove('canvas-entered');
     initHCars(); initVCars();
     rafId = requestAnimationFrame(loop);
   }
 
   /* ── Boot ──────────────────────────────────────────────────── */
   function start() {
-    resize(); initHCars(); initVCars(); resetSignals('intro');
+    resize(); initHCars(); initVCars(); resetSignals('fixed');
+    /* Set initial pill state */
+    document.documentElement.dataset.storyPhase = 'fixed';
+    document.querySelectorAll('[data-phase-pill]').forEach((p) => {
+      p.classList.toggle('active', p.dataset.phasePill === 'fixed');
+    });
+    if (titleEl) titleEl.innerHTML = '<span class="tw-cursor">|</span>';
+    if (copyEl)  { copyEl.innerHTML = ''; copyEl.style.opacity = '0'; }
+
     if (motionQ.matches) {
-      resetSignals('patc'); showCopy('patc'); renderFrame('patc', 0, 0); return;
+      resetSignals('patc'); showCopy('patc', true); renderFrame('patc', 0); return;
     }
     rafId = requestAnimationFrame(loop);
   }
 
   window.addEventListener('resize', () => {
     resize();
-    if (motionQ.matches) renderFrame(lastPhaseId || 'patc', 0, 0);
+    if (motionQ.matches) renderFrame(lastPhaseId || 'patc', 0);
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { cancelAnimationFrame(rafId); rafId = 0; }
