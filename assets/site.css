@@ -555,6 +555,15 @@ footer a:hover { color: var(--accent-hover); }
   font-size: 13px;
   font-weight: 600;
 }
+.footer-name-link {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+.footer-name-link:hover {
+  color: var(--accent);
+}
 .footer-links {
   display: flex;
   gap: 6px;

@@ -21,7 +21,7 @@ const modeCopy = {
   patc: {
     label: "PATC shadow",
     effect: "Corridor coordination",
-    overlay: "J/F/S nodes under one adaptive corridor plan",
+    overlay: "All controlled approaches coordinated",
   },
   fixed: {
     label: "Fixed-time baseline",
@@ -51,7 +51,7 @@ ensureSimulationStyles();
 configureCanvas();
 applySimulationGeometry();
 function vehicleTargetCount() {
-  return 22;
+  return 16;
 }
 function ensureSimulationStyles() {
   if (document.querySelector('link[href$="simulation.css"]')) return;
@@ -309,7 +309,7 @@ function createVehicle(index) {
   const scenario = currentScenario();
   const key = scenario.bias[index % scenario.bias.length];
   const kind = index % 5 === 0 || index % 7 === 0 ? "bike" : "car";
-  const demandSpacing = Math.max(0.42, 1.48 - controlValue("demand") * 0.38);
+  const demandSpacing = Math.max(0.82, 1.72 - controlValue("demand") * 0.32);
   return {
     id: state.nextId++,
     kind,
@@ -661,6 +661,9 @@ function inControlWindow(vehicle, point) {
   const cleared = vehicle.progress > point.centerP + clearProgress(vehicle);
   return entered && !cleared;
 }
+function insideAnyControlWindow(vehicle) {
+  return vehicle.route.controlPoints.some((point) => inControlWindow(vehicle, point));
+}
 function vehicleClearance(a, b) {
   if (a.kind === "bike" && b.kind === "bike") return 22;
   if (a.kind === "bike" || b.kind === "bike") return 26;
@@ -732,10 +735,13 @@ function updateVehicle(vehicle, dt) {
   const projected = Math.min(1, vehicle.progress + velocity * dt);
   const signalBlocked = blockedBySignal(vehicle, projected);
   const dwellBlocked = fixedDwellBlocked(vehicle, projected, dt);
-  const conflictBlocked = crossingConflict(vehicle, projected) || junctionEntryConflict(vehicle, projected) || physicalConflict(vehicle, projected);
+  const conflictBlocked = isFixedMode() && (
+    crossingConflict(vehicle, projected) || junctionEntryConflict(vehicle, projected) || physicalConflict(vehicle, projected)
+  );
   const leader = leaderInfo(vehicle, projected);
   const spacingBlocked = queueSpacingBlocked(vehicle, leader);
-  const bodyBlocked = !spacingBlocked && bodyConflict(vehicle, projected);
+  const canClearPatcWindow = !isFixedMode() && insideAnyControlWindow(vehicle);
+  const bodyBlocked = !spacingBlocked && !canClearPatcWindow && bodyConflict(vehicle, projected);
   const blocked = signalBlocked || dwellBlocked || conflictBlocked || spacingBlocked || bodyBlocked;
   const fixedSignalHold = isFixedMode() && conflictBlocked && distanceToStop(vehicle) < 0.16;
   vehicle.blocked = blocked;
@@ -831,9 +837,9 @@ function drawRoads() {
     }
   }
   drawBlocks();
-  gridLinks.forEach((points) => drawPath(points, 44, "#0f2230"));
+  gridLinks.forEach((points) => drawPath(points, 42, "#0f2230"));
   drawFeederCrossroads();
-  Object.values(routes).forEach((route) => drawPath(route.points, 68, colors.road));
+  Object.values(routes).forEach((route) => drawPath(route.points, 64, colors.road));
   gridLinks.forEach((points) => drawLaneDash(points, "rgba(244,247,242,0.10)"));
   Object.values(routes).forEach((route) => drawLaneDash(route.points, colors.lane));
 }
@@ -843,10 +849,10 @@ function drawFeederCrossroads() {
   const f4 = nodeById("F4");
   const j2 = nodeById("J2");
   if (!f3 || !f4 || !j2) return;
-  drawPath([offsetPoint(f3, -160, 58), offsetPoint(f3, 0, 28), offsetPoint(f3, 230, 42)], 66, road);
-  drawPath([offsetPoint(f3, -10, -28), offsetPoint(f3, 0, 28), midPoint(f3, j2, 0.42)], 58, road);
-  drawPath([offsetPoint(f4, -170, -40), offsetPoint(f4, 0, -28), offsetPoint(f4, 230, -80)], 66, road);
-  drawPath([midPoint(f4, j2, 0.42), offsetPoint(f4, 0, -28), offsetPoint(f4, 12, 30)], 58, road);
+  drawPath([offsetPoint(f3, -210, 78), offsetPoint(f3, 0, 22), offsetPoint(f3, 280, 66)], 62, road);
+  drawPath([offsetPoint(f3, -38, -58), offsetPoint(f3, 0, 22), midPoint(f3, j2, 0.48)], 54, road);
+  drawPath([offsetPoint(f4, -220, -62), offsetPoint(f4, 0, -24), offsetPoint(f4, 285, -104)], 62, road);
+  drawPath([midPoint(f4, j2, 0.48), offsetPoint(f4, 0, -24), offsetPoint(f4, -38, 62)], 54, road);
 }
 function offsetPoint(node, dx, dy) {
   return [node.x + dx, node.y + dy];
@@ -951,39 +957,25 @@ function drawModeOverlay() {
 function drawPatcCoordination() {
   const pulse = 0.62 + Math.sin(state.frameIndex / 18) * 0.16;
   ctx.save();
-  ctx.setLineDash([38, 24]);
-  ctx.lineDashOffset = -state.frameIndex * 1.3;
-  drawPath(routes.east.points, 16, "rgba(47,214,210,0.28)");
-  drawPath(routes.west.points, 10, "rgba(82,210,115,0.18)");
-  drawPath(routes.feeder.points, 8, "rgba(198,236,102,0.18)");
-  ctx.setLineDash([14, 12]);
-  ctx.lineDashOffset = -state.frameIndex * 0.9;
-  drawPath(junctions.map((j) => [j.x, j.y]), 3, "rgba(82,210,115,0.78)");
   coordinatedNodes().forEach((node) => {
     const nearest = closestJunction(node);
-    drawPath([[node.x, node.y], [nearest.x, nearest.y]], 1.5, "rgba(47,214,210,0.30)");
+    drawPath([[node.x, node.y], [nearest.x, nearest.y]], 1.2, "rgba(47,214,210,0.12)");
   });
   ctx.restore();
   junctions.forEach((j, index) => {
-    ctx.strokeStyle = `rgba(82,210,115,${pulse})`;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(j.x, j.y, 34 + Math.sin(state.frameIndex / 16 + index) * 3, 0, Math.PI * 2);
-    ctx.stroke();
-    drawBadge(j.x - 34, j.y + 30, "coordinated", colors.green);
-  });
-  coordinatedNodes().forEach((node, index) => {
-    ctx.strokeStyle = `rgba(47,214,210,${0.42 + Math.sin(state.frameIndex / 15 + index) * 0.14})`;
+    ctx.strokeStyle = `rgba(82,210,115,${pulse * 0.75})`;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(node.x, node.y, node.id.startsWith("S") ? 17 : 20, 0, Math.PI * 2);
+    ctx.arc(j.x, j.y, 30 + Math.sin(state.frameIndex / 18 + index) * 2, 0, Math.PI * 2);
     ctx.stroke();
   });
-  const f5 = nodeById("F5");
-  const f4 = nodeById("F4");
-  if (!f5 || !f4) return;
-  drawBadge(badgeX(f5.x - 100), badgeY(f5.y - 40), modeCopy.patc.overlay, colors.green);
-  drawBadge(badgeX(f4.x + 100), badgeY(f4.y - 18), "F1-F6 + S1-S4 synced", colors.cyan);
+  coordinatedNodes().forEach((node, index) => {
+    ctx.strokeStyle = `rgba(47,214,210,${0.30 + Math.sin(state.frameIndex / 18 + index) * 0.08})`;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.id.startsWith("S") ? 14 : 17, 0, Math.PI * 2);
+    ctx.stroke();
+  });
 }
 function badgeX(x) {
   return Math.min(Math.max(32, x), canvas.width - 420);
@@ -1155,6 +1147,10 @@ function render() {
   updatePanel();
 }
 function frame(ts) {
+  if (state.lastTs && ts - state.lastTs < 22) {
+    requestAnimationFrame(frame);
+    return;
+  }
   const dt = Math.min(0.05, (ts - state.lastTs) / 1000 || 0.016) * state.speed * 3;
   state.lastTs = ts;
   if (!state.paused) step(dt);

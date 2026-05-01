@@ -11,7 +11,7 @@
   const titleEl = document.querySelector('[data-home-story-title]');
   const copyEl = document.querySelector('[data-home-story-copy]');
   const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
 
   const C = {
     bg: '#070B12',
@@ -28,8 +28,8 @@
 
   const COPY = {
     intro: {
-      h: 'Imagine driving across an empty grid. No traffic at all. Just you on the road.',
-      p: 'Still, every fixed signal can ask you to stop because it does not know the road is empty.',
+      h: 'What if traffic lights knew you were coming?',
+      p: 'Imagine driving across an empty grid. No traffic at all. Just you on the road.',
       chip: 'Sentence first',
     },
     empty: {
@@ -77,14 +77,17 @@
   let activePhase = '';
   let manualPhase = '';
   let manualStart = 0;
+  let typedUntil = 0;
+  let phaseStart = 0;
+  let lastDraw = 0;
 
   function showCopy(id) {
     if (activePhase === id) return;
     const copy = COPY[id] || COPY.intro;
     activePhase = id;
+    phaseStart = performance.now();
+    typedUntil = 0;
     document.documentElement.dataset.storyPhase = id;
-    if (titleEl) titleEl.innerHTML = copy.h;
-    if (copyEl) copyEl.textContent = copy.p;
     document.querySelectorAll('[data-phase-pill]').forEach((pill) => {
       const phase = pill.dataset.phasePill;
       const active = phase === id || (id === 'intro' && phase === 'empty') || (id === 'tagline' && phase === 'patc');
@@ -135,6 +138,7 @@
     const layout = sceneLayout();
     const hero = getHero(state, layout);
     drawBackground(now / 1000, state.id);
+    updateTyping(now, state.id);
     if (state.id === 'intro') return;
     drawRoadGrid(layout, roadReveal(state));
     drawPatcWave(layout, state);
@@ -149,6 +153,7 @@
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = C.bg;
     ctx.fillRect(0, 0, width, height);
+    if (id === 'intro') return;
     const glow = ctx.createRadialGradient(width * 0.68, height * 0.28, 0, width * 0.68, height * 0.28, width * 0.7);
     glow.addColorStop(0, id === 'traffic' ? 'rgba(248,113,113,0.09)' : 'rgba(61,191,176,0.10)');
     glow.addColorStop(1, 'rgba(7,11,18,0)');
@@ -156,21 +161,24 @@
     ctx.fillRect(0, 0, width, height);
     ctx.strokeStyle = 'rgba(61,191,176,0.035)';
     ctx.lineWidth = 1;
-    for (let x = -48 + (time * 7) % 48; x < width; x += 48) line(x, 0, x, height);
-    for (let y = 0; y < height; y += 48) line(0, y, width, y);
+    for (let x = -64 + (time * 3) % 64; x < width; x += 64) line(x, 0, x, height);
+    for (let y = 0; y < height; y += 64) line(0, y, width, y);
   }
 
-  function drawIntro(state) {
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, state.progress * 2.2);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = C.text;
-    ctx.font = `${Math.max(20, width * 0.045)}px Inter, sans-serif`;
-    textLines(['The first problem is simple:', 'the signal does not know you exist.'], width / 2, height * 0.45, 34);
-    ctx.fillStyle = C.muted;
-    ctx.font = '600 12px JetBrains Mono, monospace';
-    ctx.fillText('PATC opening story', width / 2, height * 0.66);
-    ctx.restore();
+  function updateTyping(now, id) {
+    const copy = COPY[id] || COPY.intro;
+    const elapsed = now - phaseStart;
+    const titleText = stripTags(copy.h);
+    const titleCount = Math.min(titleText.length, Math.floor(elapsed / 34));
+    const bodyCount = Math.min(copy.p.length, Math.floor(Math.max(0, elapsed - titleText.length * 22) / 22));
+    if (titleCount === typedUntil && id !== 'tagline') return;
+    typedUntil = titleCount;
+    if (titleEl) titleEl.innerHTML = titleCount >= titleText.length ? copy.h : titleText.slice(0, titleCount);
+    if (copyEl) copyEl.textContent = copy.p.slice(0, bodyCount);
+  }
+
+  function stripTags(html) {
+    return html.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]*>/g, '');
   }
 
   function drawRoadGrid(layout, reveal) {
@@ -237,8 +245,8 @@
     if (!isPatc(state.id)) return;
     const x = waveX(state);
     const wave = ctx.createRadialGradient(x, layout.midY, 0, x, layout.midY, width * 0.28);
-    wave.addColorStop(0, 'rgba(52,211,153,0.22)');
-    wave.addColorStop(0.45, 'rgba(52,211,153,0.08)');
+    wave.addColorStop(0, 'rgba(52,211,153,0.16)');
+    wave.addColorStop(0.45, 'rgba(52,211,153,0.06)');
     wave.addColorStop(1, 'rgba(52,211,153,0)');
     ctx.fillStyle = wave;
     ctx.fillRect(0, 0, width, height);
@@ -284,7 +292,7 @@
   function heroProgress(state) {
     if (state.id === 'empty') return stoppedProgress(state.progress);
     if (state.id === 'traffic') return clamp(0.18 + state.progress * 0.33 + Math.sin(state.age * 4) * 0.005, 0, 0.56);
-    return (state.age * 0.24 + 0.06) % 1;
+    return (state.age * 0.20 + 0.04) % 1;
   }
 
   function heroPose(layout, progress) {
@@ -312,12 +320,12 @@
 
   function heroRoute(layout) {
     const points = [
-      { x: layout.xs[4] + 46, y: layout.ys[0] - 26 },
-      { x: layout.xs[4], y: layout.ys[0] },
-      { x: layout.xs[4], y: layout.ys[1] },
-      { x: layout.xs[3], y: layout.ys[1] },
-      { x: layout.xs[3], y: layout.ys[2] },
+      { x: layout.xs[0] - 46, y: layout.ys[0] - 28 },
+      { x: layout.xs[0], y: layout.ys[0] },
+      { x: layout.xs[0], y: layout.ys[1] },
+      { x: layout.xs[1], y: layout.ys[1] },
       { x: layout.xs[1], y: layout.ys[2] },
+      { x: layout.xs[3], y: layout.ys[2] },
     ];
     const total = points.slice(1).reduce((sum, point, index) => {
       const prev = points[index];
@@ -347,7 +355,7 @@
     ctx.translate(x, y);
     ctx.rotate(angle);
     ctx.shadowColor = glow ? color : 'transparent';
-    ctx.shadowBlur = glow ? 16 : 0;
+    ctx.shadowBlur = glow ? 10 : 0;
     ctx.fillStyle = color;
     box(-size, -size * 0.48, size * 2, size * 0.96, 4);
     ctx.fill();
@@ -476,6 +484,11 @@
   }
 
   function loop(now) {
+    if (lastDraw && now - lastDraw < 24) {
+      rafId = requestAnimationFrame(loop);
+      return;
+    }
+    lastDraw = now;
     if (!sequenceStart) sequenceStart = now;
     const state = currentState(now);
     showCopy(state.id);
