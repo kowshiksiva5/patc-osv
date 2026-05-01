@@ -186,16 +186,21 @@
       if (nextPos !== -1 && isRed) {
         let dist = nextPos - currentPos;
         if (dist > 0 && dist < BRAKING_DIST) {
-          // Linear braking looks smoother and less aggressive than quadratic
-          targetSpeed = dist < STOP_DIST ? 0 : car.maxSpeed * ((dist - STOP_DIST) / (BRAKING_DIST - STOP_DIST));
+          // If already inside the intersection boundaries and moving, clear it to avoid stopping in the middle
+          if (dist < 20 && car.currentSpeed > 0.04) {
+            // Commit to clearing the intersection
+          } else {
+            targetSpeed = dist < STOP_DIST ? 0 : car.maxSpeed * ((dist - STOP_DIST) / (BRAKING_DIST - STOP_DIST));
+          }
         }
       }
       
       // Avoid hitting car ahead
       let distToAhead = Infinity;
       for (const other of SIM_CARS) {
-        if (other !== car && other.axis === car.axis && other.lane === car.lane) {
-          let oPos = other.pos * span - 60;
+        const otherRealLane = other.axis === 'v' ? (other.lane % layout.xs.length) : (other.lane % layout.ys.length);
+        if (other !== car && other.axis === car.axis && otherRealLane === realLane) {
+          let oPos = (other.pos * span - 60);
           let d = oPos - currentPos;
           if (d < 0) d += span; // loop around
           if (d > 0 && d < distToAhead) distToAhead = d;
