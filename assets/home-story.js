@@ -50,19 +50,28 @@
   let SIM_CARS = [];
 
   function initSimCars() {
-    SIM_CARS = Array.from({ length: 28 }, (_, i) => ({
-      axis: i % 4 === 0 ? 'v' : 'h',
-      lane: i % 5, // v uses 0..4, h uses 0..2
-      pos: Math.random(),
-      maxSpeed: 0.12 + Math.random() * 0.05,
-      currentSpeed: 0,
-      size: i % 8 === 0 ? 11 : 7 + (i % 4),
-      shade: i % 3,
-      id: i
-    }));
+    SIM_CARS = [];
+    const carsPerLane = {};
+    for (let i = 0; i < 28; i++) {
+      const axis = i % 4 === 0 ? 'v' : 'h';
+      const lane = i % 5;
+      const key = axis + (axis === 'v' ? lane : (lane % 3));
+      carsPerLane[key] = (carsPerLane[key] || 0) + 1;
+      
+      SIM_CARS.push({
+        axis,
+        lane,
+        pos: (carsPerLane[key] * 0.3 + Math.random() * 0.1) % 1,
+        maxSpeed: 0.12 + Math.random() * 0.05,
+        currentSpeed: 0.05,
+        size: i % 8 === 0 ? 11 : 7 + (i % 4),
+        shade: i % 3,
+        id: i
+      });
+    }
     // Add the "hero" car
     SIM_CARS.push({
-      axis: 'h', lane: 1, pos: 0.05, maxSpeed: 0.15, currentSpeed: 0, size: 9, shade: 99, id: 'hero'
+      axis: 'h', lane: 1, pos: 0.05, maxSpeed: 0.15, currentSpeed: 0.05, size: 9, shade: 99, id: 'hero'
     });
   }
 
@@ -142,8 +151,8 @@
 
   function updatePhysics(dt, stateId) {
     simTime += dt;
-    const BRAKING_DIST = 80;
-    const STOP_DIST = 18;
+    const BRAKING_DIST = 90;
+    const STOP_DIST = 26;
 
     for (const car of SIM_CARS) {
       let nextPos = -1;
@@ -177,7 +186,8 @@
       if (nextPos !== -1 && isRed) {
         let dist = nextPos - currentPos;
         if (dist > 0 && dist < BRAKING_DIST) {
-          targetSpeed = dist < STOP_DIST ? 0 : car.maxSpeed * Math.pow((dist - STOP_DIST) / (BRAKING_DIST - STOP_DIST), 2);
+          // Linear braking looks smoother and less aggressive than quadratic
+          targetSpeed = dist < STOP_DIST ? 0 : car.maxSpeed * ((dist - STOP_DIST) / (BRAKING_DIST - STOP_DIST));
         }
       }
       
@@ -191,10 +201,14 @@
           if (d > 0 && d < distToAhead) distToAhead = d;
         }
       }
-      if (distToAhead < 35) targetSpeed = 0;
-      else if (distToAhead < 70) targetSpeed = Math.min(targetSpeed, car.maxSpeed * ((distToAhead - 35)/35));
+      const SAFE_GAP = 35;
+      const FOLLOW_DIST = 75;
+      if (distToAhead < SAFE_GAP) targetSpeed = 0;
+      else if (distToAhead < FOLLOW_DIST) targetSpeed = Math.min(targetSpeed, car.maxSpeed * ((distToAhead - SAFE_GAP)/(FOLLOW_DIST - SAFE_GAP)));
 
-      car.currentSpeed = lerp(car.currentSpeed, targetSpeed, 0.15);
+      // Smoother acceleration, faster braking
+      const lerpFactor = targetSpeed < car.currentSpeed ? 0.20 : 0.08;
+      car.currentSpeed = lerp(car.currentSpeed, targetSpeed, lerpFactor);
       car.pos += (car.currentSpeed * 100 * dt) / span;
       if (car.pos > 1) car.pos -= 1;
     }

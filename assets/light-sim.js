@@ -1,10 +1,21 @@
+/* PATC corridor simulation — 5 junctions, MAIN/SIDE phase model,
+   lane-separated two-way mainline, one-way side roads.
+   Coordinate space matches the canvas (1700 × 760), no transform applied. */
+
 const canvas = document.getElementById("corridorCanvas");
 const ctx = canvas.getContext("2d");
+
+const CANVAS_W = 1700;
+const CANVAS_H = 760;
+canvas.width = CANVAS_W;
+canvas.height = CANVAS_H;
+
 const controls = {
   demand: document.getElementById("demandRange"),
   discharge: document.getElementById("dischargeRange"),
   safety: document.getElementById("safetyRange"),
 };
+
 const state = {
   scenarioKey: "peak",
   mode: "patc",
@@ -14,1058 +25,710 @@ const state = {
   speed: 1,
   frameIndex: 0,
   lastTs: 0,
-  resetHandle: null,
   recommendation: "Collecting replay state",
 };
+
 const modeCopy = {
-  patc: {
-    label: "PATC shadow",
-    effect: "Corridor coordination",
-    overlay: "All controlled approaches coordinated",
-  },
-  fixed: {
-    label: "Fixed-time baseline",
-    effect: "Rigid timing",
-    overlay: "Fixed cycle ignores sector pressure",
-  },
+  patc:  { label: "PATC shadow",        effect: "Corridor coordination", overlay: "Mainline progression coordinated" },
+  fixed: { label: "Fixed-time baseline", effect: "Rigid timing",          overlay: "Fixed cycle ignores sector pressure" },
 };
-const STOP_LINE_OFFSET = 56;
-const FIELD_STOP_OFFSET = 36;
-const CONTROL_NODE_RADIUS = 80;
-const CROSSING_CLEAR_TIME = 1.15;
-const FIXED_CONFLICT_LOOKAHEAD = 3.2;
+
+/* Tuning constants */
+const STOP_LINE_OFFSET = 38;
+const JUNCTION_CLEAR_RADIUS = 22;
 const ENTRY_RESERVATION_MARGIN = 0.012;
-const FIXED_APPROACH_STOP_ZONE = 0.034;
-const FIXED_DWELL_BASE = 0.62;
-const MIN_VEHICLE_GAP = 0.04;
-const ROUTE_PRIORITY = ["east", "west", "feeder", "south", "north", "j1cross", "j4cross"];
-const CANVAS_LAYOUT = {
-  width: 1700,
-  height: 860,
-  scaleX: 1.06,
-  scaleY: 1.06,
-  offsetX: 40,
-  offsetY: 18,
-};
-ensureSimulationStyles();
-configureCanvas();
-applySimulationGeometry();
-function vehicleTargetCount() {
-  return 16;
+const MIN_VEHICLE_GAP = 0.038;
+const AMBER_DURATION = 1.2;
+const ALL_RED_DURATION = 0.8;
+const PATC_MIN_GREEN = 4.0;
+const PATC_MAX_GREEN = 12.0;
+const FIXED_GREEN_MAIN = 8.0;
+const FIXED_GREEN_SIDE = 6.0;
+const VEHICLE_TARGET_COUNT = 24;
+const VEHICLE_MIX = [
+  { kind: "sedan", weight: 35 },
+  { kind: "auto",  weight: 25 },
+  { kind: "suv",   weight: 20 },
+  { kind: "bike",  weight: 15 },
+  { kind: "bus",   weight: 5  },
+];
+
+/* ─── Geometry helpers ────────────────────────────────────── */
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function routeLength(route) {
+  return route.points.slice(1).reduce((sum, p, i) => {
+    const prev = route.points[i];
+    return sum + Math.hypot(p[0] - prev[0], p[1] - prev[1]);
+  }, 0);
 }
-function ensureSimulationStyles() {
-  if (document.querySelector('link[href$="simulation.css"]')) return;
-  const scriptUrl = document.currentScript ? document.currentScript.src : "";
-  const href = scriptUrl ? new URL("simulation.css", scriptUrl).href : "assets/simulation.css";
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = href;
-  document.head.appendChild(link);
+
+function nearestSegmentT(a, b, node) {
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return 0;
+  const t = ((node.x - a[0]) * dx + (node.y - a[1]) * dy) / lenSq;
+  return Math.max(0, Math.min(1, t));
 }
-function configureCanvas() {
-  canvas.width = CANVAS_LAYOUT.width;
-  canvas.height = CANVAS_LAYOUT.height;
+
+function nodeProgress(route, node) {
+  let covered = 0;
+  let best = { distance: Infinity, progress: null };
+  const total = routeLength(route);
+  for (let i = 1; i < route.points.length; i += 1) {
+    const a = route.points[i - 1], b = route.points[i];
+    const seg = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const t = nearestSegmentT(a, b, node);
+    const x = lerp(a[0], b[0], t), y = lerp(a[1], b[1], t);
+    const d = Math.hypot(x - node.x, y - node.y);
+    if (d < best.distance) best = { distance: d, progress: (covered + seg * t) / total };
+    covered += seg;
+  }
+  return best.distance <= 60 ? best.progress : null;
 }
-function applySimulationGeometry() {
-  if (globalThis.__patcGeometryApplied) return;
-  transformSimulationGeometry();
-  globalThis.__patcGeometryApplied = true;
+
+function pointAt(route, progress) {
+  const target = progress * route.length;
+  let covered = 0;
+  for (let i = 1; i < route.points.length; i += 1) {
+    const a = route.points[i - 1], b = route.points[i];
+    const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (covered + len >= target) {
+      const t = (target - covered) / len;
+      return {
+        x: lerp(a[0], b[0], t),
+        y: lerp(a[1], b[1], t),
+        angle: Math.atan2(b[1] - a[1], b[0] - a[0]),
+      };
+    }
+    covered += len;
+  }
+  const n = route.points.length;
+  const a = route.points[n - 2], b = route.points[n - 1];
+  return { x: b[0], y: b[1], angle: Math.atan2(b[1] - a[1], b[0] - a[0]) };
 }
-function moveSupportNode(id, x, y) {
-  const node = supportNodes.find((item) => item.id === id);
-  if (!node) return;
-  node.x = x;
-  node.y = y;
-}
-function replaceGridPoint(fromX, fromY, toX, toY) {
-  gridLinks.forEach((points) => {
-    points.forEach((point) => {
-      if (point[0] !== fromX || point[1] !== fromY) return;
-      point[0] = toX;
-      point[1] = toY;
-    });
+
+/* ─── Init: precompute route metadata ─────────────────────── */
+Object.values(routes).forEach((route) => {
+  route.length = routeLength(route);
+  route.stopProgress = route.stops.map((id) => {
+    const node = junctions.find((j) => j.id === id);
+    const center = nodeProgress(route, node);
+    if (center === null) throw new Error(`Route stop ${id} not on geometry`);
+    return {
+      id,
+      centerP: center,
+      stopP: Math.max(0, center - STOP_LINE_OFFSET / route.length),
+      clearP: center + (JUNCTION_CLEAR_RADIUS + 8) / route.length,
+    };
   });
-}
-function transformSimulationGeometry() {
-  [...junctions, ...supportNodes, ...sensorSites].forEach(transformNode);
-  gridLinks.forEach((points) => points.forEach(transformPoint));
-  cityBlocks.forEach(transformRect);
-  Object.values(routes).forEach((route) => route.points.forEach(transformPoint));
-}
-function transformNode(node) {
-  const [x, y] = layoutPoint(node.x, node.y);
-  node.x = x;
-  node.y = y;
-}
-function transformPoint(point) {
-  const [x, y] = layoutPoint(point[0], point[1]);
-  point[0] = x;
-  point[1] = y;
-}
-function transformRect(rect) {
-  const [x, y] = layoutPoint(rect[0], rect[1]);
-  rect[0] = x;
-  rect[1] = y;
-  rect[2] = Math.round(rect[2] * CANVAS_LAYOUT.scaleX);
-  rect[3] = Math.round(rect[3] * CANVAS_LAYOUT.scaleY);
-}
-function layoutPoint(x, y) {
-  return [
-    Math.round(x * CANVAS_LAYOUT.scaleX + CANVAS_LAYOUT.offsetX),
-    Math.round(y * CANVAS_LAYOUT.scaleY + CANVAS_LAYOUT.offsetY),
-  ];
-}
-function controlledNodes() {
-  return [...junctions, ...coordinatedNodes()];
-}
-function isFieldNode(node) {
-  return node.id.startsWith("F") || node.id.startsWith("S");
-}
-function isFixedMode() {
-  return state.mode === "fixed";
-}
-function currentScenario() {
-  return scenarios[state.scenarioKey];
-}
-function controlValue(key) {
-  return Number(controls[key].value) / 100;
-}
+});
+
+/* ─── State helpers ───────────────────────────────────────── */
+function isFixedMode() { return state.mode === "fixed"; }
+function currentScenario() { return scenarios[state.scenarioKey]; }
+function controlValue(key) { return Number(controls[key].value) / 100; }
+function junctionById(id) { return junctions.find((j) => j.id === id); }
+
 function updateReadouts() {
   document.getElementById("demandReadout").textContent = `${controls.demand.value}%`;
   document.getElementById("dischargeReadout").textContent = `${controls.discharge.value}%`;
   document.getElementById("safetyReadout").textContent = `${controls.safety.value}%`;
 }
-function routeLength(route) {
-  return route.points.slice(1).reduce((total, point, index) => {
-    const prev = route.points[index];
-    return total + Math.hypot(point[0] - prev[0], point[1] - prev[1]);
-  }, 0);
-}
-function nodeProgress(route, node) {
-  let covered = 0;
-  const total = routeLength(route);
-  let best = { distance: Infinity, progress: null };
-  for (let i = 1; i < route.points.length; i += 1) {
-    const a = route.points[i - 1];
-    const b = route.points[i];
-    const seg = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const t = nearestSegmentT(a, b, node);
-    const x = lerp(a[0], b[0], t);
-    const y = lerp(a[1], b[1], t);
-    const distance = Math.hypot(x - node.x, y - node.y);
-    if (distance < best.distance) best = { distance, progress: (covered + seg * t) / total };
-    covered += seg;
+
+/* ─── Vehicles ────────────────────────────────────────────── */
+function pickVehicleKind(index) {
+  /* Deterministic, reproducible mix */
+  const total = VEHICLE_MIX.reduce((s, v) => s + v.weight, 0);
+  const slot = (index * 37) % total;
+  let acc = 0;
+  for (const v of VEHICLE_MIX) {
+    acc += v.weight;
+    if (slot < acc) return v.kind;
   }
-  return best.distance <= CONTROL_NODE_RADIUS ? best.progress : null;
+  return "sedan";
 }
-function nearestSegmentT(a, b, node) {
-  const dx = b[0] - a[0];
-  const dy = b[1] - a[1];
-  const lengthSq = dx * dx + dy * dy;
-  if (lengthSq === 0) return 0;
-  const t = ((node.x - a[0]) * dx + (node.y - a[1]) * dy) / lengthSq;
-  return Math.max(0, Math.min(1, t));
-}
-function progressForNode(route, node, offset) {
-  const centerP = nodeProgress(route, node);
-  if (centerP === null) return null;
-  return Math.max(0, centerP - offset / route.length);
-}
-function progressForJunction(route, junctionId) {
-  const node = junctions.find((item) => item.id === junctionId);
-  const progress = progressForNode(route, node, STOP_LINE_OFFSET);
-  if (progress !== null) return progress;
-  throw new Error(`Route stop ${junctionId} is not on its declared geometry.`);
-}
-function controlPoint(routeKey, route, node, kind, offset) {
-  const centerP = nodeProgress(route, node);
-  if (centerP === null) return null;
-  const lineOffset = stopOffsetForControl(routeKey, node, kind, offset);
-  return {
-    id: node.id,
-    p: Math.max(0, centerP - lineOffset / route.length),
-    centerP,
-    kind,
-    group: movementGroup(routeKey, node.id),
-  };
-}
-function syntheticControlPoint(routeKey, route, node) {
-  const progress = syntheticEdgeProgress(routeKey);
-  return {
-    id: node.id,
-    p: Math.max(0, progress - FIELD_STOP_OFFSET / route.length),
-    centerP: progress,
-    kind: "field",
-    group: movementGroup(routeKey, node.id),
-  };
-}
-function syntheticEdgeProgress(routeKey) {
-  if (routeKey === "east") return 0.08;
-  if (routeKey === "west") return 0.14;
-  return 0;
-}
-function stopOffsetForControl(routeKey, node, kind, fallback) {
-  if (kind !== "junction" || node.id !== "J2") return fallback;
-  if (routeKey === "feeder") return 142;
-  if (routeKey === "south" || routeKey === "north") return 78;
-  return 58;
-}
-function edgeControlNodes(routeKey) {
-  if (routeKey === "east") return [supportNodes.find((node) => node.id === "F1")].filter(Boolean);
-  if (routeKey === "west") return [supportNodes.find((node) => node.id === "F6")].filter(Boolean);
-  return [];
-}
-function controlPointsForRoute(route) {
-  const routeKey = Object.entries(routes).find(([, item]) => item === route)[0];
-  const points = route.stops
-    .map((id) => junctions.find((node) => node.id === id))
-    .map((node) => controlPoint(routeKey, route, node, "junction", STOP_LINE_OFFSET));
-  edgeControlNodes(routeKey).forEach((node) => {
-    points.push(controlPoint(routeKey, route, node, "field", FIELD_STOP_OFFSET) || syntheticControlPoint(routeKey, route, node));
-  });
-  coordinatedNodes().forEach((node) => {
-    const point = controlPoint(routeKey, route, node, "field", FIELD_STOP_OFFSET);
-    if (point) points.push(point);
-  });
-  return points.filter(Boolean).sort((a, b) => a.p - b.p).filter((point, index, list) => {
-    const duplicate = list.findIndex((item) => item.id === point.id) !== index;
-    return !duplicate;
-  });
-}
-function movementGroup(routeKey, nodeId) {
-  if (routeKey === "east" || routeKey === "west") return `${nodeId}:EW_MAIN`;
-  if (routeKey === "south" || routeKey === "north") return `${nodeId}:NS_MAIN`;
-  return `${nodeId}:FEEDER_DIAGONAL`;
-}
-Object.values(routes).forEach((route) => {
-  route.length = routeLength(route);
-  route.stopProgress = route.stops.map((id) => ({ id, p: progressForJunction(route, id) }));
-  route.controlPoints = controlPointsForRoute(route);
-});
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-function pointAt(route, progress, lane) {
-  const target = progress * route.length;
-  let covered = 0;
-  for (let i = 1; i < route.points.length; i += 1) {
-    const a = route.points[i - 1];
-    const b = route.points[i];
-    const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    if (covered + length >= target) return segmentPoint(route, a, b, (target - covered) / length, lane);
-    covered += length;
+
+function vehicleDims(kind) {
+  switch (kind) {
+    case "sedan": return { length: 22, width: 10 };
+    case "suv":   return { length: 28, width: 11 };
+    case "auto":  return { length: 18, width: 10 };
+    case "bike":  return { length: 16, width: 5 };
+    case "bus":   return { length: 36, width: 11 };
+    default:      return { length: 22, width: 10 };
   }
-  const n = route.points.length;
-  return segmentPoint(route, route.points[n - 2], route.points[n - 1], 1, lane);
 }
-function segmentPoint(route, a, b, t, lane) {
-  const angle = Math.atan2(b[1] - a[1], b[0] - a[0]);
-  const offset = (lane === 0 ? -8 : 8) + (route.laneShift || 0);
-  return {
-    x: lerp(a[0], b[0], t) + Math.cos(angle + Math.PI / 2) * offset,
-    y: lerp(a[1], b[1], t) + Math.sin(angle + Math.PI / 2) * offset,
-    angle,
-  };
+
+function vehicleColor(kind) {
+  switch (kind) {
+    case "sedan": return colors.vSedan;
+    case "suv":   return colors.vSuv;
+    case "auto":  return colors.vAuto;
+    case "bike":  return colors.vBike;
+    case "bus":   return colors.vBus;
+    default:      return colors.vSedan;
+  }
 }
+
+function baseSpeed(kind) {
+  /* Slightly varied so vehicles don't move in lockstep */
+  switch (kind) {
+    case "sedan": return 0.040;
+    case "suv":   return 0.038;
+    case "auto":  return 0.034;
+    case "bike":  return 0.046;
+    case "bus":   return 0.032;
+    default:      return 0.040;
+  }
+}
+
 function createVehicle(index) {
   const scenario = currentScenario();
-  const key = scenario.bias[index % scenario.bias.length];
-  const kind = index % 5 === 0 || index % 7 === 0 ? "bike" : "car";
-  const demandSpacing = Math.max(0.82, 1.72 - controlValue("demand") * 0.32);
+  let routeKey = scenario.bias[index % scenario.bias.length];
+  let kind = pickVehicleKind(index);
+  /* Bus only on mainline */
+  if (kind === "bus" && !routeKey.startsWith("main")) kind = "sedan";
+  const demandSpacing = Math.max(0.42, 1.4 - controlValue("demand") * 0.55);
   return {
     id: state.nextId++,
     kind,
-    routeKey: key,
-    route: routes[key],
-    lane: laneForRoute(key, index),
+    routeKey,
+    route: routes[routeKey],
     progress: 0,
     delay: index * scenario.spacing * demandSpacing,
-    speed: (kind === "bike" ? 0.041 : 0.035) + (index % 4) * 0.004,
+    speed: baseSpeed(kind),
     wait: 0,
     delayCost: 0,
     stops: 0,
-    fixedWaits: {},
-    fixedReleased: {},
-    complete: false,
     blocked: false,
     blockReason: "",
+    complete: false,
     visualPose: null,
   };
 }
-function laneForRoute(key, index) {
-  if (key === "south") return 1;
-  if (key === "north") return 1;
-  return index % 2;
-}
-function resetReplay() {
+
+/* ─── Junction phase machine ──────────────────────────────── */
+function initJunction(j, offsetIndex) {
   const scenario = currentScenario();
-  controlledNodes().forEach((node, i) => {
-    if (isFixedMode() && !isFieldNode(node)) {
-      node.phase = i === 0 ? "EW" : "NS";
-      node.timer = i * 0.8;
-      node.groupCursor = {};
-      assignFixedGroup(node, node.phase, false);
-      return;
-    }
-    if (isFixedMode()) {
-      node.phase = "OBS";
-      node.timer = i * 0.35;
-      node.activeGroup = null;
-      return;
-    }
-    node.phase = scenario.primaryPhase === "NS" && node.id === "J2" ? "NS" : "EW";
-    node.timer = i * 0.45;
-    node.activeGroup = null;
-  });
-  state.nextId = 1;
-  state.vehicles = Array.from({ length: vehicleTargetCount() }, (_, index) => createVehicle(index));
-  setPaused(false);
-  updateScenarioText();
+  j.phase = scenario.primaryPhase || "MAIN";
+  j.subphase = "green";
+  j.timer = offsetIndex * 1.6;
+  j.pendingPhase = null;
 }
-function scheduleReset() {
-  clearTimeout(state.resetHandle);
-  state.resetHandle = setTimeout(resetReplay, 220);
+
+function junctionGreen(junction, routePhase) {
+  return junction.phase === routePhase && junction.subphase === "green";
 }
-function updateScenarioText() {
-  document.getElementById("scenarioTitle").textContent = currentScenario().title;
-  const scenarioCopy = document.getElementById("scenarioCopy");
-  if (scenarioCopy) scenarioCopy.textContent = currentScenario().copy;
+
+function junctionRed(junction, routePhase) {
+  /* Treat amber as still allowing entry within reservation, all-red blocks all */
+  if (junction.subphase === "allred") return true;
+  return junction.phase !== routePhase;
 }
-function nextStop(vehicle) {
-  return vehicle.route.stopProgress.find((stop) => stop.p > vehicle.progress + 0.0005);
-}
-function nextControlPoint(vehicle) {
-  return vehicle.route.controlPoints.find((point) => {
-    const notCleared = vehicle.progress <= point.centerP + clearProgress(vehicle);
-    const notMissed = point.p > vehicle.progress - 0.0005;
-    return notCleared && notMissed;
-  });
-}
-function controlPointForVehicle(vehicle, id) {
-  return vehicle.route.controlPoints.find((point) => {
-    return point.id === id && vehicle.progress < point.centerP + clearProgress(vehicle);
-  });
-}
-function nodeById(id) {
-  return controlledNodes().find((node) => node.id === id);
-}
-function controlPhase(point) {
-  return point.group.includes(":NS") ? "NS" : "EW";
-}
-function groupsForNodePhase(nodeId, phase) {
-  const groups = new Set();
-  Object.values(routes).forEach((route) => {
-    route.controlPoints.forEach((point) => {
-      if (point.id === nodeId && route.phase === phase) groups.add(point.group);
-    });
-  });
-  return [...groups];
-}
-function fixedGroupAllowed(node, point) {
-  if (!isFixedMode() || isFieldNode(node) || node.phase === "OBS") return true;
-  if (node.phase !== controlPhase(point)) return false;
-  const groups = groupsForNodePhase(node.id, node.phase);
-  if (groups.length <= 1) return true;
-  if (!node.activeGroup || !groups.includes(node.activeGroup)) assignFixedGroup(node, node.phase, false);
-  return node.activeGroup === point.group;
-}
-function assignFixedGroup(node, phase, rotate) {
-  const groups = groupsForNodePhase(node.id, phase);
-  if (groups.length === 0) {
-    node.activeGroup = null;
-    return;
+
+function approachLight(junction, routePhase) {
+  /* Returns "red" | "amber" | "green" for a route's approach */
+  if (junction.phase === routePhase) {
+    if (junction.subphase === "green") return "green";
+    if (junction.subphase === "amber") return "amber";
+    return "red";
   }
-  node.groupCursor = node.groupCursor || {};
-  const current = node.groupCursor[phase] || 0;
-  node.groupCursor[phase] = rotate ? (current + 1) % groups.length : current;
-  node.activeGroup = groups[node.groupCursor[phase]];
+  return "red";
 }
-function pressure(junctionId, phase) {
-  return state.vehicles.reduce((total, vehicle) => {
-    if (vehicle.complete || vehicle.delay > 0 || vehicle.route.phase !== phase) return total;
-    const stop = nextStop(vehicle);
+
+/* ─── Pressure (used by PATC adaptive switching) ──────────── */
+function approachPressure(junctionId, phase) {
+  return state.vehicles.reduce((total, v) => {
+    if (v.complete || v.delay > 0 || v.route.phase !== phase) return total;
+    const stop = nextStop(v);
     if (!stop || stop.id !== junctionId) return total;
-    const distance = Math.max(0, stop.p - vehicle.progress);
-    return total + Math.max(0, 1.4 - distance * 13) + vehicle.wait * 0.18;
-  }, fieldNodePressure(junctionId, phase));
-}
-function fieldNodePressure(junctionId, phase) {
-  if (isFixedMode()) return 0;
-  return coordinatedNodes().reduce((total, node) => {
-    if (closestJunction(node).id !== junctionId) return total;
-    return total + state.vehicles.reduce((nodeTotal, vehicle) => {
-      if (vehicle.complete || vehicle.delay > 0 || vehicle.route.phase !== phase) return nodeTotal;
-      const pose = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
-      const distance = Math.hypot(pose.x - node.x, pose.y - node.y);
-      return distance < 126 ? nodeTotal + (1.05 - distance / 140) : nodeTotal;
-    }, 0);
+    const dist = Math.max(0, stop.stopP - v.progress);
+    return total + Math.max(0, 1.4 - dist * 14) + v.wait * 0.18;
   }, 0);
 }
-function coordinatedNodes() {
-  return [...supportNodes, ...sensorSites];
-}
-function localNodePressure(node, phase) {
-  return state.vehicles.reduce((total, vehicle) => {
-    if (vehicle.complete || vehicle.delay > 0 || vehicle.route.phase !== phase) return total;
-    const pose = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
-    const distance = Math.hypot(pose.x - node.x, pose.y - node.y);
-    return distance < 128 ? total + Math.max(0, 1.15 - distance / 120) + vehicle.wait * 0.08 : total;
-  }, 0);
-}
+
 function arrivalPressure(junctionId, phase) {
-  return state.vehicles.reduce((total, vehicle) => {
-    if (vehicle.complete || vehicle.delay > 0 || vehicle.route.phase !== phase) return total;
-    const stop = nextStop(vehicle);
+  return state.vehicles.reduce((total, v) => {
+    if (v.complete || v.delay > 0 || v.route.phase !== phase) return total;
+    const stop = nextStop(v);
     if (!stop || stop.id !== junctionId) return total;
-    const distance = Math.max(0, stop.p - vehicle.progress);
-    return total + Math.max(0, 1.25 - distance * 4.8);
+    const dist = Math.max(0, stop.stopP - v.progress);
+    return total + Math.max(0, 1.2 - dist * 5);
   }, 0);
 }
-function updateSignals(dt) {
-  controlledNodes().forEach((node) => updateControlledNode(node, dt));
-}
-function updateControlledNode(node, dt) {
-  node.timer += dt;
-  if (isFieldNode(node)) {
-    updateFieldNode(node);
-    return;
-  }
-  updateJunctionNode(node);
-}
-function updateFieldNode(node) {
-  if (isFixedMode()) {
-    node.phase = "OBS";
-    return;
-  }
-  const nearest = closestJunction(node);
-  const ew = pressure(nearest.id, "EW") * 0.18 + localNodePressure(node, "EW");
-  const ns = pressure(nearest.id, "NS") * 0.18 + localNodePressure(node, "NS");
-  const target = ew >= ns ? "EW" : "NS";
-  if (target !== node.phase && node.timer > Math.min(4.2, 2.6 * controlValue("safety"))) {
-    node.phase = target;
-    node.timer = 0;
-  }
-}
-function updateJunctionNode(junction) {
-  /* In PATC mode ALL junctions participate in adaptive switching, not just J2 */
-  const downstreamRisk = downstreamPenalty(junction.id);
-  const ewLive = pressure(junction.id, "EW");
-  const nsLive = pressure(junction.id, "NS");
-  const ewDemand = ewLive + arrivalPressure(junction.id, "EW");
-  const nsDemand = nsLive + arrivalPressure(junction.id, "NS");
-  const ewBias = currentScenario().primaryPhase === "EW" ? 1.1 : 1;
-  const nsBias = currentScenario().primaryPhase === "NS" && junction.id === "J2" ? 1.35 : 1;
-  const ew = isFixedMode() ? ewLive : Math.max(0, ewDemand * ewBias - downstreamRisk * 0.1);
-  const ns = isFixedMode() ? nsLive : nsDemand * nsBias;
-  const minGreen = isFixedMode() ? 4.0 * controlValue("safety") : Math.min(4.8, 3.2 * controlValue("safety"));
-  const maxGreen = isFixedMode() ? 10.8 : 11.8;
-  const target = ew >= ns ? "EW" : "NS";
-  const urgent = Math.max(ew, ns) > Math.min(ew, ns) * 1.06 + 0.55;
-  const shouldPatcSwitch = !isFixedMode() && target !== junction.phase && urgent && junction.timer > minGreen;
-  const shouldFixedSwitch = isFixedMode() && junction.timer > 10.2;
-  const shouldPatcMaxSwitch = !isFixedMode() && target !== junction.phase && junction.timer > maxGreen;
-  const shouldMaxSwitch = isFixedMode() && junction.timer > maxGreen;
-  const forceSwitch = junction.timer > 16;
-  if (!forceSwitch && (shouldPatcSwitch || shouldPatcMaxSwitch || shouldFixedSwitch || shouldMaxSwitch) && junctionOccupied(junction.id)) return;
-  if (shouldPatcSwitch || shouldPatcMaxSwitch || forceSwitch) {
-    junction.phase = target;
-    junction.timer = 0;
-    return;
-  }
-  if (shouldFixedSwitch || shouldMaxSwitch) {
-    junction.phase = junction.phase === "EW" ? "NS" : "EW";
-    assignFixedGroup(junction, junction.phase, true);
-    junction.timer = 0;
-  }
-}
-function downstreamPenalty(junctionId) {
-  const order = ["J1", "J2", "J3", "J4"];
+
+function downstreamPressure(junctionId) {
+  const order = ["J1", "J2", "J3", "J4", "J5"];
   const index = order.indexOf(junctionId);
-  if (index < 0 || index > 2) return 0;
+  if (index < 0 || index >= order.length - 1) return 0;
   const next = order[index + 1];
-  return pressure(next, "EW") * 0.34 * currentScenario().downstream;
+  return approachPressure(next, "MAIN") * 0.32 * currentScenario().downstream;
 }
-function blockedBySignal(vehicle, projected) {
-  const point = nextControlPoint(vehicle);
-  if (!point || projected < point.p) return false;
-  if (inControlWindow(vehicle, point)) return false;
-  const node = nodeById(point.id);
-  if (!node) return false;
-  /* In fixed mode: use fixed-group check. In PATC: block when junction phase disagrees. */
-  if (isFixedMode()) return !fixedGroupAllowed(node, point);
-  if (isFieldNode(node)) return false;
-  return node.phase !== controlPhase(point);
+
+/* ─── Update signals each frame ───────────────────────────── */
+function updateSignals(dt) {
+  junctions.forEach((j) => updateJunction(j, dt));
 }
-function leaderInfo(vehicle, projected) {
+
+function updateJunction(j, dt) {
+  j.timer += dt;
+  if (j.subphase === "amber") {
+    if (j.timer >= AMBER_DURATION) {
+      j.subphase = "allred";
+      j.timer = 0;
+    }
+    return;
+  }
+  if (j.subphase === "allred") {
+    if (j.timer >= ALL_RED_DURATION) {
+      j.phase = j.pendingPhase || (j.phase === "MAIN" ? "SIDE" : "MAIN");
+      j.pendingPhase = null;
+      j.subphase = "green";
+      j.timer = 0;
+    }
+    return;
+  }
+  /* Currently green — decide whether to swap */
+  const safety = controlValue("safety");
+  const mainPressure = approachPressure(j.id, "MAIN") + arrivalPressure(j.id, "MAIN") - downstreamPressure(j.id) * 0.3;
+  const sidePressure = approachPressure(j.id, "SIDE") + arrivalPressure(j.id, "SIDE");
+  const target = mainPressure >= sidePressure ? "MAIN" : "SIDE";
+
+  if (isFixedMode()) {
+    const greenLen = (j.phase === "MAIN" ? FIXED_GREEN_MAIN : FIXED_GREEN_SIDE) * safety;
+    if (j.timer >= greenLen) {
+      j.pendingPhase = j.phase === "MAIN" ? "SIDE" : "MAIN";
+      j.subphase = "amber";
+      j.timer = 0;
+    }
+    return;
+  }
+
+  /* PATC mode */
+  const minGreen = PATC_MIN_GREEN * safety;
+  const maxGreen = PATC_MAX_GREEN;
+  const urgent = Math.max(mainPressure, sidePressure) > Math.min(mainPressure, sidePressure) * 1.08 + 0.6;
+  const shouldSwitch = (target !== j.phase && urgent && j.timer >= minGreen) || j.timer >= maxGreen;
+  if (shouldSwitch && !junctionOccupied(j)) {
+    j.pendingPhase = target !== j.phase ? target : (j.phase === "MAIN" ? "SIDE" : "MAIN");
+    j.subphase = "amber";
+    j.timer = 0;
+  }
+}
+
+function junctionOccupied(junction) {
+  return state.vehicles.some((v) => {
+    if (v.complete || v.delay > 0) return false;
+    const pose = pointAt(v.route, v.progress);
+    return Math.hypot(pose.x - junction.x, pose.y - junction.y) < JUNCTION_CLEAR_RADIUS + 6;
+  });
+}
+
+/* ─── Vehicle update ──────────────────────────────────────── */
+function nextStop(v) {
+  return v.route.stopProgress.find((s) => s.clearP > v.progress);
+}
+
+function blockedBySignal(v, projected) {
+  const stop = nextStop(v);
+  if (!stop) return false;
+  /* Already past the stop line and within junction → committed; don't re-block */
+  if (v.progress > stop.stopP - 0.001) return false;
+  if (projected < stop.stopP - ENTRY_RESERVATION_MARGIN) return false;
+  const j = junctionById(stop.id);
+  return !junctionGreen(j, v.route.phase);
+}
+
+function leaderInfo(v, projected) {
   return state.vehicles.reduce((closest, other) => {
-    if (other === vehicle || other.complete || other.delay > 0) return closest;
-    if (other.routeKey !== vehicle.routeKey || other.lane !== vehicle.lane) return closest;
+    if (other === v || other.complete || other.delay > 0) return closest;
+    if (other.routeKey !== v.routeKey) return closest;
     const gap = other.progress - projected;
     if (gap <= 0 || gap >= closest.gap) return closest;
     return { gap, vehicle: other };
   }, { gap: 1, vehicle: null });
 }
-function queueSpacingBlocked(vehicle, leader) {
-  if (!leader || leader.gap >= MIN_VEHICLE_GAP) return false;
-  return distanceToStop(vehicle) < 0.18;
-}
-function followingProgress(vehicle, projected, leader) {
+
+function followingProgress(v, projected, leader) {
   if (!leader.vehicle || leader.gap >= MIN_VEHICLE_GAP) return projected;
-  return Math.max(vehicle.progress, Math.min(projected, leader.vehicle.progress - MIN_VEHICLE_GAP));
+  return Math.max(v.progress, Math.min(projected, leader.vehicle.progress - MIN_VEHICLE_GAP));
 }
-function distanceToStop(vehicle) {
-  const point = nextControlPoint(vehicle);
-  return point ? point.p - vehicle.progress : 1;
-}
-function physicalConflict(vehicle, projected) {
-  const point = nextControlPoint(vehicle);
-  if (!point) return false;
-  const pose = pointAt(vehicle.route, projected, vehicle.lane);
-  const node = nodeById(point.id);
-  const currentPose = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
-  const nearStop = Math.hypot(pose.x - node.x, pose.y - node.y) <= 58;
+
+function junctionEntryConflict(v, projected) {
+  /* Already inside the junction box → don't re-evaluate */
+  const stop = nextStop(v);
+  if (!stop) return false;
+  if (v.progress > stop.centerP) return false;
+  if (projected < stop.stopP - 0.005) return false;
+  const j = junctionById(stop.id);
+  /* Only check conflicts with vehicles whose phase != ours */
   return state.vehicles.some((other) => {
-    if (other === vehicle || other.complete || other.delay > 0) return false;
-    const otherPoint = controlPointForVehicle(other, point.id);
-    if (!otherPoint || !controlsConflict(point, otherPoint)) return false;
-    const otherPose = pointAt(other.route, other.progress, other.lane);
-    const currentGap = Math.hypot(currentPose.x - otherPose.x, currentPose.y - otherPose.y);
-    const projectedGap = Math.hypot(pose.x - otherPose.x, pose.y - otherPose.y);
-    const occupiedJunction = nearStop && hasEnteredNode(other, point.id) && projectedGap < 38;
-    return occupiedJunction && projectedGap < currentGap;
+    if (other === v || other.complete || other.delay > 0) return false;
+    if (other.route.phase === v.route.phase) return false;
+    const op = pointAt(other.route, other.progress);
+    return Math.hypot(op.x - j.x, op.y - j.y) < JUNCTION_CLEAR_RADIUS + 4;
   });
 }
-function junctionEntryConflict(vehicle, projected) {
-  const point = nextControlPoint(vehicle);
-  if (!point || projected < point.p - 0.006) return false;
-  const pose = pointAt(vehicle.route, projected, vehicle.lane);
-  return state.vehicles.some((other) => {
-    if (other === vehicle || other.complete || other.delay > 0 || other.routeKey === vehicle.routeKey) return false;
-    const otherPoint = controlPointForVehicle(other, point.id);
-    if (!otherPoint || !controlsConflict(point, otherPoint) || !hasEnteredNode(other, point.id)) return false;
-    const otherPose = pointAt(other.route, other.progress, other.lane);
-    return Math.hypot(pose.x - otherPose.x, pose.y - otherPose.y) < 46;
-  });
-}
-function crossingConflict(vehicle, projected) {
-  const point = nextControlPoint(vehicle);
-  if (!point || projected < point.p - 0.006) return false;
-  if (inControlWindow(vehicle, point)) return false;
-  return state.vehicles.some((other) => {
-    if (other === vehicle || other.complete || other.delay > 0) return false;
-    const otherPoint = controlPointForVehicle(other, point.id);
-    if (!otherPoint || !controlsConflict(point, otherPoint)) return false;
-    if (isFixedMode()) return fixedConflictAhead(point, other, otherPoint);
-    return !canReserveAhead(vehicle, point, other, otherPoint);
-  });
-}
-function controlsConflict(point, otherPoint) {
-  if (point.kind === "field" || otherPoint.kind === "field") return false;
-  return point.id === otherPoint.id && point.group !== otherPoint.group;
-}
-function fixedConflictAhead(point, other, otherPoint) {
-  return inControlWindow(other, otherPoint) && etaToControl(other, otherPoint) < FIXED_CONFLICT_LOOKAHEAD;
-}
-function fixedDwellBlocked(vehicle, projected, dt) {
-  if (!isFixedMode()) return false;
-  const point = nextControlPoint(vehicle);
-  if (!point || point.kind !== "junction") return false;
-  const key = controlKey(point);
-  if (vehicle.fixedReleased[key]) return false;
-  if (projected < point.p - FIXED_APPROACH_STOP_ZONE) return false;
-  vehicle.fixedWaits[key] = (vehicle.fixedWaits[key] || 0) + dt;
-  if (vehicle.fixedWaits[key] >= fixedDwellDuration(vehicle)) {
-    vehicle.fixedReleased[key] = true;
-    return false;
-  }
-  return true;
-}
-function fixedDwellDuration(vehicle) {
-  return FIXED_DWELL_BASE + (vehicle.id % 4) * 0.16;
-}
-function controlKey(point) {
-  return `${point.id}:${point.group}`;
-}
-function canReserveAhead(vehicle, point, other, otherPoint) {
-  if (inControlWindow(other, otherPoint)) return false;
-  if (hasEnteredNode(other, point.id)) return false;
-  const selfEntry = etaToControl(vehicle, point);
-  const selfClear = selfEntry + clearDuration(vehicle, point);
-  const otherEntry = etaToControl(other, otherPoint);
-  const otherClear = otherEntry + clearDuration(other, otherPoint);
-  const buffer = 0.16 + controlValue("safety") * 0.44;
-  if (selfClear + buffer < otherEntry) return true;
-  if (otherClear + buffer < selfEntry) return false;
-  const tieWindow = 0.38 + controlValue("safety") * 0.24;
-  if (Math.abs(selfEntry - otherEntry) <= tieWindow) {
-    const selfPriority = routePriority(vehicle.routeKey);
-    const otherPriority = routePriority(other.routeKey);
-    return selfPriority < otherPriority || (selfPriority === otherPriority && vehicle.id < other.id);
-  }
-  return selfEntry < otherEntry;
-}
-function routePriority(routeKey) {
-  const index = ROUTE_PRIORITY.indexOf(routeKey);
-  return index === -1 ? ROUTE_PRIORITY.length : index;
-}
-function etaToControl(vehicle, point) {
-  const velocity = Math.max(0.004, vehicle.speed * controlValue("discharge"));
-  return Math.max(0, (point.p - vehicle.progress) / velocity);
-}
-function clearDuration(vehicle, point) {
-  const velocity = Math.max(0.004, vehicle.speed * controlValue("discharge"));
-  return Math.max(0.2, (point.centerP + clearProgress(vehicle) - point.p) / velocity);
-}
-function clearProgress(vehicle) {
-  return (vehicle.kind === "bike" ? 30 : 40) / vehicle.route.length;
-}
-function inControlWindow(vehicle, point) {
-  const entered = vehicle.progress >= point.p;
-  const cleared = vehicle.progress > point.centerP + clearProgress(vehicle);
-  return entered && !cleared;
-}
-function insideAnyControlWindow(vehicle) {
-  return vehicle.route.controlPoints.some((point) => inControlWindow(vehicle, point));
-}
-function vehicleClearance(a, b) {
-  if (a.kind === "bike" && b.kind === "bike") return 22;
-  if (a.kind === "bike" || b.kind === "bike") return 26;
-  return 30;
-}
-function vehicleDimensions(vehicle) {
-  return vehicle.kind === "bike" ? { length: 12, width: 3 } : { length: 16, width: 7 };
-}
-function bodyConflict(vehicle, projected) {
-  const pose = pointAt(vehicle.route, projected, vehicle.lane);
-  return state.vehicles.some((other) => {
-    if (other === vehicle || other.complete || other.delay > 0) return false;
-    if (other.routeKey === vehicle.routeKey && other.lane === vehicle.lane) return false;
-    const otherPose = pointAt(other.route, other.progress, other.lane);
-    return bodyOverlap(pose, vehicleDimensions(vehicle), otherPose, vehicleDimensions(other));
-  });
-}
-function bodyOverlap(aPose, aDims, bPose, bDims) {
-  const a = bodyCorners(aPose, aDims);
-  const b = bodyCorners(bPose, bDims);
-  return ![edgeAxis(a[0], a[1]), edgeAxis(a[1], a[2]), edgeAxis(b[0], b[1]), edgeAxis(b[1], b[2])]
-    .some((axis) => separatedOnAxis(axis, a, b));
-}
-function bodyCorners(pose, dims) {
-  const ux = { x: Math.cos(pose.angle), y: Math.sin(pose.angle) };
-  const uy = { x: -Math.sin(pose.angle), y: Math.cos(pose.angle) };
-  return [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(([sx, sy]) => ({
-    x: pose.x + ux.x * dims.length * 0.5 * sx + uy.x * dims.width * 0.5 * sy,
-    y: pose.y + ux.y * dims.length * 0.5 * sx + uy.y * dims.width * 0.5 * sy,
-  }));
-}
-function edgeAxis(a, b) {
-  const x = b.x - a.x;
-  const y = b.y - a.y;
-  const length = Math.hypot(x, y) || 1;
-  return { x: -y / length, y: x / length };
-}
-function separatedOnAxis(axis, aCorners, bCorners) {
-  const a = projectBody(axis, aCorners);
-  const b = projectBody(axis, bCorners);
-  return a.max < b.min || b.max < a.min;
-}
-function projectBody(axis, corners) {
-  return corners.reduce((range, point) => {
-    const value = point.x * axis.x + point.y * axis.y;
-    return { min: Math.min(range.min, value), max: Math.max(range.max, value) };
-  }, { min: Infinity, max: -Infinity });
-}
-function junctionOccupied(junctionId) {
-  return state.vehicles.some((vehicle) => !vehicle.complete && vehicle.delay <= 0 && hasEnteredNode(vehicle, junctionId));
-}
-function hasEnteredNode(vehicle, nodeId) {
-  const point = vehicle.route.controlPoints.find((item) => item.id === nodeId);
-  return point ? inControlWindow(vehicle, point) : false;
-}
-function setPaused(value) {
-  state.paused = value;
-  document.getElementById("startBtn").classList.toggle("active-control", !value);
-  document.getElementById("stopBtn").classList.toggle("active-control", value);
-}
-function updateVehicle(vehicle, dt) {
-  if (vehicle.complete) return;
-  if (vehicle.delay > 0) {
-    vehicle.delay -= dt;
-    return;
-  }
-  const startup = startupFactor(vehicle);
-  const velocity = vehicle.speed * controlValue("discharge") * startup;
-  const projected = Math.min(1, vehicle.progress + velocity * dt);
-  const signalBlocked = blockedBySignal(vehicle, projected);
-  const dwellBlocked = fixedDwellBlocked(vehicle, projected, dt);
-  const conflictBlocked = crossingConflict(vehicle, projected) || junctionEntryConflict(vehicle, projected) || physicalConflict(vehicle, projected);
-  const leader = leaderInfo(vehicle, projected);
-  const spacingBlocked = queueSpacingBlocked(vehicle, leader);
-  const bodyBlocked = !spacingBlocked && bodyConflict(vehicle, projected);
-  const blocked = signalBlocked || dwellBlocked || conflictBlocked || spacingBlocked || bodyBlocked;
-  const fixedSignalHold = isFixedMode() && conflictBlocked && distanceToStop(vehicle) < 0.16;
-  vehicle.blocked = blocked;
-  vehicle.blockReason = signalBlocked || dwellBlocked || fixedSignalHold ? "signal" : conflictBlocked || bodyBlocked ? "conflict" : spacingBlocked ? "spacing" : "";
-  if (blocked) {
-    if (signalBlocked || dwellBlocked || conflictBlocked) holdBeforeControl(vehicle, projected);
-    if (signalBlocked || dwellBlocked || conflictBlocked || distanceToStop(vehicle) < 0.14) {
-      vehicle.wait += dt;
-      vehicle.delayCost += dt;
-      if (vehicle.wait - vehicle.stops > 1) vehicle.stops += 1;
+
+function updateVehicle(v, dt) {
+  if (v.complete) return;
+  if (v.delay > 0) { v.delay -= dt; return; }
+
+  const velocity = v.speed * controlValue("discharge");
+  const projected = Math.min(1, v.progress + velocity * dt);
+
+  const sigBlocked = blockedBySignal(v, projected);
+  const conflict = junctionEntryConflict(v, projected);
+  const leader = leaderInfo(v, projected);
+  const spacingBlocked = leader.vehicle && leader.gap < MIN_VEHICLE_GAP;
+
+  v.blocked = sigBlocked || conflict || spacingBlocked;
+  v.blockReason = sigBlocked ? "signal" : conflict ? "conflict" : spacingBlocked ? "spacing" : "";
+
+  if (v.blocked) {
+    /* Clamp at stop line if signal-blocked */
+    if (sigBlocked || conflict) {
+      const stop = nextStop(v);
+      if (stop) {
+        v.progress = Math.min(Math.max(v.progress, projected), stop.stopP - ENTRY_RESERVATION_MARGIN);
+      }
+    } else {
+      /* Spacing — follow leader */
+      v.progress = followingProgress(v, projected, leader);
     }
-    /* Deadlock breaker: if a vehicle has been stuck for too long, force-release it */
-    if (vehicle.wait > 8) {
-      vehicle.blocked = false;
-      vehicle.blockReason = "";
-      vehicle.wait = 0;
-      vehicle.progress = Math.min(1, vehicle.progress + vehicle.speed * 0.012);
+    v.wait += dt;
+    v.delayCost += dt;
+    if (v.wait - v.stops > 1) v.stops += 1;
+    /* Deadlock breaker */
+    if (v.wait > 6 && !sigBlocked) {
+      v.progress = Math.min(1, v.progress + v.speed * 0.01);
+      v.wait = Math.max(0, v.wait - 1.5);
     }
     return;
   }
-  vehicle.delayCost += (1 - startup) * dt;
-  vehicle.progress = followingProgress(vehicle, projected, leader);
-  if (vehicle.progress >= 1) {
-    vehicle.progress = 1;
-    vehicle.complete = true;
+
+  v.wait = Math.max(0, v.wait - dt * 0.4);
+  v.progress = followingProgress(v, projected, leader);
+  if (v.progress >= 1) {
+    v.progress = 1;
+    v.complete = true;
   }
 }
-function holdBeforeControl(vehicle, projected) {
-  const point = nextControlPoint(vehicle);
-  if (!point) return;
-  if (inControlWindow(vehicle, point)) return;
-  const margin = point.kind === "junction" ? ENTRY_RESERVATION_MARGIN + 0.002 : 0.002;
-  const holdP = holdProgress(vehicle, point, margin, projected);
-  vehicle.progress = Math.max(vehicle.progress, holdP);
-}
-function holdProgress(vehicle, point, margin, projected) {
-  return Math.max(0, Math.max(vehicle.progress, Math.min(projected, point.p - margin)));
-}
-function step(dt) {
-  updateSignals(dt);
-  state.vehicles
-    .slice()
-    .sort((a, b) => b.progress - a.progress)
-    .forEach((vehicle) => updateVehicle(vehicle, dt));
-  updateRecommendation();
-  if (state.vehicles.every((vehicle) => vehicle.complete)) setPaused(true);
-}
+
+/* ─── Recommendation text ─────────────────────────────────── */
 function updateRecommendation() {
-  if (state.vehicles.every((vehicle) => vehicle.complete)) {
+  if (state.vehicles.every((v) => v.complete)) {
     state.recommendation = "Replay complete";
     return;
   }
-  const ranked = pressureRanked();
+  const ranked = junctions
+    .map((j) => ({
+      j,
+      main: approachPressure(j.id, "MAIN"),
+      side: approachPressure(j.id, "SIDE"),
+    }))
+    .sort((a, b) => Math.max(b.main, b.side) - Math.max(a.main, a.side));
   const top = ranked[0];
-  const phase = top.ew >= top.ns ? "EW" : "NS";
+  const phase = top.main >= top.side ? "MAIN" : "SIDE";
   if (isFixedMode()) {
-    state.recommendation = `${top.j.id}: fixed cycle, ${phase} queue`;
+    state.recommendation = `${top.j.id}: fixed cycle, ${phase} queue building`;
     return;
   }
-  const risk = downstreamPenalty(top.j.id) > 1.6 ? "protect downstream gap" : `${phase === top.j.phase ? "hold" : "prepare"} ${phase}`;
-  state.recommendation = `${top.j.id}: ${risk}; F/S mesh synced`;
+  const action = phase === top.j.phase ? "extend" : "prepare";
+  state.recommendation = `${top.j.id}: ${action} ${phase}; corridor synced`;
 }
-function pressureRanked() {
-  const ranked = junctions.map((j) => ({ j, ew: pressure(j.id, "EW"), ns: pressure(j.id, "NS") }));
-  ranked.sort((a, b) => Math.max(b.ew, b.ns) - Math.max(a.ew, a.ns));
-  return ranked;
+
+/* ─── Render: roads ───────────────────────────────────────── */
+function drawBackground() {
+  ctx.fillStyle = colors.bg;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  /* Subtle grass strips top/bottom */
+  ctx.fillStyle = "#0a1410";
+  ctx.fillRect(0, 0, CANVAS_W, 24);
+  ctx.fillRect(0, CANVAS_H - 24, CANVAS_W, 24);
 }
-function drawPath(points, width, color) {
+
+function strokePath(points, width, color, lineDash) {
+  ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = width;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
+  if (lineDash) ctx.setLineDash(lineDash);
   ctx.beginPath();
   ctx.moveTo(points[0][0], points[0][1]);
-  points.slice(1).forEach((point) => ctx.lineTo(point[0], point[1]));
+  points.slice(1).forEach((p) => ctx.lineTo(p[0], p[1]));
   ctx.stroke();
-}
-function drawBlocks() {
-  cityBlocks.forEach(([x, y, width, height], index) => {
-    ctx.fillStyle = index % 2 === 0 ? "#081016" : "#0a141b";
-    ctx.fillRect(x, y, width, height);
-    ctx.strokeStyle = "rgba(128,167,189,0.12)";
-    ctx.strokeRect(x, y, width, height);
-  });
-}
-function drawLaneDash(points, color) {
-  ctx.save();
-  ctx.setLineDash([12, 15]);
-  ctx.lineDashOffset = -state.frameIndex * 0.5;
-  drawPath(points, 2, color);
   ctx.restore();
 }
+
 function drawRoads() {
-  ctx.fillStyle = colors.bg;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  drawBlocks();
-  /* Cross-streets at each junction */
-  gridLinks.forEach((points) => drawPath(points, 44, "#0c1c2a"));
-  /* Draw crossing arms */
-  drawJunctionCrossroads();
-  /* Main EW corridor — draw once using east route coords (west shares them) */
-  drawPath(routes.east.points, 60, colors.road);
-  /* NS routes, feeder, cross-traffic */
-  ["south", "north", "feeder"].forEach((key) => drawPath(routes[key].points, 48, colors.road));
-  ["j1cross", "j4cross"].forEach((key) => { if (routes[key]) drawPath(routes[key].points, 40, colors.road); });
-  /* Lane dashes */
-  gridLinks.forEach((points) => drawLaneDash(points, "rgba(244,247,242,0.08)"));
-  Object.values(routes).forEach((route) => drawLaneDash(route.points, colors.lane));
-}
-function drawJunctionCrossroads() {
-  const armColor = "#132e3e";
-  /* Draw EW crossing arms at each junction to widen the intersection */
-  junctions.forEach((j) => {
-    drawPath([[j.x - 70, j.y], [j.x + 70, j.y]], 52, armColor);
-    drawPath([[j.x, j.y - 50], [j.x, j.y + 50]], 44, armColor);
+  /* Asphalt strips */
+  roads.forEach((road) => {
+    /* Curb / outline */
+    strokePath(road.centerline, road.width + 4, colors.curb);
+    /* Asphalt body */
+    strokePath(road.centerline, road.width, colors.asphalt);
+  });
+  /* Lane markings — center-line dash on two-way roads (median) */
+  roads.forEach((road) => {
+    if (road.type === "two-way") {
+      strokePath(road.centerline, 1.5, colors.median, [10, 12]);
+    } else {
+      /* Direction arrow stripe down centre of one-way */
+      strokePath(road.centerline, 1, colors.laneDash, [4, 18]);
+    }
   });
 }
-function offsetPoint(node, dx, dy) {
-  return [node.x + dx, node.y + dy];
-}
-function midPoint(a, b, t) {
-  return [lerp(a.x, b.x, t), lerp(a.y, b.y, t)];
-}
-function drawSignals() {
-  drawApproachSignals();
-  supportNodes.forEach((node) => {
-    drawFieldSignal(node, 10);
-  });
-  /* Draw each junction with 4 directional signal lights */
+
+/* ─── Render: junctions (broad asphalt + signal heads) ────── */
+function drawJunctionPads() {
   junctions.forEach((j) => {
-    const ewGreen = j.phase === "EW";
-    const signalDist = 30;
-    /* Junction center */
-    ctx.fillStyle = "#071017";
-    ctx.beginPath();
-    ctx.arc(j.x, j.y, 16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(232,236,244,0.15)";
+    const w = j.broad ? 76 : 58;
+    const h = j.broad ? 58 : 50;
+    ctx.fillStyle = colors.asphaltLight;
+    ctx.fillRect(j.x - w / 2, j.y - h / 2, w, h);
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
     ctx.lineWidth = 1;
-    ctx.stroke();
-    /* 4 directional lights: E, W = EW phase; N, S = NS phase */
-    const directions = [
-      { dx: signalDist, dy: 0, green: ewGreen },   /* East */
-      { dx: -signalDist, dy: 0, green: ewGreen },  /* West */
-      { dx: 0, dy: -signalDist, green: !ewGreen },  /* North */
-      { dx: 0, dy: signalDist, green: !ewGreen },   /* South */
-    ];
-    directions.forEach(({ dx, dy, green }) => {
-      const color = green ? colors.green : colors.red;
-      ctx.save();
-      ctx.fillStyle = "#071017";
-      ctx.beginPath();
-      ctx.arc(j.x + dx, j.y + dy, 7, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = green ? 14 : 6;
-      ctx.beginPath();
-      ctx.arc(j.x + dx, j.y + dy, 4.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    });
-    /* Junction label */
-    ctx.fillStyle = colors.text;
-    ctx.font = "700 13px sans-serif";
-    ctx.fillText(j.id, j.x + 34, j.y - 8);
-    ctx.fillStyle = colors.muted;
-    ctx.font = "12px sans-serif";
-    ctx.fillText(`${j.phase} ${j.timer.toFixed(0)}s`, j.x + 34, j.y + 10);
-  });
-  sensorSites.forEach((site) => {
-    drawFieldSignal(site, 8);
+    ctx.strokeRect(j.x - w / 2 + 0.5, j.y - h / 2 + 0.5, w - 1, h - 1);
   });
 }
-function drawApproachSignals() {
+
+/* Signal heads are 3-bulb vertical bars, one per approach.
+   We render them at the stop line of each approach route. */
+function drawSignalHeads() {
   Object.entries(routes).forEach(([routeKey, route]) => {
-    route.controlPoints
-      .filter((point) => point.kind === "junction")
-      .forEach((point) => drawApproachSignal(routeKey, route, point));
+    route.stopProgress.forEach((stop) => {
+      const j = junctionById(stop.id);
+      const light = approachLight(j, route.phase);
+      const pose = pointAt(route, stop.stopP);
+      drawSignalHead(pose, route.direction, light);
+    });
   });
 }
-function drawApproachSignal(routeKey, route, point) {
-  const pose = pointAt(route, point.p, routeKey === "south" || routeKey === "north" ? 1 : 0);
-  const color = approachSignalColor(routeKey, point);
-  const normal = { x: Math.cos(pose.angle + Math.PI / 2), y: Math.sin(pose.angle + Math.PI / 2) };
+
+function drawSignalHead(pose, direction, light) {
+  const nx = -Math.sin(pose.angle);
+  const ny = Math.cos(pose.angle);
+  /* Push out 22px from lane centre to clear the asphalt */
+  const cx = pose.x + nx * 22;
+  const cy = pose.y + ny * 22;
+
   ctx.save();
-  ctx.fillStyle = color;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 9;
-  ctx.beginPath();
-  ctx.arc(pose.x + normal.x * 25, pose.y + normal.y * 25, 5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-function approachSignalColor(routeKey, point) {
-  const node = nodeById(point.id);
-  if (!node) return colors.red;
-  if (isFixedMode()) return fixedGroupAllowed(node, point) ? movementColor(routeKey) : colors.red;
-  return node.phase === controlPhase(point) ? movementColor(routeKey) : colors.red;
-}
-function movementColor(routeKey) {
-  if (routeKey === "south" || routeKey === "north") return colors.cyan;
-  if (routeKey === "feeder") return routes.feeder.color;
-  return colors.green;
-}
-function drawFieldSignal(node, radius) {
-  const active = !isFixedMode();
-  const color = !active ? "rgba(128,167,189,0.38)" : node.phase === "NS" ? colors.cyan : colors.green;
-  ctx.fillStyle = "#0b151d";
-  ctx.strokeStyle = color;
-  ctx.lineWidth = active ? 2 : 1;
-  ctx.beginPath();
-  ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = active ? color : colors.muted;
-  ctx.font = "700 10px sans-serif";
-  ctx.fillText(node.id, node.x + radius + 4, node.y + 4);
-  if (!active) return;
-  ctx.fillStyle = colors.muted;
-  ctx.font = "9px sans-serif";
-  ctx.fillText(`${node.phase} ${node.timer.toFixed(0)}s`, node.x + radius + 4, node.y + 15);
-}
-function drawModeOverlay() {
-  if (isFixedMode()) {
-    drawFixedIssues();
-    return;
-  }
-  drawPatcCoordination();
-}
-function drawPatcCoordination() {
-  ctx.save();
-  coordinatedNodes().forEach((node) => {
-    const nearest = closestJunction(node);
-    drawPath([[node.x, node.y], [nearest.x, nearest.y]], 1.2, "rgba(47,214,210,0.12)");
-  });
-  ctx.restore();
-}
-function badgeX(x) {
-  return Math.min(Math.max(32, x), canvas.width - 420);
-}
-function badgeY(y) {
-  return Math.min(Math.max(44, y), canvas.height - 44);
-}
-function closestJunction(node) {
-  return junctions.reduce((best, junction) => {
-    const distance = Math.hypot(node.x - junction.x, node.y - junction.y);
-    return distance < best.distance ? { junction, distance } : best;
-  }, { junction: junctions[0], distance: Infinity }).junction;
-}
-function drawFixedIssues() {
-  const hotspots = pressureRanked().filter((item) => Math.max(item.ew, item.ns) > 2.4).slice(0, 3);
-  if (hotspots.length === 0) {
-    drawBadge(690, 92, "fixed cycle, no prediction", colors.amber);
-    return;
-  }
-  hotspots.forEach(({ j, ew, ns }, index) => {
-    const label = Math.max(ew, ns) > 8 ? "spillback risk" : "red-light queue";
-    const pulse = 0.45 + Math.sin(state.frameIndex / 18 + index) * 0.15;
-    ctx.fillStyle = `rgba(255,99,88,${pulse})`;
-    ctx.strokeStyle = "rgba(255,177,42,0.72)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(j.x, j.y - 32);
-    ctx.lineTo(j.x + 20, j.y + 4);
-    ctx.lineTo(j.x - 20, j.y + 4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    drawBadge(j.x + 24, j.y - 36, label, colors.red);
-  });
-}
-function drawBadge(x, y, label, color) {
-  ctx.fillStyle = "rgba(5,7,10,0.82)";
-  ctx.strokeStyle = color;
+  ctx.translate(cx, cy);
+  ctx.rotate(pose.angle + Math.PI / 2);
+  /* Pole */
+  ctx.fillStyle = "#1b2632";
+  ctx.fillRect(-0.6, 0, 1.2, 14);
+  /* Housing — bigger, 12×30 */
+  ctx.fillStyle = "#0b1218";
+  ctx.strokeStyle = "rgba(255,255,255,0.30)";
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.roundRect(x, y, Math.max(118, label.length * 7.8), 28, 6);
+  if (ctx.roundRect) ctx.roundRect(-6, -16, 12, 30, 2);
+  else ctx.rect(-6, -16, 12, 30);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = colors.text;
-  ctx.font = "700 12px sans-serif";
-  ctx.fillText(label, x + 10, y + 18);
+  /* Three bulbs (red top, amber mid, green bottom), bigger radius */
+  drawBulb(0, -10, light === "red"   ? colors.red   : colors.bulbOff, light === "red");
+  drawBulb(0,  -1, light === "amber" ? colors.amber : colors.bulbOff, light === "amber");
+  drawBulb(0,   8, light === "green" ? colors.green : colors.bulbOff, light === "green");
+  ctx.restore();
 }
-function displayPose(vehicle, used) {
-  const pose = vehicleVisualPose(vehicle);
-  used.push({ ...pose, vehicle });
-  return pose;
-}
-function vehicleVisualPose(vehicle) {
-  const target = pointAt(vehicle.route, vehicle.progress, vehicle.lane);
-  if (!vehicle.visualPose) {
-    vehicle.visualPose = { ...target };
-    return target;
+
+function drawBulb(x, y, color, glow) {
+  ctx.save();
+  ctx.fillStyle = color;
+  if (glow) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 12;
   }
-  const distance = Math.hypot(target.x - vehicle.visualPose.x, target.y - vehicle.visualPose.y);
-  if (distance > 80) {
-    vehicle.visualPose = { ...target };
-    return target;
-  }
-  const alpha = vehicle.blocked ? 0.3 : 0.48;
-  vehicle.visualPose.x = lerp(vehicle.visualPose.x, target.x, alpha);
-  vehicle.visualPose.y = lerp(vehicle.visualPose.y, target.y, alpha);
-  vehicle.visualPose.angle = smoothAngle(vehicle.visualPose.angle, target.angle, alpha);
-  return vehicle.visualPose;
+  ctx.beginPath();
+  ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 }
-function smoothAngle(current, target, alpha) {
-  const delta = Math.atan2(Math.sin(target - current), Math.cos(target - current));
-  return current + delta * alpha;
+
+/* ─── Render: junction labels ─────────────────────────────── */
+function drawJunctionLabels() {
+  ctx.save();
+  ctx.font = "600 11px ui-monospace, 'JetBrains Mono', monospace";
+  ctx.textAlign = "center";
+  junctions.forEach((j) => {
+    ctx.fillStyle = colors.muted;
+    ctx.fillText(j.id, j.x, j.y + 50);
+  });
+  ctx.restore();
 }
+
+/* ─── Render: vehicles (5 types) ──────────────────────────── */
+function vehicleVisualPose(v) {
+  const target = pointAt(v.route, v.progress);
+  if (!v.visualPose) { v.visualPose = { ...target }; return target; }
+  const dist = Math.hypot(target.x - v.visualPose.x, target.y - v.visualPose.y);
+  if (dist > 80) { v.visualPose = { ...target }; return target; }
+  const alpha = v.blocked ? 0.3 : 0.5;
+  v.visualPose.x = lerp(v.visualPose.x, target.x, alpha);
+  v.visualPose.y = lerp(v.visualPose.y, target.y, alpha);
+  const da = Math.atan2(Math.sin(target.angle - v.visualPose.angle), Math.cos(target.angle - v.visualPose.angle));
+  v.visualPose.angle = v.visualPose.angle + da * alpha;
+  return v.visualPose;
+}
+
 function drawVehicles() {
-  const used = [];
-  state.vehicles.forEach((vehicle) => {
-    if (vehicle.complete || vehicle.delay > 0) return;
-    const p = displayPose(vehicle, used);
-    if (!p) return;
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(p.angle);
-    ctx.fillStyle = vehicleColor(vehicle);
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.shadowBlur = vehicle.kind === "bike" ? 5 : 9;
-    if (vehicle.kind === "bike") {
-      ctx.fillRect(-6, -1.5, 12, 3);
-      ctx.beginPath();
-      ctx.arc(-4, 3, 2, 0, Math.PI * 2);
-      ctx.arc(4, 3, 2, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.beginPath();
-      ctx.roundRect(-8, -3.5, 16, 7, 3);
-      ctx.fill();
-      ctx.fillStyle = "rgba(5,7,10,0.42)";
-      ctx.fillRect(1, -3, 4, 6);
-    }
-    ctx.restore();
+  state.vehicles.forEach((v) => {
+    if (v.complete || v.delay > 0) return;
+    const p = vehicleVisualPose(v);
+    drawVehicle(v, p);
   });
 }
-function vehicleColor(vehicle) {
-  /* Always use the route color — the user doesn't want cars changing color */
-  return vehicle.route.color;
+
+function drawVehicle(v, pose) {
+  const dim = vehicleDims(v.kind);
+  const color = vehicleColor(v.kind);
+  ctx.save();
+  ctx.translate(pose.x, pose.y);
+  ctx.rotate(pose.angle);
+  ctx.fillStyle = color;
+  ctx.strokeStyle = "rgba(255,255,255,0.65)";
+  ctx.lineWidth = 0.6;
+  switch (v.kind) {
+    case "bike":
+      ctx.fillRect(-dim.length / 2, -dim.width / 2, dim.length, dim.width);
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.beginPath();
+      ctx.arc(-dim.length / 2 + 2, 0, 1.6, 0, Math.PI * 2);
+      ctx.arc(dim.length / 2 - 2, 0, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "auto":
+      ctx.beginPath();
+      ctx.moveTo(-dim.length / 2, -dim.width / 2 + 1);
+      ctx.lineTo(dim.length / 2, -dim.width / 2 + 2.5);
+      ctx.lineTo(dim.length / 2, dim.width / 2 - 2.5);
+      ctx.lineTo(-dim.length / 2, dim.width / 2 - 1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.fillRect(-2, -dim.width / 2 + 2, 4, dim.width - 4);
+      break;
+    case "suv":
+      drawRoundedRect(-dim.length / 2, -dim.width / 2, dim.length, dim.width, 2.5);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.fillRect(-dim.length / 2 + 4, -dim.width / 2 + 1.5, dim.length - 8, dim.width - 3);
+      break;
+    case "bus":
+      drawRoundedRect(-dim.length / 2, -dim.width / 2, dim.length, dim.width, 2);
+      ctx.fill();
+      ctx.stroke();
+      /* Window strip */
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(-dim.length / 2 + 4, -dim.width / 2 + 1.8, dim.length - 8, dim.width - 3.6);
+      /* Window dividers */
+      ctx.strokeStyle = "rgba(255,255,255,0.4)";
+      ctx.lineWidth = 0.5;
+      for (let i = -dim.length / 2 + 8; i < dim.length / 2 - 4; i += 5) {
+        ctx.beginPath();
+        ctx.moveTo(i, -dim.width / 2 + 1.8);
+        ctx.lineTo(i, dim.width / 2 - 1.8);
+        ctx.stroke();
+      }
+      break;
+    case "sedan":
+    default:
+      drawRoundedRect(-dim.length / 2, -dim.width / 2, dim.length, dim.width, 2.4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.fillRect(-dim.length / 2 + 5, -dim.width / 2 + 1.5, dim.length - 10, dim.width - 3);
+      break;
+  }
+  ctx.restore();
 }
-function drawDashboardOverlay() {
-  const complete = state.vehicles.filter((vehicle) => vehicle.complete).length;
-  ctx.fillStyle = "rgba(5,7,10,0.72)";
-  ctx.fillRect(24, 24, 356, 108);
+
+function drawRoundedRect(x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(x, y, w, h, r);
+    return;
+  }
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+/* ─── Render: overlay badge (single, bottom-left) ─────────── */
+function drawOverlay() {
+  const text = isFixedMode() ? "FIXED CYCLE — UNCOORDINATED" : "MAINLINE COORDINATED";
+  const color = isFixedMode() ? colors.amber : colors.green;
+  const x = 24, y = CANVAS_H - 50, w = ctx.measureText(text).width + 32, h = 32;
+  ctx.save();
+  ctx.fillStyle = "rgba(5,7,10,0.78)";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  if (ctx.roundRect) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 6);
+    ctx.fill();
+    ctx.stroke();
+  } else {
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+  }
+  /* Status dot */
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  ctx.arc(x + 14, y + h / 2, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  /* Label */
   ctx.fillStyle = colors.text;
-  ctx.font = "700 15px sans-serif";
-  ctx.fillText(modeCopy[state.mode].label, 42, 54);
-  ctx.fillStyle = colors.muted;
-  ctx.font = "13px sans-serif";
-  ctx.fillText(`${complete}/${state.vehicles.length} complete | ${modeCopy[state.mode].effect}`, 42, 80);
-  ctx.fillText(state.recommendation, 42, 100);
-  ctx.fillText(modeCopy[state.mode].overlay, 42, 120);
+  ctx.font = "700 11px ui-monospace, 'JetBrains Mono', monospace";
+  ctx.textAlign = "left";
+  ctx.fillText(text, x + 24, y + h / 2 + 4);
+  ctx.restore();
 }
+
+/* ─── Metrics panel ───────────────────────────────────────── */
+function severeStopCount() {
+  const threshold = isFixedMode() ? 12 : 28;
+  return state.vehicles.filter((v) => v.delayCost > threshold).length;
+}
+
+function modeEffectText(avgDelay, breakdowns) {
+  if (state.vehicles.every((v) => v.complete)) {
+    return isFixedMode() ? "Completed with higher delay" : "Clean replay";
+  }
+  if (breakdowns > 0) return isFixedMode() ? "Queue instability" : "Recovering queue";
+  return modeCopy[state.mode].effect;
+}
+
 function completionPercent() {
-  const done = state.vehicles.filter((vehicle) => vehicle.complete).length;
+  const done = state.vehicles.filter((v) => v.complete).length;
   if (done === state.vehicles.length) return 100;
   return Math.min(99, Math.floor((done / state.vehicles.length) * 100));
 }
+
 function updatePanel() {
-  const active = state.vehicles.filter((vehicle) => !vehicle.complete && vehicle.delay <= 0).length;
-  const avgDelay = state.vehicles.reduce((sum, vehicle) => sum + vehicle.delayCost, 0) / state.vehicles.length;
-  const maxPressure = Math.max(...junctions.flatMap((j) => [pressure(j.id, "EW"), pressure(j.id, "NS")]));
+  const active = state.vehicles.filter((v) => !v.complete && v.delay <= 0).length;
+  const avgDelay = state.vehicles.reduce((s, v) => s + v.delayCost, 0) / state.vehicles.length;
+  const maxPressure = Math.max(...junctions.flatMap((j) => [
+    approachPressure(j.id, "MAIN"),
+    approachPressure(j.id, "SIDE"),
+  ]));
   const breakdowns = severeStopCount();
   document.querySelector(".replay-shell").classList.toggle("fixed-mode", isFixedMode());
   document.getElementById("completionValue").textContent = `${completionPercent()}%`;
@@ -1073,70 +736,97 @@ function updatePanel() {
   document.getElementById("delayValue").textContent = `${avgDelay.toFixed(1)}s`;
   document.getElementById("breakdownValue").textContent = `${breakdowns}`;
   document.getElementById("modeEffectValue").textContent = modeEffectText(avgDelay, breakdowns);
-  document.getElementById("pressureValue").textContent = maxPressure > 8 ? "High" : maxPressure > 2.5 ? "Medium" : "Low";
+  document.getElementById("pressureValue").textContent = maxPressure > 7 ? "High" : maxPressure > 2.5 ? "Medium" : "Low";
   document.getElementById("recommendationValue").textContent = state.recommendation;
 }
-function severeStopCount() {
-  const threshold = isFixedMode() ? 18 : 40;
-  return state.vehicles.filter((vehicle) => vehicle.delayCost > threshold).length;
+
+function updateScenarioText() {
+  document.getElementById("scenarioTitle").textContent = currentScenario().title;
+  const node = document.getElementById("scenarioCopy");
+  if (node) node.textContent = currentScenario().copy;
 }
-function modeEffectText(avgDelay, breakdowns) {
-  if (state.vehicles.every((vehicle) => vehicle.complete)) {
-    return isFixedMode() ? "Completed with higher delay" : "Clean replay";
-  }
-  if (breakdowns > 0) return isFixedMode() ? "Queue instability" : "Recovering queue";
-  return modeCopy[state.mode].effect;
+
+/* ─── Loop ────────────────────────────────────────────────── */
+function step(dt) {
+  updateSignals(dt);
+  state.vehicles
+    .slice()
+    .sort((a, b) => b.progress - a.progress)
+    .forEach((v) => updateVehicle(v, dt));
+  updateRecommendation();
+  if (state.vehicles.every((v) => v.complete)) setPaused(true);
 }
-function startupFactor(vehicle) {
-  if (!isFixedMode()) return 1;
-  const point = nextControlPoint(vehicle);
-  if (!point || point.p - vehicle.progress > 0.05) return 1;
-  const junction = nodeById(point.id);
-  if (!junction || isFieldNode(junction)) return 1;
-  const startupWindow = isFixedMode() ? 4.0 : 0.8;
-  const base = isFixedMode() ? 0.12 : 0.78;
-  if (!fixedGroupAllowed(junction, point) || junction.timer > startupWindow) return 1;
-  return base + (junction.timer / startupWindow) * (1 - base);
-}
+
 function render() {
   state.frameIndex += 1;
+  drawBackground();
   drawRoads();
-  drawSignals();
+  drawJunctionPads();
+  drawSignalHeads();
+  drawJunctionLabels();
   drawVehicles();
+  drawOverlay();
   updatePanel();
 }
+
 function frame(ts) {
-  if (state.lastTs && ts - state.lastTs < 22) {
+  if (state.lastTs && ts - state.lastTs < 30) {
     requestAnimationFrame(frame);
     return;
   }
-  const dt = Math.min(0.05, (ts - state.lastTs) / 1000 || 0.016) * state.speed * 3;
+  const elapsed = state.lastTs ? (ts - state.lastTs) / 1000 : 0.033;
+  const dt = Math.min(0.05, elapsed) * state.speed * 1.4;
   state.lastTs = ts;
   if (!state.paused) step(dt);
   render();
   requestAnimationFrame(frame);
 }
-function setScenario(key) {
-  state.scenarioKey = key;
-  document.querySelectorAll(".scenario-btn").forEach((button) => {
-    button.classList.toggle("active", button.dataset.scenario === key);
-  });
-  resetReplay();
+
+/* ─── Replay reset ────────────────────────────────────────── */
+function resetReplay() {
+  junctions.forEach((j, i) => initJunction(j, i));
+  state.nextId = 1;
+  state.vehicles = Array.from({ length: VEHICLE_TARGET_COUNT }, (_, i) => createVehicle(i));
+  setPaused(false);
+  updateScenarioText();
 }
-document.querySelectorAll(".scenario-btn").forEach((button) => {
-  button.addEventListener("click", () => setScenario(button.dataset.scenario));
-});
-document.querySelectorAll(".mode-btn").forEach((button) => {
-  button.addEventListener("click", () => {
-    state.mode = button.dataset.mode;
-    document.querySelectorAll(".mode-btn").forEach((item) => item.classList.toggle("active", item === button));
+
+function setPaused(value) {
+  state.paused = value;
+  document.getElementById("startBtn").classList.toggle("active-control", !value);
+  document.getElementById("stopBtn").classList.toggle("active-control", value);
+}
+
+/* ─── Soft slider response (no full reset) ────────────────── */
+function applyControlsLive() {
+  /* Re-distribute spawn delays only for vehicles that haven't started yet. */
+  const scenario = currentScenario();
+  const demandSpacing = Math.max(0.42, 1.4 - controlValue("demand") * 0.55);
+  state.vehicles.forEach((v, i) => {
+    if (v.progress > 0) return;
+    v.delay = i * scenario.spacing * demandSpacing;
+  });
+}
+
+/* ─── Wiring ──────────────────────────────────────────────── */
+document.querySelectorAll(".scenario-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    state.scenarioKey = btn.dataset.scenario;
+    document.querySelectorAll(".scenario-btn").forEach((b) => b.classList.toggle("active", b === btn));
     resetReplay();
   });
 });
-Object.values(controls).forEach((control) => {
-  control.addEventListener("input", () => {
+document.querySelectorAll(".mode-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    state.mode = btn.dataset.mode;
+    document.querySelectorAll(".mode-btn").forEach((b) => b.classList.toggle("active", b === btn));
+    resetReplay();
+  });
+});
+Object.values(controls).forEach((c) => {
+  c.addEventListener("input", () => {
     updateReadouts();
-    scheduleReset();
+    applyControlsLive();
   });
 });
 document.getElementById("startBtn").addEventListener("click", () => setPaused(false));
@@ -1152,10 +842,15 @@ document.querySelectorAll(".speed-selector button").forEach((btn) => {
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) setPaused(true);
 });
-window.PATC = { state, resetReplay, step, render, completionPercent, pointAt, displayPose, controlledNodes, setPaused };
+
+window.PATC = { state, junctions, routes, resetReplay, step, render };
+
 updateReadouts();
 resetReplay();
-requestAnimationFrame((ts) => {
-  state.lastTs = ts;
-  requestAnimationFrame(frame);
-});
+if (!window.__patcLoopRunning) {
+  window.__patcLoopRunning = true;
+  requestAnimationFrame((ts) => {
+    state.lastTs = ts;
+    requestAnimationFrame(frame);
+  });
+}
