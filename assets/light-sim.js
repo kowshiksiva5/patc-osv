@@ -35,16 +35,18 @@ const modeCopy = {
 
 /* Tuning constants */
 const STOP_LINE_OFFSET = 38;
-const JUNCTION_CLEAR_RADIUS = 22;
+const JUNCTION_CLEAR_RADIUS = 26;
+const JUNCTION_COMMIT_RADIUS = 32;          /* once inside, vehicle commits */
+const APPROACH_DECEL_RANGE = 0.06;          /* slow gradually within last 6% */
 const ENTRY_RESERVATION_MARGIN = 0.012;
-const MIN_VEHICLE_GAP = 0.038;
-const AMBER_DURATION = 1.2;
-const ALL_RED_DURATION = 0.8;
-const PATC_MIN_GREEN = 4.0;
-const PATC_MAX_GREEN = 12.0;
-const FIXED_GREEN_MAIN = 8.0;
-const FIXED_GREEN_SIDE = 6.0;
-const VEHICLE_TARGET_COUNT = 24;
+const MIN_VEHICLE_GAP = 0.034;
+const AMBER_DURATION = 1.5;
+const ALL_RED_DURATION = 1.0;
+const PATC_MIN_GREEN = 3.0;
+const PATC_MAX_GREEN = 11.0;
+const FIXED_GREEN_MAIN = 14.0;
+const FIXED_GREEN_SIDE = 12.0;
+const VEHICLE_TARGET_COUNT = 28;
 const VEHICLE_MIX = [
   { kind: "sedan", weight: 35 },
   { kind: "auto",  weight: 25 },
@@ -211,9 +213,19 @@ function createVehicle(index) {
 /* ─── Junction phase machine ──────────────────────────────── */
 function initJunction(j, offsetIndex) {
   const scenario = currentScenario();
-  j.phase = scenario.primaryPhase || "MAIN";
-  j.subphase = "green";
-  j.timer = offsetIndex * 1.6;
+  if (isFixedMode()) {
+    /* Deliberately desynced: junctions out of phase with each other so a
+       vehicle on mainline hits red after red. Mirrors un-coordinated SCATS. */
+    const stagger = [0, 7.5, 4.0, 9.5, 2.5];
+    j.phase = offsetIndex % 2 === 0 ? "MAIN" : "SIDE";
+    j.subphase = "green";
+    j.timer = stagger[offsetIndex] || 0;
+  } else {
+    /* PATC: synced for green-wave on the primary phase */
+    j.phase = scenario.primaryPhase || "MAIN";
+    j.subphase = "green";
+    j.timer = offsetIndex * 1.0;
+  }
   j.pendingPhase = null;
 }
 
@@ -266,6 +278,25 @@ function downstreamPressure(junctionId) {
   return approachPressure(next, "MAIN") * 0.32 * currentScenario().downstream;
 }
 
+function greenWaveBoost(j) {
+  /* PATC-only: prefer keeping/switching to MAIN if the next junction in the
+     mainline direction is also MAIN-green. Smooths progression so a vehicle
+     leaving J(n) hits a green at J(n+1). */
+  const order = ["J1", "J2", "J3", "J4", "J5"];
+  const idx = order.indexOf(j.id);
+  if (idx < 0) return 0;
+  let boost = 0;
+  if (idx < order.length - 1) {
+    const downJ = junctions.find((x) => x.id === order[idx + 1]);
+    if (downJ && downJ.phase === "MAIN" && downJ.subphase === "green") boost += 1.4;
+  }
+  if (idx > 0) {
+    const upJ = junctions.find((x) => x.id === order[idx - 1]);
+    if (upJ && upJ.phase === "MAIN" && upJ.subphase === "green") boost += 0.6;
+  }
+  return boost;
+}
+
 /* ─── Update signals each frame ───────────────────────────── */
 function updateSignals(dt) {
   junctions.forEach((j) => updateJunction(j, dt));
@@ -291,9 +322,6 @@ function updateJunction(j, dt) {
   }
   /* Currently green — decide whether to swap */
   const safety = controlValue("safety");
-  const mainPressure = approachPressure(j.id, "MAIN") + arrivalPressure(j.id, "MAIN") - downstreamPressure(j.id) * 0.3;
-  const sidePressure = approachPressure(j.id, "SIDE") + arrivalPressure(j.id, "SIDE");
-  const target = mainPressure >= sidePressure ? "MAIN" : "SIDE";
 
   if (isFixedMode()) {
     const greenLen = (j.phase === "MAIN" ? FIXED_GREEN_MAIN : FIXED_GREEN_SIDE) * safety;
@@ -306,9 +334,12 @@ function updateJunction(j, dt) {
   }
 
   /* PATC mode */
+  const mainPressure = approachPressure(j.id, "MAIN") + arrivalPressure(j.id, "MAIN") - downstreamPressure(j.id) * 0.25 + greenWaveBoost(j);
+  const sidePressure = approachPressure(j.id, "SIDE") + arrivalPressure(j.id, "SIDE");
+  const target = mainPressure >= sidePressure ? "MAIN" : "SIDE";
   const minGreen = PATC_MIN_GREEN * safety;
   const maxGreen = PATC_MAX_GREEN;
-  const urgent = Math.max(mainPressure, sidePressure) > Math.min(mainPressure, sidePressure) * 1.08 + 0.6;
+  const urgent = Math.max(mainPressure, sidePressure) > Math.min(mainPressure, sidePressure) * 1.05 + 0.4;
   const shouldSwitch = (target !== j.phase && urgent && j.timer >= minGreen) || j.timer >= maxGreen;
   if (shouldSwitch && !junctionOccupied(j)) {
     j.pendingPhase = target !== j.phase ? target : (j.phase === "MAIN" ? "SIDE" : "MAIN");
@@ -371,11 +402,49 @@ function junctionEntryConflict(v, projected) {
   });
 }
 
+function inJunctionBox(v) {
+  const pose = pointAt(v.route, v.progress);
+  return junctions.some((j) => Math.hypot(pose.x - j.x, pose.y - j.y) < JUNCTION_COMMIT_RADIUS);
+}
+
+function approachDecelFactor(v) {
+  /* Smoothly slow within last APPROACH_DECEL_RANGE if blocked ahead.
+     Returns 1 when nothing blocking; 0.15..1 inside the brake zone. */
+  const stop = nextStop(v);
+  if (!stop) return 1;
+  if (v.progress > stop.stopP - 0.001) return 1;
+  const j = junctionById(stop.id);
+  if (junctionGreen(j, v.route.phase)) return 1;
+  const dist = stop.stopP - v.progress;
+  if (dist > APPROACH_DECEL_RANGE) return 1;
+  return Math.max(0.18, dist / APPROACH_DECEL_RANGE);
+}
+
 function updateVehicle(v, dt) {
   if (v.complete) return;
   if (v.delay > 0) { v.delay -= dt; return; }
 
-  const velocity = v.speed * controlValue("discharge");
+  /* Mid-junction commit: once inside the junction box, vehicle MUST proceed.
+     No signal/conflict/spacing block applies — only soft following of leader. */
+  if (inJunctionBox(v)) {
+    const velocity = v.speed * controlValue("discharge");
+    const projected = Math.min(1, v.progress + velocity * dt);
+    const leader = leaderInfo(v, projected);
+    /* Allow tighter spacing inside junction so we never freeze mid-crossing */
+    const minGap = MIN_VEHICLE_GAP * 0.55;
+    const followed = leader.vehicle && leader.gap < minGap
+      ? Math.max(v.progress, Math.min(projected, leader.vehicle.progress - minGap))
+      : projected;
+    v.progress = followed;
+    v.blocked = false;
+    v.blockReason = "";
+    v.wait = Math.max(0, v.wait - dt * 0.5);
+    if (v.progress >= 1) { v.progress = 1; v.complete = true; }
+    return;
+  }
+
+  const decel = approachDecelFactor(v);
+  const velocity = v.speed * controlValue("discharge") * decel;
   const projected = Math.min(1, v.progress + velocity * dt);
 
   const sigBlocked = blockedBySignal(v, projected);
@@ -387,27 +456,27 @@ function updateVehicle(v, dt) {
   v.blockReason = sigBlocked ? "signal" : conflict ? "conflict" : spacingBlocked ? "spacing" : "";
 
   if (v.blocked) {
-    /* Clamp at stop line if signal-blocked */
     if (sigBlocked || conflict) {
       const stop = nextStop(v);
       if (stop) {
         v.progress = Math.min(Math.max(v.progress, projected), stop.stopP - ENTRY_RESERVATION_MARGIN);
       }
     } else {
-      /* Spacing — follow leader */
       v.progress = followingProgress(v, projected, leader);
     }
     v.wait += dt;
     v.delayCost += dt;
     if (v.wait - v.stops > 1) v.stops += 1;
-    /* Deadlock breaker */
-    if (v.wait > 6 && !sigBlocked) {
-      v.progress = Math.min(1, v.progress + v.speed * 0.01);
-      v.wait = Math.max(0, v.wait - 1.5);
+    /* Deadlock breaker — only for non-signal blocks, and only after long wait */
+    if (v.wait > 9 && !sigBlocked) {
+      v.progress = Math.min(1, v.progress + v.speed * 0.012);
+      v.wait = Math.max(0, v.wait - 2.0);
     }
     return;
   }
 
+  /* Decel still counts as small delay so PATC vs Fixed shows accurate metric */
+  if (decel < 1) v.delayCost += dt * (1 - decel) * 0.5;
   v.wait = Math.max(0, v.wait - dt * 0.4);
   v.progress = followingProgress(v, projected, leader);
   if (v.progress >= 1) {

@@ -21,7 +21,7 @@
 
   const COPY = {
     fixed: {
-      h: 'Imagine being stuck in traffic<br/><span class="accent-glow">during a rush hour.</span>',
+      h: 'Imagine if traffic lights<br/><span class="accent-glow">knew you were coming.</span>',
       p: 'Every junction fights alone. Each signal optimizes itself. The corridor jams because no junction sees the full picture.',
       chip: 'Without PATC',
     },
@@ -29,18 +29,12 @@
       h: 'PATC sees the corridor<br/><span class="accent-glow">and opens a green wave.</span>',
       p: 'The system predicts arrivals, opens the right greens, and dynamically holds cross-traffic to optimize corridor flow.',
       chip: 'With PATC',
-    },
-    done: {
-      h: 'The corridor clears.<br/><span class="accent-glow">Ready for the next wave.</span>',
-      p: 'Once the wave passes, the system resets efficiently without leaving stranded vehicles.',
-      chip: 'Clear road',
     }
   };
 
   const SEQUENCE = [
     { id: 'fixed', ms: 14000 },
     { id: 'patc', ms: 14000 },
-    { id: 'done', ms: 4000 },
   ];
 
   let width = 0, height = 0, rafId = 0, sequenceStart = 0;
@@ -62,8 +56,8 @@
         axis,
         lane,
         pos: (carsPerLane[key] * 0.3 + Math.random() * 0.1) % 1,
-        maxSpeed: 0.12 + Math.random() * 0.05,
-        currentSpeed: 0.05,
+        maxSpeed: 0.18 + Math.random() * 0.08,
+        currentSpeed: 0.1,
         size: i % 8 === 0 ? 11 : 7 + (i % 4),
         shade: i % 3,
         id: i
@@ -71,7 +65,7 @@
     }
     // Add the "hero" car
     SIM_CARS.push({
-      axis: 'h', lane: 1, pos: 0.05, maxSpeed: 0.15, currentSpeed: 0.05, size: 9, shade: 99, id: 'hero'
+      axis: 'h', lane: 1, pos: 0.05, maxSpeed: 0.22, currentSpeed: 0.1, size: 9, shade: 99, id: 'hero'
     });
   }
 
@@ -116,20 +110,18 @@
       if (elapsed < end) return { id: phase.id, progress: clamp((elapsed - start)/phase.ms, 0, 1) };
       start = end;
     }
-    return { id: 'done', progress: 1 };
+    return { id: 'patc', progress: 1 };
   }
 
   function currentState(now) {
     if (manualPhase) {
        const elapsed = now - manualStart;
-       if (manualPhase === 'done') return { id: 'done', progress: clamp(elapsed/4000, 0, 1) };
        return { id: manualPhase, progress: clamp(elapsed/14000, 0, 1) };
     }
     return stateForElapsed(now - sequenceStart);
   }
 
   function getSignalColor(col, row, stateId) {
-    if (stateId === 'done') return 'rgba(232,236,244,0.08)';
     if (stateId === 'patc') {
       // Give HERO absolute priority, otherwise fallback to a cycle so NS flows too
       let heroDemand = false;
@@ -221,7 +213,7 @@
 
   /* ── Main render ─────────────────────────────────────────────── */
   function render(now, state, dt) {
-    if (state.id !== 'done') updatePhysics(dt, state.id);
+    updatePhysics(dt, state.id);
     
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = C.bg;
@@ -256,7 +248,7 @@
     });
 
     // Draw Traffic
-    let alpha = state.id === 'done' ? Math.max(0, 1 - state.progress * 4) : 1;
+    let alpha = 1;
     if (alpha > 0) {
       for (const car of SIM_CARS) {
         const realLane = car.axis === 'v' ? (car.lane % layout.xs.length) : (car.lane % layout.ys.length);
@@ -372,7 +364,7 @@
     ctx.fillStyle = C.panel;
     box(14, 14, w, 30, 15);
     ctx.fill();
-    ctx.fillStyle = id === 'fixed' ? C.red : id === 'patc' ? C.green : C.amber;
+    ctx.fillStyle = id === 'fixed' ? C.red : C.green;
     ctx.beginPath();
     ctx.arc(28, 29, 4, 0, Math.PI * 2);
     ctx.fill();

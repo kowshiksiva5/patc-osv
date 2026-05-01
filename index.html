@@ -17,12 +17,12 @@
       body.page-exit  { opacity: 0; transition: opacity 0.2s ease; }
       @media (max-width: 1024px) {
         .story-sticky {
-          align-content: center;
+          align-content: start;
           gap: 28px;
           grid-template-columns: 1fr;
           height: auto;
           min-height: 100vh;
-          padding: 84px 20px 44px;
+          padding: 120px 20px 44px;
         }
         .story-visual {
           min-height: 300px;
@@ -75,12 +75,11 @@
             <div class="story-status" aria-hidden="true">
               <span class="story-pill active" data-phase-pill="fixed" tabindex="0" role="button">Without PATC</span>
               <span class="story-pill" data-phase-pill="patc" tabindex="0" role="button">With PATC</span>
-              <span class="story-pill" data-phase-pill="done" tabindex="0" role="button">Clear road</span>
+              <button class="story-replay-btn" id="storyReplayBtn" title="Replay animation" aria-label="Replay">⟳ Replay</button>
             </div>
           </div>
           <div class="story-visual">
             <canvas id="storyCanvas" aria-label="Animated grid-road story showing one car, rush hour, and PATC coordination"></canvas>
-            <button class="story-replay-btn" id="storyReplayBtn" title="Replay animation" aria-label="Replay">⟳ Replay</button>
             <div class="story-legend">
               <span><i class="legend-you"></i>You</span>
               <span><i class="legend-fixed"></i>Fixed lights</span>
