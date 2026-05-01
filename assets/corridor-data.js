@@ -1,4 +1,4 @@
-/* PATC corridor — 5 junctions, two-way mainline, one-way side roads.
+/* PATC corridor — 5 junctions, two-way mainline, one-way side roads, grid connectors.
    Geometry mirrors the reference diagram (J1–J5, J2 + J4 are broad cross-streets).
    Coordinate space is the canvas directly: 1700 × 760. No transform applied. */
 
@@ -39,35 +39,65 @@ const gridLinks    = [];
 /* Decorative buildings flanking the corridor — give the demo a real-city feel. */
 const cityBlocks = [
   /* Top row, left to right */
-  [40,  60,  120, 60, "#1a2433", "block"],
-  [180, 50,  90,  50, "#1d2a3c", "block"],
-  [300, 70,  100, 50, "#1a2433", "block"],
-  [620, 60,  130, 70, "#22324b", "block"],
-  [780, 70,  120, 60, "#1a2433", "block"],
-  [930, 50,  130, 60, "#1d2a3c", "block"],
-  [1280, 60, 130, 70, "#22324b", "block"],
-  [1430, 50, 90,  50, "#1a2433", "block"],
-  [1540, 70, 110, 60, "#1d2a3c", "block"],
+  [40,  60,  80,  55, "#1a2433", "block"],
+  [135, 50,  75,  50, "#1d2a3c", "block"],
+  [300, 70,  95,  50, "#1a2433", "block"],
+  [410, 55,  80,  52, "#1d2a3c", "block"],
+  [650, 60,  110, 65, "#22324b", "block"],
+  [775, 68,  105, 55, "#1a2433", "block"],
+  [1005, 52, 100, 60, "#1d2a3c", "block"],
+  [1115, 62, 90,  52, "#22324b", "block"],
+  [1240, 55, 95,  60, "#1a2433", "block"],
+  [1355, 48, 85,  55, "#1d2a3c", "block"],
+  [1540, 70, 100, 55, "#22324b", "block"],
+  [1645, 55, 55,  48, "#1a2433", "block"],
   /* Bottom row */
-  [80,  650, 110, 60, "#1a2433", "block"],
-  [240, 660, 130, 60, "#1d2a3c", "block"],
-  [400, 670, 100, 50, "#22324b", "block"],
-  [660, 660, 110, 60, "#1a2433", "block"],
-  [800, 650, 130, 70, "#1d2a3c", "block"],
-  [970, 670, 100, 50, "#22324b", "block"],
-  [1280, 660, 100, 60, "#1a2433", "block"],
-  [1410, 650, 130, 70, "#1d2a3c", "block"],
+  [55,  640, 95,  60, "#1a2433", "block"],
+  [165, 655, 105, 55, "#1d2a3c", "block"],
+  [390, 645, 100, 58, "#22324b", "block"],
+  [500, 658, 85,  52, "#1a2433", "block"],
+  [680, 648, 100, 62, "#1d2a3c", "block"],
+  [795, 638, 110, 68, "#22324b", "block"],
+  [1000, 655, 95, 55, "#1a2433", "block"],
+  [1110, 642, 88, 58, "#1d2a3c", "block"],
+  [1250, 648, 120, 65, "#22324b", "block"],
+  [1390, 640, 100, 58, "#1a2433", "block"],
+  [1545, 650, 95,  58, "#1d2a3c", "block"],
+  /* Grid-zone city blocks — between the connector roads and mainline */
+  [55,  218, 75,  40, "#141e2d", "block"],
+  [145, 222, 65,  38, "#17233a", "block"],
+  [290, 215, 80,  42, "#141e2d", "block"],
+  [660, 218, 95,  40, "#17233a", "block"],
+  [770, 225, 80,  38, "#141e2d", "block"],
+  [1005, 220, 90, 40, "#17233a", "block"],
+  [1115, 218, 80, 42, "#141e2d", "block"],
+  [1295, 220, 90, 38, "#17233a", "block"],
+  [1540, 215, 80, 42, "#141e2d", "block"],
+  /* Between mainline and lower connector */
+  [55,  488, 80,  40, "#141e2d", "block"],
+  [148, 492, 65,  38, "#17233a", "block"],
+  [295, 488, 75,  42, "#141e2d", "block"],
+  [655, 490, 90,  40, "#17233a", "block"],
+  [770, 485, 85,  42, "#141e2d", "block"],
+  [1010, 490, 80, 40, "#17233a", "block"],
+  [1112, 486, 78, 42, "#141e2d", "block"],
+  [1298, 488, 88, 40, "#17233a", "block"],
+  [1540, 490, 80, 38, "#141e2d", "block"],
 ];
 
-/* Civic landmarks — labelled buildings that justify the simulation context. */
+/* Civic landmarks — away from all road asphalt (safe positions verified).
+   Cross-streets: j2cross x≈542-578, j3side x≈849-879, j4cross x≈1157-1203, j5ramp x≈1491-1509.
+   Grid roads: y≈186-204 and y≈556-574. Mainline y≈361-399. */
 const landmarks = [
-  { x: 800,  y: 50,  w: 130, h: 78, color: "#3a3057", border: "#a78bfa", label: "🏫 SCHOOL",     sub: "St. Mary's" },
-  { x: 940,  y: 60,  w: 110, h: 68, color: "#3a3057", border: "#a78bfa", label: "🏫 SCHOOL",     sub: "Public school" },
-  { x: 470,  y: 50,  w: 110, h: 80, color: "#3d2937", border: "#f87171", label: "🏥 HOSPITAL",   sub: "City care" },
-  { x: 1090, y: 660, w: 130, h: 70, color: "#2c3a4d", border: "#60a5fa", label: "🏬 MALL",        sub: "Sector hub" },
-  { x: 200,  y: 660, w: 110, h: 70, color: "#33402c", border: "#34d399", label: "🌳 PARK",        sub: "Green belt" },
-  { x: 1330, y: 50,  w: 110, h: 70, color: "#3a3528", border: "#fbbf24", label: "🏢 OFFICE",      sub: "Tech park" },
-  { x: 540,  y: 660, w: 110, h: 70, color: "#3a3528", border: "#fbbf24", label: "🏢 OFFICE",      sub: "BPO tower" },
+  /* TOP STRIP — y=35 (well above grid road at y=195) */
+  { x: 160,  y: 35,  w: 115, h: 68, color: "#3d2937", border: "#f87171", label: "🏥 HOSPITAL",   sub: "City Care" },
+  { x: 660,  y: 35,  w: 125, h: 68, color: "#3a3057", border: "#a78bfa", label: "🏫 SCHOOL",     sub: "St. Mary's" },
+  { x: 1000, y: 35,  w: 120, h: 68, color: "#3a3057", border: "#a78bfa", label: "🏫 SCHOOL",     sub: "Public Sch" },
+  { x: 1350, y: 35,  w: 110, h: 68, color: "#3a3528", border: "#fbbf24", label: "🏢 OFFICE",      sub: "Tech Park" },
+  /* BOTTOM STRIP — y=622 (well below grid road at y=565) */
+  { x: 55,   y: 622, w: 110, h: 65, color: "#33402c", border: "#34d399", label: "🌳 PARK",        sub: "Green Belt" },
+  { x: 380,  y: 622, w: 110, h: 65, color: "#3a3528", border: "#fbbf24", label: "🏢 OFFICE",      sub: "BPO Tower" },
+  { x: 1250, y: 622, w: 130, h: 65, color: "#2c3a4d", border: "#60a5fa", label: "🏬 MALL",        sub: "Sector Hub" },
 ];
 
 /* ── Roads (drawn asphalt strips) ─────────────────────────────
@@ -124,6 +154,24 @@ const roads = [
     centerline: [
       [1500, 0], [1492, 140], [1486, 250], [1480, 380],
       [1530, 500], [1600, 630], [1660, 760],
+    ],
+  },
+  /* Upper grid connector — one-way eastbound at y≈195, between landmark strip and mainline */
+  {
+    id: "upperGrid",
+    type: "one-way",
+    width: 14,
+    centerline: [
+      [0, 197], [220, 196], [560, 197], [870, 196], [1180, 197], [1480, 196], [1700, 197],
+    ],
+  },
+  /* Lower grid connector — one-way westbound at y≈563 */
+  {
+    id: "lowerGrid",
+    type: "one-way",
+    width: 14,
+    centerline: [
+      [1700, 563], [1480, 564], [1180, 563], [870, 564], [560, 563], [220, 564], [0, 563],
     ],
   },
 ];
@@ -210,6 +258,19 @@ const routes = {
     stops: ["J5"],
     direction: "S",
   },
+  /* Grid connector routes — no junction stops, vehicles flow freely */
+  upperGridEast: {
+    phase: "MAIN",
+    points: [[-40, 197], [220, 196], [560, 197], [870, 196], [1180, 197], [1480, 196], [1740, 197]],
+    stops: [],
+    direction: "E",
+  },
+  lowerGridWest: {
+    phase: "MAIN",
+    points: [[1740, 563], [1480, 564], [1180, 563], [870, 564], [560, 563], [220, 564], [-40, 563]],
+    stops: [],
+    direction: "W",
+  },
 };
 
 const scenarios = {
@@ -224,6 +285,8 @@ const scenarios = {
       "mainWest", "j2South", "mainEast", "j5Ramp",
       "mainWest", "mainEast", "j4North", "mainEast",
       "mainEast", "j2North", "mainEast", "mainWest",
+      "upperGridEast", "lowerGridWest", "mainEast", "upperGridEast",
+      "lowerGridWest", "mainEast", "mainWest", "mainEast",
     ],
     downstream: 1.45,
     spacing: 0.50,
@@ -240,6 +303,8 @@ const scenarios = {
       "j1Ramp", "j3Side", "j4North", "mainWest",
       "j3Side", "mainEast", "j3Side", "j2South",
       "j3Side", "j3Side", "mainWest", "j3Side",
+      "upperGridEast", "lowerGridWest", "j3Side", "mainEast",
+      "upperGridEast", "lowerGridWest", "j3Side", "mainWest",
     ],
     downstream: 1.10,
     spacing: 0.54,

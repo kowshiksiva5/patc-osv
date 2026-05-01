@@ -42,11 +42,12 @@ const ENTRY_RESERVATION_MARGIN = 0.012;
 const MIN_VEHICLE_GAP = 0.034;
 const AMBER_DURATION = 1.5;
 const ALL_RED_DURATION = 1.0;
-const PATC_MIN_GREEN = 3.0;
-const PATC_MAX_GREEN = 11.0;
-const FIXED_GREEN_MAIN = 14.0;
-const FIXED_GREEN_SIDE = 12.0;
-const VEHICLE_TARGET_COUNT = 28;
+const PATC_MIN_GREEN = 4.0;
+const PATC_MAX_GREEN = 30.0;                /* hold MAIN green for true green wave */
+const PATC_MAX_SIDE = 5.0;                  /* brief side pulse — return to MAIN fast */
+const FIXED_GREEN_MAIN = 18.0;              /* long fixed cycles → more total wait */
+const FIXED_GREEN_SIDE = 14.0;
+const VEHICLE_TARGET_COUNT = 36;
 const VEHICLE_MIX = [
   { kind: "sedan", weight: 35 },
   { kind: "auto",  weight: 25 },
@@ -214,14 +215,17 @@ function createVehicle(index) {
 function initJunction(j, offsetIndex) {
   const scenario = currentScenario();
   if (isFixedMode()) {
-    /* Deliberately desynced: junctions out of phase with each other so a
-       vehicle on mainline hits red after red. Mirrors un-coordinated SCATS. */
-    const stagger = [0, 7.5, 4.0, 9.5, 2.5];
+    /* True anti-green-wave: even junctions (J1,J3,J5) start MAIN,
+       odd junctions (J2,J4) start SIDE, all with timer=0.
+       Vehicle exits J1 green → arrives J2 → J2 is SIDE (red for mainline!).
+       Vehicle exits J2 at t≈16.5s → arrives J3 at t≈21s → J3 just flipped SIDE at t=20.5s.
+       This guarantees vehicles hit red at multiple consecutive junctions. */
     j.phase = offsetIndex % 2 === 0 ? "MAIN" : "SIDE";
     j.subphase = "green";
-    j.timer = stagger[offsetIndex] || 0;
+    j.timer = 0;
   } else {
-    /* PATC: synced for green-wave on the primary phase */
+    /* PATC: all junctions start MAIN, staggered so the green wave naturally
+       propagates ahead of mainline traffic (stagger = inter-junction travel time). */
     j.phase = scenario.primaryPhase || "MAIN";
     j.subphase = "green";
     j.timer = offsetIndex * 1.0;
@@ -323,7 +327,7 @@ function updateJunction(j, dt) {
   const safety = controlValue("safety");
 
   if (isFixedMode()) {
-    /* Blind cycle — every junction flips on its own clock regardless of demand */
+    /* Blind cycle — every junction flips on its own fixed clock regardless of demand */
     const greenLen = j.phase === "MAIN" ? FIXED_GREEN_MAIN : FIXED_GREEN_SIDE;
     if (j.timer >= greenLen) {
       j.pendingPhase = j.phase === "MAIN" ? "SIDE" : "MAIN";
@@ -333,17 +337,20 @@ function updateJunction(j, dt) {
     return;
   }
 
-  /* PATC: coordinated green wave on the mainline; only pulse SIDE when
-     side-road queue is materially building. Mainline vehicles pass through
-     a sequence of greens without stopping. */
+  /* PATC: true green-wave coordination.
+     Keep MAIN green for a long window (up to PATC_MAX_GREEN), boosted further
+     when the upstream junction is also MAIN-green (green-wave propagation).
+     Only pulse SIDE when side-road queue is genuinely high AND mainline is quiet.
+     SIDE pulse is capped at PATC_MAX_SIDE, then snaps back to MAIN. */
   const sidePressure = approachPressure(j.id, "SIDE") + arrivalPressure(j.id, "SIDE");
   const mainPressure = approachPressure(j.id, "MAIN") + arrivalPressure(j.id, "MAIN");
   const minGreen = PATC_MIN_GREEN * safety;
+  const waveBoost = greenWaveBoost(j);
+  const effectiveMaxGreen = (PATC_MAX_GREEN + waveBoost * 4) * safety;
 
   if (j.phase === "SIDE") {
-    /* Brief side pulse — return to MAIN as soon as min-green elapsed and
-       side queue has thinned. */
-    const sideExhausted = sidePressure < 1.0 || j.timer >= 7.0;
+    /* Brief side pulse: return to MAIN as soon as queue thins or cap reached */
+    const sideExhausted = sidePressure < 0.6 || j.timer >= PATC_MAX_SIDE;
     if (j.timer >= minGreen && sideExhausted) {
       j.pendingPhase = "MAIN";
       j.subphase = "amber";
@@ -352,12 +359,10 @@ function updateJunction(j, dt) {
     return;
   }
 
-  /* Currently MAIN-green. Flip to SIDE if side has queue AND we have served
-     mainline long enough. Tuned so side-road vehicles never wait > ~7s. */
-  const sideHot = sidePressure > 0.9 && j.timer >= minGreen;
-  const mainQuiet = mainPressure < 0.6 && sidePressure > 0.3;
-  const safetyForceFlip = j.timer >= 8.5 && sidePressure > 0.2;
-  if ((sideHot || mainQuiet || safetyForceFlip) && !junctionOccupied(j)) {
+  /* Currently MAIN-green. Hold the wave unless side demand is very high. */
+  const sideHot = sidePressure > 2.5 && j.timer >= minGreen && mainPressure < 0.5;
+  const safetyForceFlip = j.timer >= effectiveMaxGreen && sidePressure > 0.5;
+  if ((sideHot || safetyForceFlip) && !junctionOccupied(j)) {
     j.pendingPhase = "SIDE";
     j.subphase = "amber";
     j.timer = 0;
@@ -491,8 +496,8 @@ function updateVehicle(v, dt) {
     return;
   }
 
-  /* Decel still counts as small delay so PATC vs Fixed shows accurate metric */
-  if (decel < 1) v.delayCost += dt * (1 - decel) * 0.5;
+  /* Approach decel contributes minor delay; kept small so PATC/Fixed ratio stays clear */
+  if (decel < 1) v.delayCost += dt * (1 - decel) * 0.15;
   v.wait = Math.max(0, v.wait - dt * 0.4);
   v.progress = followingProgress(v, projected, leader);
   if (v.progress >= 1) {
@@ -875,7 +880,7 @@ function drawOverlay() {
 
 /* ─── Metrics panel ───────────────────────────────────────── */
 function severeStopCount() {
-  const threshold = isFixedMode() ? 12 : 28;
+  const threshold = isFixedMode() ? 10 : 22;
   return state.vehicles.filter((v) => v.delayCost > threshold).length;
 }
 

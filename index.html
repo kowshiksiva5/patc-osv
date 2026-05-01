@@ -72,7 +72,23 @@
             <p class="story-kicker">PATC</p>
             <h1 data-home-story-title aria-live="polite"></h1>
             <p data-home-story-copy></p>
-            <div class="story-status" aria-hidden="true">
+            <div class="green-tagline" aria-label="PATC tagline">
+            <span class="green-tagline-icon">🟢</span>
+            <span class="green-tagline-text">Every green light works for you.</span>
+          </div>
+          <div class="delay-compare" aria-label="Delay comparison">
+            <div class="delay-chip fixed-chip">
+              <span>Fixed avg wait</span>
+              <strong id="homeFixedDelay">—</strong>
+              <span class="chip-label">without coordination</span>
+            </div>
+            <div class="delay-chip patc-chip">
+              <span>PATC avg wait</span>
+              <strong id="homePatcDelay">—</strong>
+              <span class="chip-label">with green wave</span>
+            </div>
+          </div>
+          <div class="story-status" aria-hidden="true">
               <span class="story-pill active" data-phase-pill="fixed" tabindex="0" role="button">Without PATC</span>
               <span class="story-pill" data-phase-pill="patc" tabindex="0" role="button">With PATC</span>
               <button class="story-replay-btn" id="storyReplayBtn" title="Replay animation" aria-label="Replay">⟳ Replay</button>
@@ -128,10 +144,8 @@
         </div>
       </section>
 
-      <hr class="section-divider" />
-
       <!-- ═══ SAFETY BOUNDARY ═══ -->
-      <section class="section safety-panel reveal-scale">
+      <section class="section safety-panel reveal-scale" style="padding-top:40px;padding-bottom:40px;">
         <div>
           <p class="eyebrow">Safety boundary</p>
           <h2>No black-box control. No direct live writes in year one.</h2>
@@ -179,8 +193,6 @@
           </article>
         </div>
       </section>
-
-      <hr class="section-divider" />
 
       <!-- ═══ WHY COORDINATION ═══ -->
       <section class="section split-section">

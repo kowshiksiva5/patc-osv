@@ -59,47 +59,65 @@ a { color: inherit; text-decoration: none; }
 button, input { font: inherit; }
 img { max-width: 100%; }
 
-/* ── Scroll-reveal primitives ─────────────────────────────────── */
+/* ── Scroll-reveal primitives — 3-D spring entrance ──────────── */
+/* Spring easing: cubic-bezier(0.34, 1.56, 0.64, 1) overshoots ~8% then settles */
 .reveal {
   opacity: 0;
-  transform: translateY(40px);
-  transition: opacity 0.7s cubic-bezier(.22,1,.36,1),
-              transform 0.7s cubic-bezier(.22,1,.36,1);
+  transform: perspective(900px) translateY(44px) rotateX(6deg);
+  transition: opacity 0.75s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
   transition-delay: var(--reveal-delay, 0s);
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
 }
 .reveal.visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: perspective(900px) translateY(0) rotateX(0deg);
 }
-.reveal-delay-1 { --reveal-delay: 40ms; }
-.reveal-delay-2 { --reveal-delay: 80ms; }
-.reveal-delay-3 { --reveal-delay: 120ms; }
-.reveal-delay-4 { --reveal-delay: 160ms; }
-.reveal-delay-5 { --reveal-delay: 200ms; }
+.reveal-delay-1 { --reveal-delay: 60ms; }
+.reveal-delay-2 { --reveal-delay: 120ms; }
+.reveal-delay-3 { --reveal-delay: 180ms; }
+.reveal-delay-4 { --reveal-delay: 240ms; }
+.reveal-delay-5 { --reveal-delay: 300ms; }
 
 .reveal-left {
   opacity: 0;
-  transform: translateX(-48px);
-  transition: opacity 0.7s cubic-bezier(.22,1,.36,1),
-              transform 0.7s cubic-bezier(.22,1,.36,1);
+  transform: perspective(900px) translateX(-52px) rotateY(-5deg);
+  transition: opacity 0.75s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
 }
-.reveal-left.visible { opacity: 1; transform: translateX(0); }
+.reveal-left.visible {
+  opacity: 1;
+  transform: perspective(900px) translateX(0) rotateY(0deg);
+}
 
 .reveal-right {
   opacity: 0;
-  transform: translateX(48px);
-  transition: opacity 0.7s cubic-bezier(.22,1,.36,1),
-              transform 0.7s cubic-bezier(.22,1,.36,1);
+  transform: perspective(900px) translateX(52px) rotateY(5deg);
+  transition: opacity 0.75s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
 }
-.reveal-right.visible { opacity: 1; transform: translateX(0); }
+.reveal-right.visible {
+  opacity: 1;
+  transform: perspective(900px) translateX(0) rotateY(0deg);
+}
 
 .reveal-scale {
   opacity: 0;
-  transform: scale(0.92);
-  transition: opacity 0.6s cubic-bezier(.22,1,.36,1),
-              transform 0.6s cubic-bezier(.22,1,.36,1);
+  transform: perspective(900px) scale(0.88) translateY(22px);
+  transition: opacity 0.80s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 0.80s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
 }
-.reveal-scale.visible { opacity: 1; transform: scale(1); }
+.reveal-scale.visible {
+  opacity: 1;
+  transform: perspective(900px) scale(1) translateY(0);
+}
 
 /* ── Scroll progress bar ──────────────────────────────────────── */
 .scroll-progress {
@@ -324,7 +342,7 @@ h3 {
 .section {
   margin: 0 auto;
   max-width: 1200px;
-  padding: 120px 48px;
+  padding: 52px 48px;
   position: relative;
 }
 .section-inner { max-width: 720px; }

@@ -1,4 +1,6 @@
-/* PATC homepage opening story: rush hour → PATC wave. */
+/* PATC homepage: mini corridor sim — Fixed vs PATC with live delay comparison.
+   5 junctions on a horizontal corridor. Fixed mode: J2+J4 start red → vehicles queue.
+   PATC mode: green wave propagates ahead of traffic → vehicles flow freely. */
 (function () {
   'use strict';
 
@@ -7,365 +9,263 @@
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  const titleEl = document.querySelector('[data-home-story-title]');
-  const copyEl = document.querySelector('[data-home-story-copy]');
-  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  const titleEl   = document.querySelector('[data-home-story-title]');
+  const copyEl    = document.querySelector('[data-home-story-copy]');
+  const motionQ   = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const dpr       = Math.min(window.devicePixelRatio || 1, 1.5);
 
+  /* ── Palette ──────────────────────────────────────────────── */
   const C = {
-    bg: '#070B12', road: 'rgba(26,40,64,0.95)', edge: 'rgba(61,191,176,0.16)',
-    lane: 'rgba(232,236,244,0.10)', green: '#34D399', amber: '#F59E0B',
-    red: '#F87171', text: '#E8ECF4', muted: 'rgba(155,164,181,0.72)',
-    panel: 'rgba(10,15,26,0.78)',
+    bg:     '#060C14',
+    road:   '#1c2a3e',
+    edge:   'rgba(61,191,176,0.14)',
+    lane:   'rgba(232,236,244,0.08)',
+    green:  '#34D399',
+    amber:  '#F59E0B',
+    red:    '#F87171',
+    text:   '#E8ECF4',
+    muted:  'rgba(155,164,181,0.72)',
+    panel:  'rgba(6,12,20,0.82)',
+    accent: '#3DBFB0',
+    grid:   'rgba(61,191,176,0.04)',
   };
 
+  /* ── Copy ─────────────────────────────────────────────────── */
   const COPY = {
     fixed: {
-      h: 'Imagine if traffic lights<br/><span class="accent-glow">knew you were coming.</span>',
-      p: 'Every junction fights alone. Each signal optimizes itself. The corridor jams because no junction sees the full picture.',
+      h: 'Every junction fights alone.<br/><span class="accent-glow">The corridor jams.</span>',
+      p: 'Fixed timers ignore what the rest of the road is doing. Vehicles queue at J2 and J4 while other junctions sit idle.',
       chip: 'Without PATC',
     },
     patc: {
-      h: 'PATC sees the corridor<br/><span class="accent-glow">and opens a green wave.</span>',
-      p: 'The system predicts arrivals, opens the right greens, and dynamically holds cross-traffic to optimize corridor flow.',
+      h: 'PATC opens a green wave<br/><span class="accent-glow">before you arrive.</span>',
+      p: 'One adaptive timing layer coordinates all five junctions. Vehicles flow end-to-end with near-zero waiting.',
       chip: 'With PATC',
-    }
+    },
   };
 
+  /* ── Sequence ─────────────────────────────────────────────── */
+  const PHASE_DURATION = 13000; // ms per phase
   const SEQUENCE = [
-    { id: 'fixed', ms: 14000 },
-    { id: 'patc', ms: 14000 },
+    { id: 'fixed', ms: PHASE_DURATION },
+    { id: 'patc',  ms: PHASE_DURATION },
   ];
 
-  let width = 0, height = 0, rafId = 0, sequenceStart = 0;
-  let activePhase = '', manualPhase = '', manualStart = 0;
-  let typedTitleUntil = 0, typedBodyUntil = 0, phaseStart = 0, lastDraw = 0;
-  let simTime = 0, layout = null;
-  let SIM_CARS = [];
+  /* ── State ────────────────────────────────────────────────── */
+  let W = 0, H = 0, rafId = 0, lastDraw = 0, simTime = 0;
+  let seqStart = 0, manualPhase = '', manualStart = 0, activePhase = '';
+  let junctionXs = [];
+  const ROAD_Y    = 0;
+  const ROAD_W    = 24;
+  const N_JUNC    = 5;
 
-  function initSimCars() {
-    SIM_CARS = [];
-    const carsPerLane = {};
-    for (let i = 0; i < 28; i++) {
-      const axis = i % 4 === 0 ? 'v' : 'h';
-      const lane = i % 5;
-      const key = axis + (axis === 'v' ? lane : (lane % 3));
-      carsPerLane[key] = (carsPerLane[key] || 0) + 1;
-      
-      SIM_CARS.push({
-        axis,
-        lane,
-        pos: (carsPerLane[key] * 0.3 + Math.random() * 0.1) % 1,
-        maxSpeed: 200 + Math.random() * 100, // 200-300 px/s
-        currentSpeed: 100,
-        size: i % 8 === 0 ? 11 : 7 + (i % 4),
-        shade: i % 3,
-        id: i
+  /* Per-phase accumulated delay for the comparison badge */
+  const phaseDelay = { fixed: 0, patc: 0 };
+  const phaseVehicles = { fixed: 0, patc: 0 };
+  const phaseComplete = { fixed: false, patc: false };
+
+  /* ── Vehicles ─────────────────────────────────────────────── */
+  let CARS = [];
+
+  function initCars() {
+    CARS = [];
+    /* 18 cars spread across the mainline */
+    for (let i = 0; i < 18; i++) {
+      CARS.push({
+        id: i,
+        pos:     (i / 18) % 1,        /* 0..1 along corridor */
+        speed:   0,
+        maxSpd:  180 + (i % 5) * 20,  /* 180-260 px/s */
+        wait:    0,
+        kind:    i % 6 === 0 ? 'bus' : i % 3 === 0 ? 'suv' : 'car',
+        shade:   i % 4,
+        isHero:  i === 3,
       });
     }
-    // Add the "hero" car
-    SIM_CARS.push({
-      axis: 'h', lane: 1, pos: 0.05, maxSpeed: 350, currentSpeed: 100, size: 9, shade: 99, id: 'hero'
-    });
+    /* Space them so no overlap at start */
+    CARS.sort((a, b) => a.pos - b.pos);
   }
 
-  function showCopy(id) {
-    if (activePhase === id) return;
-    const copy = COPY[id] || COPY.fixed;
-    activePhase = id;
-    
-    if (titleEl) {
-      titleEl.innerHTML = copy.h;
-      titleEl.style.animation = 'none';
-      titleEl.offsetHeight;
-      titleEl.style.animation = null; 
-    }
-    if (copyEl) {
-      copyEl.innerHTML = copy.p;
-      copyEl.style.animation = 'none';
-      copyEl.offsetHeight;
-      copyEl.style.animation = null;
-    }
-
-    document.documentElement.dataset.storyPhase = id;
-    document.querySelectorAll('[data-phase-pill]').forEach((pill) => {
-      pill.classList.toggle('active', pill.dataset.phasePill === id);
-    });
+  /* ── Layout ───────────────────────────────────────────────── */
+  function computeLayout() {
+    const margin = Math.max(40, W * 0.07);
+    junctionXs = Array.from({ length: N_JUNC }, (_, i) =>
+      margin + (W - 2 * margin) * (i / (N_JUNC - 1))
+    );
+    ROAD_Y_VAL = H * 0.50;
   }
+  let ROAD_Y_VAL = 0;
 
-  function resize() {
-    const host = canvas.parentElement || canvas;
-    const rect = host.getBoundingClientRect();
-    width = Math.max(320, rect.width);
-    height = Math.max(220, rect.height);
-    canvas.width = Math.floor(width * dpr);
-    canvas.height = Math.floor(height * dpr);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    layout = sceneLayout();
-  }
+  /* ── Signal logic ─────────────────────────────────────────── */
+  const signalTimers = [0, 0, 0, 0, 0];
+  const signalPhase  = ['MAIN', 'SIDE', 'MAIN', 'SIDE', 'MAIN'];
 
-  function sceneLayout() {
-    const mx = Math.max(34, width * 0.10);
-    const my = Math.max(38, height * 0.18);
-    const xs = Array.from({ length: 5 }, (_, i) => lerp(mx, width - mx, i / 4));
-    const ys = Array.from({ length: 3 }, (_, i) => lerp(my, height - my, i / 2));
-    return { xs, ys, midY: ys[1] };
-  }
-
-  function stateForElapsed(elapsed) {
-    let start = 0;
-    for (const phase of SEQUENCE) {
-      const end = start + phase.ms;
-      if (elapsed < end) return { id: phase.id, progress: clamp((elapsed - start)/phase.ms, 0, 1) };
-      start = end;
-    }
-    return { id: 'patc', progress: 1 };
-  }
-
-  function currentState(now) {
-    if (manualPhase) {
-       const elapsed = now - manualStart;
-       return { id: manualPhase, progress: clamp(elapsed/14000, 0, 1) };
-    }
-    return stateForElapsed(now - sequenceStart);
-  }
-
-  function getSignalColor(col, row, stateId) {
-    if (stateId === 'patc') {
-      // Give HERO absolute priority, otherwise fallback to a cycle so NS flows too
-      let heroDemand = false;
-      for (const car of SIM_CARS) {
-        if (car.id === 'hero' && (car.lane % 3) === row) {
-          const carX = car.pos * (width + 120) - 60;
-          const dist = layout.xs[col] - carX;
-          if (dist > -20 && dist < width * 0.35) { heroDemand = true; break; }
-        }
+  function resetSignals(id) {
+    if (id === 'fixed') {
+      /* Anti-green-wave: even junctions green, odd junctions RED for mainline */
+      for (let i = 0; i < N_JUNC; i++) {
+        signalPhase[i] = i % 2 === 0 ? 'MAIN' : 'SIDE';
+        signalTimers[i] = 0;
       }
-      if (heroDemand) return C.green;
-      // Normal optimized cycle
-      const cycle = Math.floor((simTime + col * 3.5 + row * 2.5) / 4) % 2;
-      return cycle === 0 ? C.green : C.red;
+    } else {
+      /* PATC: all green (MAIN), staggered timers so wave propagates */
+      for (let i = 0; i < N_JUNC; i++) {
+        signalPhase[i]  = 'MAIN';
+        signalTimers[i] = i * 0.8;
+      }
     }
-    const cycle = Math.floor((simTime + col * 3.5 + row * 2.5) / 4) % 2;
-    return cycle === 0 ? C.green : C.red;
   }
 
-  function updatePhysics(dt, stateId) {
-    simTime += dt;
-    const BRAKING_DIST = 150;
-    const STOP_DIST = 30;
-    const SAFE_GAP = 45;
-    const FOLLOW_DIST = 120;
+  const FIXED_MAIN = 18.0;
+  const FIXED_SIDE = 14.0;
+  const PATC_MAX   = 30.0;
+  const PATC_SIDE  = 5.0;
+  const AMBER_DUR  = 1.2;
 
-    for (const car of SIM_CARS) {
-      let nextPos = -1;
-      let isRed = false;
-      
-      const realLane = car.axis === 'v' ? (car.lane % layout.xs.length) : (car.lane % layout.ys.length);
-      const span = car.axis === 'h' ? width + 120 : height + 120;
-      const currentPos = car.pos * span - 60;
+  const signalSubphase = ['green', 'green', 'green', 'green', 'green'];
+  const signalAmberT   = [0, 0, 0, 0, 0];
 
-      if (car.axis === 'h') {
-        const carY = layout.ys[realLane];
-        for (let col = 0; col < layout.xs.length; col++) {
-          if (layout.xs[col] > currentPos) {
-            nextPos = layout.xs[col];
-            isRed = getSignalColor(col, realLane, stateId) !== C.green;
-            break;
-          }
+  function updateSignals(dt, id) {
+    for (let i = 0; i < N_JUNC; i++) {
+      if (signalSubphase[i] === 'amber') {
+        signalAmberT[i] += dt;
+        if (signalAmberT[i] >= AMBER_DUR) {
+          signalSubphase[i] = 'green';
+          signalPhase[i]    = signalPhase[i] === 'MAIN' ? 'SIDE' : 'MAIN';
+          signalAmberT[i]   = 0;
+          signalTimers[i]   = 0;
+        }
+        continue;
+      }
+
+      signalTimers[i] += dt;
+
+      if (id === 'fixed') {
+        const cap = signalPhase[i] === 'MAIN' ? FIXED_MAIN : FIXED_SIDE;
+        if (signalTimers[i] >= cap) {
+          signalSubphase[i] = 'amber';
+          signalAmberT[i]   = 0;
         }
       } else {
-        const carX = layout.xs[realLane];
-        for (let row = 0; row < layout.ys.length; row++) {
-          if (layout.ys[row] > currentPos) {
-            nextPos = layout.ys[row];
-            isRed = getSignalColor(realLane, row, stateId) === C.green; // If EW is green, NS is red
-            break;
+        /* PATC — hold MAIN; briefly serve SIDE only if vehicles pile up */
+        if (signalPhase[i] === 'SIDE') {
+          const sideQ = countApproaching(i, 'side');
+          if (signalTimers[i] >= 3 && (sideQ < 1 || signalTimers[i] >= PATC_SIDE)) {
+            signalSubphase[i] = 'amber';
+            signalAmberT[i]   = 0;
+          }
+        } else {
+          /* MAIN — only flip if a side queue is building AND main is quiet */
+          const sideQ = countApproaching(i, 'side');
+          const mainQ = countApproaching(i, 'main');
+          if (signalTimers[i] >= PATC_MAX && sideQ > 0) {
+            signalSubphase[i] = 'amber';
+            signalAmberT[i]   = 0;
           }
         }
       }
-
-      let targetSpeed = car.maxSpeed;
-      if (nextPos !== -1 && isRed) {
-        let dist = nextPos - currentPos;
-        if (dist > 0 && dist < BRAKING_DIST) {
-          // If already inside the intersection boundaries and moving, clear it to avoid stopping in the middle
-          if (dist < 26 && car.currentSpeed > 50) {
-            // Commit to clearing the intersection
-          } else {
-            targetSpeed = dist < STOP_DIST ? 0 : car.maxSpeed * ((dist - STOP_DIST) / (BRAKING_DIST - STOP_DIST));
-          }
-        }
-      }
-      
-      // Avoid hitting car ahead
-      let distToAhead = Infinity;
-      for (const other of SIM_CARS) {
-        const otherRealLane = other.axis === 'v' ? (other.lane % layout.xs.length) : (other.lane % layout.ys.length);
-        if (other !== car && other.axis === car.axis && otherRealLane === realLane) {
-          let oPos = (other.pos * span - 60);
-          let d = oPos - currentPos;
-          if (d < 0) d += span; // loop around
-          if (d > 0 && d < distToAhead) distToAhead = d;
-        }
-      }
-      
-      if (distToAhead < SAFE_GAP) targetSpeed = 0;
-      else if (distToAhead < FOLLOW_DIST) targetSpeed = Math.min(targetSpeed, car.maxSpeed * ((distToAhead - SAFE_GAP)/(FOLLOW_DIST - SAFE_GAP)));
-
-      // Linear acceleration/deceleration physics
-      const accel = targetSpeed < car.currentSpeed ? -600 : 300; // px/s^2
-      car.currentSpeed += accel * dt;
-      if (accel < 0) car.currentSpeed = Math.max(car.currentSpeed, targetSpeed);
-      if (accel > 0) car.currentSpeed = Math.min(car.currentSpeed, targetSpeed);
-
-      car.pos += (car.currentSpeed * dt) / span;
-      if (car.pos > 1) car.pos -= 1;
     }
   }
 
-  /* ── Main render ─────────────────────────────────────────────── */
-  function render(now, state, dt) {
-    updatePhysics(dt, state.id);
-    
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = C.bg;
-    ctx.fillRect(0, 0, width, height);
+  function countApproaching(jIdx, lane) {
+    /* Rough estimate: cars within 15% of corridor ahead of this junction */
+    const jPos = junctionXs[jIdx] / W;
+    return CARS.filter((c) => {
+      const d = jPos - c.pos;
+      return d > 0 && d < 0.18;
+    }).length;
+  }
 
-    const glow = ctx.createRadialGradient(width * 0.68, height * 0.28, 0, width * 0.68, height * 0.28, width * 0.7);
-    glow.addColorStop(0, state.id === 'fixed' ? 'rgba(248,113,113,0.06)' : state.id === 'patc' ? 'rgba(52,211,153,0.07)' : 'rgba(7,11,18,0)');
-    glow.addColorStop(1, 'rgba(7,11,18,0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, width, height);
+  function isGreenForCar(jIdx) {
+    return signalPhase[jIdx] === 'MAIN' && signalSubphase[jIdx] !== 'amber';
+  }
 
-    drawRoadGrid(layout, 1);
-    
-    // Draw Signals
-    layout.ys.forEach((y, row) => {
-      layout.xs.forEach((x, col) => {
-        const color = getSignalColor(col, row, state.id);
-        ctx.fillStyle = 'rgba(10,15,26,0.92)';
-        box(x - 12, y - 12, 24, 24, 5);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(232,236,244,0.08)';
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(x, y, 5.3, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = color === C.green ? 18 : 8;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+  /* ── Physics ──────────────────────────────────────────────── */
+  function updatePhysics(dt, id) {
+    const span = W + 120;
+
+    CARS.forEach((car) => {
+      const carX = car.pos * span - 60;
+
+      /* Find next junction */
+      let nextJX = Infinity, nextJIdx = -1;
+      for (let i = 0; i < N_JUNC; i++) {
+        if (junctionXs[i] > carX + 2) { nextJX = junctionXs[i]; nextJIdx = i; break; }
+      }
+
+      let target = car.maxSpd;
+
+      /* Signal stop */
+      if (nextJIdx >= 0 && !isGreenForCar(nextJIdx)) {
+        const dist = nextJX - carX;
+        const stopLine = nextJX - 22;
+        if (carX < stopLine - 1 && dist < 220) {
+          /* Smooth brake: full stop at stopLine */
+          const brakeDist = stopLine - carX;
+          target = dist < 10 ? 0 : car.maxSpd * Math.max(0, Math.min(1, (brakeDist - 4) / 130));
+        }
+      }
+
+      /* Following */
+      CARS.forEach((other) => {
+        if (other === car) return;
+        const oX = other.pos * span - 60;
+        const gap = oX - carX;
+        const safeGap = car.kind === 'bus' ? 52 : 40;
+        if (gap > 0 && gap < safeGap + 60) {
+          const followTarget = car.maxSpd * Math.max(0, (gap - safeGap) / 60);
+          target = Math.min(target, followTarget);
+        }
       });
-    });
 
-    // Draw Traffic
-    let alpha = 1;
-    if (alpha > 0) {
-      for (const car of SIM_CARS) {
-        const realLane = car.axis === 'v' ? (car.lane % layout.xs.length) : (car.lane % layout.ys.length);
-        const span = car.axis === 'h' ? width + 120 : height + 120;
-        const currentPos = car.pos * span - 60;
-        const x = car.axis === 'h' ? currentPos : layout.xs[realLane];
-        const y = car.axis === 'h' ? layout.ys[realLane] : currentPos;
-        const angle = car.axis === 'h' ? 0 : Math.PI / 2;
-        
-        let color = C.muted;
-        if (car.id === 'hero') color = state.id === 'patc' ? C.green : C.amber;
-        else if (state.id === 'patc') color = car.shade === 0 ? 'rgba(52,211,153,0.65)' : 'rgba(232,236,244,0.40)';
-        else color = car.shade === 0 ? 'rgba(248,113,113,0.68)' : 'rgba(232,236,244,0.30)';
+      /* Acceleration physics */
+      const accel = target < car.speed ? -550 : 260;
+      car.speed += accel * dt;
+      car.speed = Math.max(0, Math.min(car.maxSpd, car.speed));
+      car.speed = Math.max(car.speed, target < 1 ? 0 : Math.min(car.speed, target));
 
-        drawVehicle(x, y, angle, car.size, color, alpha, car.id === 'hero');
-        
-        if (car.id === 'hero') {
-          label('you', x, y - 28);
-          if (car.currentSpeed < 0.02 && state.id === 'fixed') waitBadge(x, y + 31);
-        }
+      car.pos += (car.speed * dt) / span;
+      if (car.pos > 1) car.pos -= 1;
+
+      /* Wait tracking */
+      if (car.speed < 5) {
+        car.wait += dt;
+        phaseDelay[id] += dt;
       }
-    }
-    drawStageChip(state.id);
-  }
-
-
-
-  function drawRoadGrid(layout, reveal) {
-    const lanes = [...layout.ys.map((y) => ['h', y]), ...layout.xs.map((x) => ['v', x])];
-    lanes.forEach(([axis, pos]) => {
-      if (axis === 'h') roadLine(0, pos, width, pos);
-      else roadLine(pos, 0, pos, height);
     });
+
+    phaseVehicles[id] = CARS.length;
   }
 
-  function roadLine(x1, y1, x2, y2) {
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = C.road;
-    ctx.lineWidth = Math.max(18, Math.min(width, height) * 0.06);
-    line(x1, y1, x2, y2);
-    ctx.strokeStyle = C.edge;
-    ctx.lineWidth = 1;
-    line(x1, y1, x2, y2);
-    ctx.setLineDash([10, 18]);
-    ctx.strokeStyle = C.lane;
-    line(x1, y1, x2, y2);
-    ctx.setLineDash([]);
+  /* ── Copy + pill sync ─────────────────────────────────────── */
+  function showCopy(id) {
+    if (activePhase === id) return;
+    activePhase = id;
+    const copy = COPY[id] || COPY.fixed;
+    if (titleEl) { titleEl.innerHTML = copy.h; }
+    if (copyEl)  { copyEl.innerHTML  = copy.p; }
+    document.documentElement.dataset.storyPhase = id;
+    document.querySelectorAll('[data-phase-pill]').forEach((p) => {
+      p.classList.toggle('active', p.dataset.phasePill === id);
+    });
+    /* Update external delay display if present */
+    updateDelayBadge();
   }
 
-  function drawVehicle(x, y, angle, size, color, alpha, glow) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    ctx.fillStyle = color;
-    if (glow) { ctx.shadowColor = color; ctx.shadowBlur = 12; }
-    box(-size, -size * 0.48, size * 2, size * 0.96, 4);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(7,11,18,0.46)';
-    box(size * 0.18, -size * 0.32, size * 0.50, size * 0.64, 2);
-    ctx.fill();
-    ctx.restore();
+  function updateDelayBadge() {
+    const fixedEl = document.getElementById('homeFixedDelay');
+    const patcEl  = document.getElementById('homePatcDelay');
+    if (fixedEl) {
+      const avg = phaseVehicles.fixed > 0 ? phaseDelay.fixed / phaseVehicles.fixed : null;
+      fixedEl.textContent = avg !== null ? avg.toFixed(1) + 's' : '—';
+    }
+    if (patcEl) {
+      const avg = phaseVehicles.patc > 0 ? phaseDelay.patc / phaseVehicles.patc : null;
+      patcEl.textContent = avg !== null ? avg.toFixed(1) + 's' : '—';
+    }
   }
 
-  function label(text, x, y) {
-    ctx.font = '700 11px Inter, sans-serif';
-    const w = ctx.measureText(text).width + 14;
-    ctx.fillStyle = C.panel;
-    box(x - w / 2, y - 15, w, 22, 11);
-    ctx.fill();
-    ctx.fillStyle = C.text;
-    ctx.textAlign = 'center';
-    ctx.fillText(text, x, y);
-    ctx.textAlign = 'start';
-  }
-
-  function waitBadge(x, y) {
-    ctx.font = '700 10px JetBrains Mono, monospace';
-    ctx.fillStyle = 'rgba(248,113,113,0.16)';
-    box(x - 29, y - 13, 58, 20, 10);
-    ctx.fill();
-    ctx.fillStyle = C.red;
-    ctx.textAlign = 'center';
-    ctx.fillText('waiting', x, y + 1);
-    ctx.textAlign = 'start';
-  }
-
-  function drawStageChip(id) {
-    const text = COPY[id].chip;
-    ctx.font = '700 11px JetBrains Mono, monospace';
-    const w = Math.min(width - 28, ctx.measureText(text).width + 28);
-    ctx.fillStyle = C.panel;
-    box(14, 14, w, 30, 15);
-    ctx.fill();
-    ctx.fillStyle = id === 'fixed' ? C.red : C.green;
-    ctx.beginPath();
-    ctx.arc(28, 29, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = C.muted;
-    ctx.fillText(text, 40, 33);
-  }
-
+  /* ── Draw helpers ─────────────────────────────────────────── */
   function box(x, y, w, h, r) {
     ctx.beginPath();
     if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); return; }
@@ -374,61 +274,393 @@
     ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
 
-  function line(x1, y1, x2, y2) { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
-  function lerp(start, end, amount) { return start + (end - start) * amount; }
-  function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
+  function drawGrid() {
+    ctx.strokeStyle = C.grid;
+    ctx.lineWidth   = 0.5;
+    const step = Math.round(W / 14);
+    for (let x = 0; x < W; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    const vStep = Math.round(H / 8);
+    for (let y = 0; y < H; y += vStep) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+  }
 
+  function drawRoad(y, w, label) {
+    /* Asphalt */
+    ctx.fillStyle = C.road;
+    ctx.fillRect(0, y - w / 2, W, w);
+    /* Edge glow */
+    ctx.strokeStyle = C.edge;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, y - w / 2); ctx.lineTo(W, y - w / 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, y + w / 2); ctx.lineTo(W, y + w / 2); ctx.stroke();
+    /* Centre dash */
+    ctx.setLineDash([8, 16]);
+    ctx.strokeStyle = C.lane;
+    ctx.lineWidth   = 1;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    ctx.setLineDash([]);
+    /* Road label */
+    if (label) {
+      ctx.fillStyle = 'rgba(155,164,181,0.28)';
+      ctx.font      = '500 9px JetBrains Mono, monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(label, 8, y - w / 2 - 4);
+    }
+  }
+
+  function drawCrossArms(y, w) {
+    /* Minor vertical cross-roads at each junction */
+    junctionXs.forEach((x) => {
+      ctx.fillStyle = '#16243a';
+      ctx.fillRect(x - 9, 0, 18, H);
+      /* Edge lines */
+      ctx.strokeStyle = 'rgba(61,191,176,0.06)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(x - 9, 0); ctx.lineTo(x - 9, H); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + 9, 0); ctx.lineTo(x + 9, H); ctx.stroke();
+    });
+  }
+
+  function drawJunctions(id, y) {
+    junctionXs.forEach((x, i) => {
+      const isGreen = isGreenForCar(i);
+      const isAmber = signalSubphase[i] === 'amber';
+      const color   = isAmber ? C.amber : isGreen ? C.green : C.red;
+
+      /* Junction pad */
+      ctx.fillStyle = '#1e2e42';
+      box(x - 14, y - ROAD_W / 2 - 2, 28, ROAD_W + 4, 4);
+      ctx.fill();
+
+      /* Signal head housing */
+      ctx.fillStyle   = '#0a1218';
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth   = 0.8;
+      box(x - 5.5, y - ROAD_W / 2 - 22, 11, 22, 3);
+      ctx.fill(); ctx.stroke();
+
+      /* Three-bulb signal */
+      const bOff = 'rgba(244,247,242,0.10)';
+      [
+        { dy: -17, active: color === C.red,   col: C.red   },
+        { dy: -11, active: isAmber,            col: C.amber },
+        { dy:  -5, active: isGreen,            col: C.green },
+      ].forEach(({ dy, active, col }) => {
+        ctx.beginPath();
+        ctx.arc(x, y - ROAD_W / 2 + dy, 2.6, 0, Math.PI * 2);
+        ctx.fillStyle = active ? col : bOff;
+        if (active) { ctx.shadowColor = col; ctx.shadowBlur = 10; }
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      });
+
+      /* Junction ID */
+      ctx.fillStyle = 'rgba(155,164,181,0.5)';
+      ctx.font      = '600 9px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(`J${i + 1}`, x, y + ROAD_W / 2 + 14);
+      ctx.textAlign = 'start';
+
+      /* PATC green wave pulse ring */
+      if (id === 'patc' && isGreen) {
+        const pulse = (simTime * 1.8 + i * 0.4) % 1;
+        ctx.beginPath();
+        ctx.arc(x, y, 14 + pulse * 28, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(52,211,153,${(1 - pulse) * 0.18})`;
+        ctx.lineWidth   = 1.5;
+        ctx.stroke();
+      }
+    });
+  }
+
+  function carColor(car, id) {
+    if (car.isHero) return id === 'patc' ? C.green : C.amber;
+    if (id === 'patc') return car.shade % 2 === 0 ? 'rgba(52,211,153,0.70)' : 'rgba(100,180,255,0.55)';
+    return car.shade % 2 === 0 ? 'rgba(248,113,113,0.72)' : 'rgba(232,236,244,0.35)';
+  }
+
+  function drawCars(id, y) {
+    const span = W + 120;
+    CARS.forEach((car) => {
+      const x     = car.pos * span - 60;
+      const color = carColor(car, id);
+      const len   = car.kind === 'bus' ? 22 : car.kind === 'suv' ? 15 : 11;
+      const ht    = car.kind === 'bus' ? 9 : 7;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.fillStyle   = color;
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth   = 0.5;
+      if (car.isHero) { ctx.shadowColor = color; ctx.shadowBlur = 14; }
+      box(-len / 2, -ht / 2, len, ht, 2.5);
+      ctx.fill(); ctx.stroke();
+      ctx.shadowBlur = 0;
+      /* Window tint */
+      ctx.fillStyle = 'rgba(0,0,0,0.38)';
+      ctx.fillRect(-len / 2 + 3, -ht / 2 + 1.5, len - 6, ht - 3);
+      /* "you" label */
+      if (car.isHero) {
+        ctx.font      = '700 10px Inter, sans-serif';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.fillText('you', 0, -ht / 2 - 6);
+        /* Wait badge */
+        if (car.speed < 5 && id === 'fixed') {
+          ctx.font      = '700 9px JetBrains Mono, monospace';
+          ctx.fillStyle = 'rgba(248,113,113,0.85)';
+          ctx.fillText('⏸ waiting', 0, -ht / 2 - 18);
+        }
+      }
+      ctx.textAlign = 'start';
+      ctx.restore();
+    });
+  }
+
+  /* Head-up display: mode chip + delay comparison */
+  function drawHUD(id) {
+    const copy   = COPY[id];
+    const chipTxt = copy.chip;
+    ctx.font = '700 10px JetBrains Mono, monospace';
+    const chipW = ctx.measureText(chipTxt).width + 26;
+
+    /* Mode chip */
+    ctx.fillStyle   = C.panel;
+    ctx.strokeStyle = id === 'fixed' ? 'rgba(248,113,113,0.30)' : 'rgba(52,211,153,0.30)';
+    ctx.lineWidth   = 1;
+    box(14, 14, chipW, 26, 13);
+    ctx.fill(); ctx.stroke();
+    const dotColor = id === 'fixed' ? C.red : C.green;
+    ctx.fillStyle = dotColor;
+    ctx.shadowColor = dotColor; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(26, 27, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle   = id === 'fixed' ? 'rgba(248,113,113,0.88)' : 'rgba(52,211,153,0.88)';
+    ctx.fillText(chipTxt, 36, 31);
+
+    /* Delay comparison box (bottom-right) */
+    const fixedAvg = phaseVehicles.fixed > 0 ? (phaseDelay.fixed / phaseVehicles.fixed).toFixed(1) : null;
+    const patcAvg  = phaseVehicles.patc  > 0 ? (phaseDelay.patc  / phaseVehicles.patc ).toFixed(1) : null;
+
+    if (fixedAvg !== null || patcAvg !== null) {
+      const bx = W - 184, by = H - 54, bw = 170, bh = 40;
+      ctx.fillStyle   = C.panel;
+      ctx.strokeStyle = 'rgba(232,236,244,0.06)';
+      ctx.lineWidth   = 1;
+      box(bx, by, bw, bh, 10);
+      ctx.fill(); ctx.stroke();
+
+      ctx.font = '700 9px JetBrains Mono, monospace';
+      /* Fixed label */
+      ctx.fillStyle = 'rgba(248,113,113,0.70)';
+      ctx.textAlign = 'left';
+      ctx.fillText('FIXED', bx + 12, by + 14);
+      ctx.fillStyle = fixedAvg !== null ? 'rgba(248,113,113,0.95)' : 'rgba(155,164,181,0.4)';
+      ctx.font = '700 13px JetBrains Mono, monospace';
+      ctx.fillText(fixedAvg !== null ? fixedAvg + 's' : '—', bx + 12, by + 30);
+
+      /* PATC label */
+      ctx.font = '700 9px JetBrains Mono, monospace';
+      ctx.fillStyle = 'rgba(52,211,153,0.70)';
+      ctx.textAlign = 'left';
+      ctx.fillText('PATC', bx + 90, by + 14);
+      ctx.fillStyle = patcAvg !== null ? 'rgba(52,211,153,0.95)' : 'rgba(155,164,181,0.4)';
+      ctx.font = '700 13px JetBrains Mono, monospace';
+      ctx.fillText(patcAvg !== null ? patcAvg + 's' : '—', bx + 90, by + 30);
+
+      /* Divider */
+      ctx.strokeStyle = 'rgba(232,236,244,0.06)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(bx + 78, by + 6);
+      ctx.lineTo(bx + 78, by + bh - 6);
+      ctx.stroke();
+
+      ctx.textAlign = 'start';
+    }
+
+    /* Live ticker when in fixed mode — growing avg delay */
+    if (id === 'fixed') {
+      const live = (phaseDelay.fixed / Math.max(1, phaseVehicles.fixed)).toFixed(1);
+      ctx.font      = '700 10px JetBrains Mono, monospace';
+      ctx.fillStyle = 'rgba(248,113,113,0.65)';
+      ctx.textAlign = 'right';
+      ctx.fillText(`avg wait ↑ ${live}s`, W - 14, 28);
+      ctx.textAlign = 'start';
+    }
+    if (id === 'patc') {
+      const live = (phaseDelay.patc / Math.max(1, phaseVehicles.patc)).toFixed(1);
+      ctx.font      = '700 10px JetBrains Mono, monospace';
+      ctx.fillStyle = 'rgba(52,211,153,0.65)';
+      ctx.textAlign = 'right';
+      ctx.fillText(`avg wait ↓ ${live}s`, W - 14, 28);
+      ctx.textAlign = 'start';
+    }
+  }
+
+  /* ── Full render frame ─────────────────────────────────────── */
+  function render(id, dt) {
+    simTime += dt;
+    updateSignals(dt, id);
+    updatePhysics(dt, id);
+
+    ctx.clearRect(0, 0, W, H);
+
+    /* Background + grid */
+    const bg = ctx.createRadialGradient(W * 0.5, H * 0.45, 0, W * 0.5, H * 0.45, W * 0.8);
+    bg.addColorStop(0, id === 'fixed' ? 'rgba(40,10,10,0.55)' : 'rgba(5,25,20,0.55)');
+    bg.addColorStop(1, C.bg);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    drawGrid();
+
+    /* Roads */
+    const mainY = ROAD_Y_VAL;
+    const upperY = mainY - H * 0.24;
+    const lowerY = mainY + H * 0.24;
+
+    drawCrossArms(mainY, ROAD_W);
+    drawRoad(upperY, 10, null);
+    drawRoad(lowerY, 10, null);
+    drawRoad(mainY,  ROAD_W, 'MAIN CORRIDOR');
+
+    drawJunctions(id, mainY);
+
+    /* PATC green-wave shimmer along road */
+    if (id === 'patc') {
+      const waveX = ((simTime * 0.09) % 1.2) * W;
+      const wg = ctx.createRadialGradient(waveX, mainY, 0, waveX, mainY, 120);
+      wg.addColorStop(0, 'rgba(52,211,153,0.10)');
+      wg.addColorStop(1, 'transparent');
+      ctx.fillStyle = wg;
+      ctx.fillRect(0, mainY - 60, W, 120);
+    }
+
+    /* Fixed congestion glow near J2 / J4 */
+    if (id === 'fixed') {
+      [1, 3].forEach((ji) => {
+        const gx = junctionXs[ji];
+        const cg = ctx.createRadialGradient(gx, mainY, 0, gx, mainY, 90);
+        cg.addColorStop(0, 'rgba(248,113,113,0.12)');
+        cg.addColorStop(1, 'transparent');
+        ctx.fillStyle = cg;
+        ctx.fillRect(gx - 90, mainY - 90, 180, 180);
+      });
+    }
+
+    drawCars(id, mainY);
+    drawHUD(id);
+
+    updateDelayBadge();
+  }
+
+  /* ── State machine ─────────────────────────────────────────── */
+  function currentPhase(now) {
+    if (manualPhase) {
+      return { id: manualPhase, t: Math.min(1, (now - manualStart) / PHASE_DURATION) };
+    }
+    if (!seqStart) seqStart = now;
+    let elapsed = now - seqStart;
+    let start = 0;
+    for (const s of SEQUENCE) {
+      const end = start + s.ms;
+      if (elapsed < end) return { id: s.id, t: (elapsed - start) / s.ms };
+      start = end;
+    }
+    /* Loop */
+    seqStart = now;
+    return { id: SEQUENCE[0].id, t: 0 };
+  }
+
+  /* ── RAF loop ──────────────────────────────────────────────── */
+  let lastPhaseId = '';
   function loop(now) {
     if (!lastDraw) lastDraw = now;
-    const dt = Math.min((now - lastDraw) / 1000, 0.05); // cap dt at 50ms
+    const dt = Math.min((now - lastDraw) / 1000, 0.05);
     lastDraw = now;
-    
-    if (!sequenceStart) sequenceStart = now;
-    const state = currentState(now);
-    showCopy(state.id);
-    render(now, state, dt);
+    const { id } = currentPhase(now);
+
+    if (id !== lastPhaseId) {
+      lastPhaseId = id;
+      simTime = 0;
+      initCars();
+      resetSignals(id);
+      /* Reset subphase arrays */
+      for (let i = 0; i < N_JUNC; i++) {
+        signalSubphase[i] = 'green';
+        signalAmberT[i]   = 0;
+      }
+      showCopy(id);
+    }
+
+    render(id, dt);
     rafId = requestAnimationFrame(loop);
   }
 
-  function setManualPhase(id) {
+  /* ── Resize ────────────────────────────────────────────────── */
+  function resize() {
+    const host = canvas.parentElement || canvas;
+    const rect  = host.getBoundingClientRect();
+    W = Math.max(320, rect.width);
+    H = Math.max(220, rect.height);
+    canvas.width  = Math.floor(W * dpr);
+    canvas.height = Math.floor(H * dpr);
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    computeLayout();
+  }
+
+  /* ── Manual phase controls ─────────────────────────────────── */
+  function setPhase(id) {
     if (!COPY[id]) return;
     manualPhase = id;
     manualStart = performance.now();
-    showCopy(id);
   }
 
+  function replay() {
+    cancelAnimationFrame(rafId);
+    seqStart = manualPhase = manualStart = lastPhaseId = '';
+    seqStart = 0; lastDraw = 0; simTime = 0;
+    phaseDelay.fixed = 0; phaseDelay.patc = 0;
+    phaseVehicles.fixed = 0; phaseVehicles.patc = 0;
+    initCars();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  /* ── Boot ──────────────────────────────────────────────────── */
   function start() {
-    initSimCars();
     resize();
-    if (motionQuery.matches) {
+    initCars();
+    if (motionQ.matches) {
+      resetSignals('patc');
+      render('patc', 0);
       showCopy('patc');
-      render(performance.now(), { id: 'patc', progress: 1 }, 0.016);
       return;
     }
     rafId = requestAnimationFrame(loop);
   }
 
-  window.addEventListener('resize', () => { resize(); if (motionQuery.matches) render(performance.now(), { id: 'patc', progress: 1 }, 0); });
+  window.addEventListener('resize', () => {
+    resize();
+    if (motionQ.matches) render(activePhase || 'patc', 0);
+  });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { cancelAnimationFrame(rafId); rafId = 0; }
-    else if (!rafId && !motionQuery.matches) { lastDraw = performance.now(); rafId = requestAnimationFrame(loop); }
+    else if (!rafId && !motionQ.matches) { lastDraw = 0; rafId = requestAnimationFrame(loop); }
   });
-
-  function replayStory() {
-    cancelAnimationFrame(rafId);
-    sequenceStart = 0; manualPhase = ''; manualStart = 0; activePhase = '';
-    typedTitleUntil = -1; typedBodyUntil = -1; phaseStart = 0; lastDraw = 0;
-    initSimCars();
-    rafId = requestAnimationFrame(loop);
-  }
 
   const replayBtn = document.getElementById('storyReplayBtn');
-  if (replayBtn) replayBtn.addEventListener('click', replayStory);
+  if (replayBtn) replayBtn.addEventListener('click', replay);
+
   document.querySelectorAll('[data-phase-pill]').forEach((pill) => {
     pill.style.cursor = 'pointer';
-    pill.addEventListener('click', () => setManualPhase(pill.dataset.phasePill));
+    pill.addEventListener('click', () => setPhase(pill.dataset.phasePill));
   });
 
-  window.HomeStory = { setPhase: setManualPhase, replay: replayStory };
+  window.HomeStory = { setPhase, replay };
   start();
 })();

@@ -5,7 +5,7 @@
 /* Opening story */
 .story-hero {
   background: radial-gradient(circle at 50% 30%, rgba(20, 30, 45, 0.8) 0%, var(--bg) 70%);
-  min-height: 100vh;
+  min-height: 90vh;
   overflow: clip;
   position: relative;
 }
@@ -21,10 +21,10 @@
   display: grid;
   gap: 44px;
   grid-template-columns: minmax(360px, 0.86fr) minmax(520px, 1.14fr);
-  height: 100vh;
+  height: 90vh;
   margin: 0 auto;
   max-width: 1520px;
-  padding: 140px 56px 58px;
+  padding: 100px 56px 40px;
   position: sticky;
   top: 0;
   z-index: 1;
@@ -380,7 +380,7 @@ body:has(.story-hero) .cinema-canvas-wrap {
 .story-problem {
   margin: 0 auto;
   max-width: 1200px;
-  padding: 120px 48px 80px;
+  padding: 56px 48px 48px;
 }
 .problem-head {
   display: grid;
@@ -413,7 +413,7 @@ body:has(.story-hero) .cinema-canvas-wrap {
 .story-process {
   margin: 0 auto;
   max-width: 1200px;
-  padding: 80px 48px 120px;
+  padding: 48px 48px 60px;
 }
 
 /* ── Junction markers ─────────────────────────────────────────── */
@@ -436,6 +436,83 @@ body:has(.story-hero) .cinema-canvas-wrap {
   background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.15), transparent);
   flex: 1;
   height: 1px;
+}
+
+/* ── Green tagline ────────────────────────────────────────────── */
+.green-tagline {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  margin: 28px 0 0;
+}
+.green-tagline-text {
+  background: linear-gradient(135deg, #34D399 0%, #3DBFB0 60%, #60A5FA 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: clamp(16px, 1.8vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.green-tagline-icon {
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* ── Delay comparison widget ──────────────────────────────────── */
+.delay-compare {
+  align-items: stretch;
+  background: rgba(10, 16, 26, 0.70);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  display: flex;
+  gap: 0;
+  margin: 24px 0 0;
+  overflow: hidden;
+}
+.delay-chip {
+  align-items: flex-start;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+}
+.delay-chip + .delay-chip {
+  border-left: 1px solid var(--border-subtle);
+}
+.delay-chip > span {
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.fixed-chip > strong {
+  color: var(--signal-red);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  transition: color 0.3s ease;
+}
+.patc-chip > strong {
+  color: var(--signal-green);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  transition: color 0.3s ease;
+}
+.delay-chip .chip-label {
+  color: inherit;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.5;
 }
 
 /* ═══ TEAM FOOTER ════════════════════════════════════════════ */
