@@ -101,12 +101,15 @@
               <span><i class="legend-fixed"></i>Fixed lights</span>
               <span><i class="legend-patc"></i>PATC release</span>
             </div>
+            <a href="simulation/" class="canvas-full-btn" aria-label="Open full simulation">⛶ <span>Full simulation</span></a>
           </div>
         </div>
       </section>
 
+      <div class="cards-container">
+
       <!-- ═══ ACT 3 — THE PROBLEM (big stat) ═══ -->
-      <section class="story-problem">
+      <div class="pop-card"><section class="story-problem">
         <div class="problem-head">
           <div class="reveal">
             <p class="eyebrow">Problem first</p>
@@ -142,97 +145,107 @@
             <span>PATC coordinates 3 signalized junctions under one adaptive timing plan</span>
           </article>
         </div>
-      </section>
+      </section></div>
 
       <!-- ═══ SAFETY BOUNDARY ═══ -->
-      <section class="section safety-panel reveal-scale" style="padding-top:40px;padding-bottom:40px;">
-        <div>
-          <p class="eyebrow">Safety boundary</p>
-          <h2>No black-box control. No direct live writes in year one.</h2>
-        </div>
-        <div class="safety-grid">
-          <p><strong>Shadow first.</strong> PATC recommends and records decisions while the real signal runs normally.</p>
-          <p><strong>Hard rules.</strong> Minimum greens, amber/all-red, pedestrian windows, emergency priority, stale data, and manual override remain non-negotiable.</p>
-          <p><strong>Privacy by design.</strong> The pilot defaults to aggregate labels; any QA clips are short-lived, access-logged, and not used for identity or enforcement.</p>
-        </div>
-      </section>
+      <div class="pop-card">
+        <section class="section safety-panel" style="padding-top:40px;padding-bottom:40px;">
+          <div>
+            <p class="eyebrow">Safety boundary</p>
+            <h2>No black-box control. No direct live writes in year one.</h2>
+          </div>
+          <div class="safety-grid">
+            <p><strong>Shadow first.</strong> PATC recommends and records decisions while the real signal runs normally.</p>
+            <p><strong>Hard rules.</strong> Minimum greens, amber/all-red, pedestrian windows, emergency priority, stale data, and manual override remain non-negotiable.</p>
+            <p><strong>Privacy by design.</strong> The pilot defaults to aggregate labels; any QA clips are short-lived, access-logged, and not used for identity or enforcement.</p>
+          </div>
+        </section>
+      </div>
 
       <div class="junction-marker" aria-hidden="true"><span class="dot"></span><span class="line"></span></div>
 
       <!-- ═══ HOW IT WORKS ═══ -->
-      <section class="story-process">
-        <div class="section-head reveal">
-          <p class="eyebrow">Product</p>
-          <h2>A decision layer for connected signal sectors.</h2>
-          <p class="section-lede">
-            PATC starts with a selected corridor, maps real signal geometry and
-            sensor positions, builds a trusted replay of how traffic actually
-            moves, and only then recommends timing changes.
-          </p>
-        </div>
-        <div class="process-grid">
-          <article class="reveal reveal-delay-1">
-            <span>01 — Map</span>
-            <h3>Map the sector</h3>
-            <p>Cameras, signals, stop lines, bus stops, turns, blind spots, and sensor points are marked before data collection.</p>
-          </article>
-          <article class="reveal reveal-delay-2">
-            <span>02 — Measure</span>
-            <h3>Measure the wave</h3>
-            <p>Phase notes, weather, events, and labels estimate queues, discharge, startup loss, and downstream block risk.</p>
-          </article>
-          <article class="reveal reveal-delay-3">
-            <span>03 — Replay</span>
-            <h3>Replay safely</h3>
-            <p>The model compares observed behavior with candidate timing choices before recommending anything operational.</p>
-          </article>
-          <article class="reveal reveal-delay-4">
-            <span>04 — Coordinate</span>
-            <h3>Coordinate</h3>
-            <p>Operators see an action, reason, confidence score, safety constraints, and a replay trace for audit.</p>
-          </article>
-        </div>
-      </section>
+      <div class="pop-card">
+        <section class="story-process">
+          <div class="section-head reveal">
+            <p class="eyebrow">Product</p>
+            <h2>A decision layer for connected signal sectors.</h2>
+            <p class="section-lede">
+              PATC starts with a selected corridor, maps real signal geometry and
+              sensor positions, builds a trusted replay of how traffic actually
+              moves, and only then recommends timing changes.
+            </p>
+          </div>
+          <div class="process-grid">
+            <article class="reveal reveal-delay-1">
+              <span>01 — Map</span>
+              <h3>Map the sector</h3>
+              <p>Cameras, signals, stop lines, bus stops, turns, blind spots, and sensor points are marked before data collection.</p>
+            </article>
+            <article class="reveal reveal-delay-2">
+              <span>02 — Measure</span>
+              <h3>Measure the wave</h3>
+              <p>Phase notes, weather, events, and labels estimate queues, discharge, startup loss, and downstream block risk.</p>
+            </article>
+            <article class="reveal reveal-delay-3">
+              <span>03 — Replay</span>
+              <h3>Replay safely</h3>
+              <p>The model compares observed behavior with candidate timing choices before recommending anything operational.</p>
+            </article>
+            <article class="reveal reveal-delay-4">
+              <span>04 — Coordinate</span>
+              <h3>Coordinate</h3>
+              <p>Operators see an action, reason, confidence score, safety constraints, and a replay trace for audit.</p>
+            </article>
+          </div>
+        </section>
+      </div>
 
       <!-- ═══ WHY COORDINATION ═══ -->
-      <section class="section split-section">
-        <div class="reveal-left">
-          <p class="eyebrow">Why coordination</p>
-          <h2>One green can make the next junction worse.</h2>
-        </div>
-        <div class="section-inner reveal-right">
-          <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.7;">
-            In corridors like HSR, Silk Board, and Bommanahalli, one signal releases
-            vehicles into a downstream link that is already blocked. The queue moves
-            backward, two-wheelers fill gaps, buses slow discharge, and the next
-            signal inherits a worse problem.
-          </p>
-          <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.7;">
-            PATC treats traffic like flow: density, discharge, startup loss,
-            spillback, weather, and event waves. The product is not an
-            uncontrolled AI switch. It is a measured operating layer that proves
-            when an adaptive action helps, why it helps, and when it must fall back.
-          </p>
-        </div>
-      </section>
+      <div class="pop-card">
+        <section class="section split-section">
+          <div class="reveal-left">
+            <p class="eyebrow">Why coordination</p>
+            <h2>One green can make the next junction worse.</h2>
+          </div>
+          <div class="section-inner reveal-right">
+            <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.7;">
+              In corridors like HSR, Silk Board, and Bommanahalli, one signal releases
+              vehicles into a downstream link that is already blocked. The queue moves
+              backward, two-wheelers fill gaps, buses slow discharge, and the next
+              signal inherits a worse problem.
+            </p>
+            <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.7;">
+              PATC treats traffic like flow: density, discharge, startup loss,
+              spillback, weather, and event waves. The product is not an
+              uncontrolled AI switch. It is a measured operating layer that proves
+              when an adaptive action helps, why it helps, and when it must fall back.
+            </p>
+          </div>
+        </section>
+      </div>
 
       <!-- ═══ EXPLORE ═══ -->
-      <section class="section">
-        <div class="section-head reveal">
-          <p class="eyebrow">Explore</p>
-          <h2>See the product from the city and system levels.</h2>
-        </div>
-        <div class="page-links">
-          <a href="simulation/" class="reveal reveal-delay-1">
-            <span>Simulation</span>
-            <strong>Control demand, discharge, safety bias, and replay a connected sector with cars and two-wheelers.</strong>
-          </a>
-          <a href="technology/" class="reveal reveal-delay-2">
-            <span>Technology</span>
-            <strong>Traffic-wave model, startup filter, probabilistic estimator, optimization objective, and safety contract.</strong>
-          </a>
-        </div>
-      </section>
+      <div class="pop-card">
+        <section class="section">
+          <div class="section-head reveal">
+            <p class="eyebrow">Explore</p>
+            <h2>See the product from the city and system levels.</h2>
+          </div>
+          <div class="page-links">
+            <a href="simulation/" class="reveal reveal-delay-1">
+              <span>Simulation</span>
+              <strong>Control demand, discharge, safety bias, and replay a connected sector with cars and two-wheelers.</strong>
+            </a>
+            <a href="technology/" class="reveal reveal-delay-2">
+              <span>Technology</span>
+              <strong>Traffic-wave model, startup filter, probabilistic estimator, optimization objective, and safety contract.</strong>
+            </a>
+          </div>
+        </section>
+      </div>
+
+      </div><!-- /.cards-container -->
     </main>
 
     <footer class="team-footer" id="contact">

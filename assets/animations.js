@@ -8,7 +8,7 @@
   /* ── Scroll-reveal ─────────────────────────────────────────── */
   function initScrollReveal() {
     const targets = document.querySelectorAll(
-      '.reveal, .reveal-left, .reveal-right, .reveal-scale'
+      '.reveal, .reveal-left, .reveal-right, .reveal-scale, .pop-card'
     );
     if (!targets.length) return;
 
