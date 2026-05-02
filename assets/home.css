@@ -550,60 +550,6 @@ body:has(.story-hero) .cinema-canvas-wrap {
   line-height: 1;
 }
 
-/* ── Delay comparison widget ──────────────────────────────────── */
-.delay-compare {
-  align-items: stretch;
-  background: rgba(10, 16, 26, 0.70);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  display: flex;
-  gap: 0;
-  margin: 24px 0 0;
-  overflow: hidden;
-}
-.delay-chip {
-  align-items: flex-start;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 18px;
-}
-.delay-chip + .delay-chip {
-  border-left: 1px solid var(--border-subtle);
-}
-.delay-chip > span {
-  color: var(--text-muted);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.fixed-chip > strong {
-  color: var(--signal-red);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  transition: color 0.3s ease;
-}
-.patc-chip > strong {
-  color: var(--signal-green);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  transition: color 0.3s ease;
-}
-.delay-chip .chip-label {
-  color: inherit;
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 500;
-  opacity: 0.5;
-}
-
 /* ═══ TEAM FOOTER ════════════════════════════════════════════ */
 .team-footer {
   border-top: 1px solid var(--border-subtle);

@@ -54,7 +54,6 @@
   let W = 0, H = 0, rafId = 0, lastDraw = 0, simTime = 0;
   let seqStart = 0, manualPhase = '', manualStart = 0;
   let lastPhaseId = '', manualJustSet = false;
-  const stat = { fixed: { wait: 0, n: 0 }, patc: { wait: 0, n: 0 } };
   let mainY = 0, roadW = 0, jxs = [];
 
   /* ── Canvas entrance (one-time, triggered after 1st word) ─── */
@@ -86,7 +85,7 @@
         maxSpd: 130 + (i % 5) * 16,
         kind: kindOf(i),
         isHero: i === 0,  /* lead car — enters screen fast */
-        wait: 0, _crossed: false,
+        wait: 0,
       });
     }
     HCARS.sort((a, b) => b.x - a.x);
@@ -184,17 +183,10 @@
       car.speed  = Math.max(0, Math.min(car.maxSpd, car.speed));
       car.x     += car.speed * dt;
 
-      if (car.isHero && car.x > W + 10 && !car._crossed) car._crossed = true;
       if (car.x > W + 80) car.x = -60 - car.kind.len;
 
-      if (car.speed < 5) {
-        car.wait += dt;
-        if (id === 'fixed') stat.fixed.wait += dt;
-        if (id === 'patc')  stat.patc.wait  += dt;
-      }
+      if (car.speed < 5) car.wait += dt;
     });
-    if (id === 'fixed') stat.fixed.n = HCARS.length;
-    if (id === 'patc')  stat.patc.n  = HCARS.length;
   }
 
   function updateVCars(dt) {
@@ -239,7 +231,7 @@
     if (!hero || hero.x < 0) return;  /* wait until hero on screen */
 
     const full     = copy.line1 + ' ' + copy.line2;
-    const progress = hero._crossed ? 1.0 : Math.min(hero.x / W, 1.0);
+    const progress = Math.min(hero.x / W, 1.0);
     const n        = Math.min(Math.floor(progress * full.length), full.length);
     if (n === tsLastN) return;
     tsLastN = n;
@@ -409,15 +401,6 @@
     ctx.shadowBlur = 0; ctx.fillStyle = color; ctx.fillText(label, 34, 29);
   }
 
-  function updateDelayChips() {
-    const fAvg = stat.fixed.n > 0 ? (stat.fixed.wait / stat.fixed.n).toFixed(1) : null;
-    const pAvg = stat.patc.n  > 0 ? (stat.patc.wait  / stat.patc.n ).toFixed(1) : null;
-    const fe = document.getElementById('homeFixedDelay');
-    const pe = document.getElementById('homePatcDelay');
-    if (fe) fe.textContent = fAvg ? fAvg + 's' : '—';
-    if (pe) pe.textContent = pAvg ? pAvg + 's' : '—';
-  }
-
   /* ── Render frame ──────────────────────────────────────────── */
   function renderFrame(id, dt) {
     simTime += dt;
@@ -440,7 +423,7 @@
       ctx.fillStyle = wg; ctx.fillRect(0, mainY - 80, W, 160);
     }
 
-    drawVCars(id); drawHCars(id); drawModeChip(id); updateDelayChips();
+    drawVCars(id); drawHCars(id); drawModeChip(id);
   }
 
   /* ── showCopy: set pills + text ───────────────────────────── */
@@ -532,7 +515,6 @@
     seqStart = 0; manualPhase = ''; lastPhaseId = ''; lastDraw = 0; simTime = 0;
     manualJustSet = false;
     tsPhase = ''; tsDone = false; tsLastN = -1; tsDescShown = false;
-    stat.fixed.wait = 0; stat.fixed.n = 0; stat.patc.wait = 0; stat.patc.n = 0;
     /* Reset canvas entrance for replay */
     canvasEntered = false;
     const visual = document.querySelector('.story-visual');
