@@ -19,7 +19,6 @@
 /* Opening story */
 .story-hero {
   background: radial-gradient(circle at 50% 30%, rgba(20, 30, 45, 0.8) 0%, var(--bg) 70%);
-  min-height: 90vh;
   overflow: clip;
   position: relative;
 }
@@ -35,12 +34,11 @@
   display: grid;
   gap: 44px;
   grid-template-columns: minmax(360px, 0.86fr) minmax(520px, 1.14fr);
-  height: 90vh;
+  height: auto;
   margin: 0 auto;
   max-width: 1520px;
-  padding: 72px 56px 36px;
-  position: sticky;
-  top: 0;
+  padding: 80px 56px 64px;
+  position: relative;
   z-index: 1;
 }
 .story-copy {
@@ -156,7 +154,7 @@
   max-width: none;
 }
 
-/* Floating animation for impact-grid cards — staggered so they bob independently */
+/* Floating animation for impact-grid + safety-grid cards */
 @keyframes cardFloat {
   0%, 100% { transform: translateY(0);   }
   50%       { transform: translateY(-6px); }
@@ -171,6 +169,15 @@
 /* Override site.css hover transform so float animation isn't interrupted */
 .impact-grid article:hover {
   border-color: rgba(var(--accent-rgb), 0.3);
+  transform: translateY(-8px);
+}
+.safety-grid p.visible {
+  animation: cardFloat 3.6s ease-in-out infinite;
+}
+.safety-grid p:nth-child(1).visible { animation-delay: 0s;   }
+.safety-grid p:nth-child(2).visible { animation-delay: 1.2s; }
+.safety-grid p:nth-child(3).visible { animation-delay: 2.4s; }
+.safety-grid p:hover {
   transform: translateY(-8px);
 }
 .story-status {

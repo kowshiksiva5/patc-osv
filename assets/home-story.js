@@ -1,6 +1,6 @@
-/* PATC homepage — mini corridor simulation v5.
+/* PATC homepage — mini corridor simulation v6.
    Phases: fixed (12s) → patc (stays). No intro. No loop.
-   Text synced with hero car position on BOTH phases.
+   Text typed at constant time-based rate (not car-position-based).
    Canvas slides in from right after first word is typed.
    Manual toggle: instant text + looping sim in that mode. */
 (function () {
@@ -31,7 +31,7 @@
   /* ── Copy ─────────────────────────────────────────────────── */
   const COPY = {
     fixed: {
-      line1: 'Rush hour — every junction forces a stop.',
+      line1: 'Rush hour. Every junction forces a stop.',
       line2: 'Signals act alone. You pay the penalty every time.',
       p:     'Junction-level signals adapt to their own queue — blind to what\'s ahead. Traffic clears one bottleneck only to pile up at the next.',
       chip:  'Without PATC',
@@ -49,6 +49,9 @@
     { id: 'fixed', ms: 12000 },
     { id: 'patc',  ms: Infinity },
   ];
+  /* Seconds over which typing completes — matches how long hero takes
+     to cross the canvas in each phase (fixed ~10s, patc ~5.5s). */
+  const TYPING_SECS = { fixed: 10, patc: 5.5 };
 
   /* ── State ────────────────────────────────────────────────── */
   let W = 0, H = 0, rafId = 0, lastDraw = 0, simTime = 0;
@@ -227,11 +230,9 @@
     }
     if (tsDone) return;
 
-    const hero = HCARS.find(c => c.isHero);
-    if (!hero || hero.x < 0) return;  /* wait until hero on screen */
-
     const full     = copy.line1 + ' ' + copy.line2;
-    const progress = Math.min(hero.x / W, 1.0);
+    /* Constant typing rate: divide total chars evenly over the phase crossing window */
+    const progress = Math.min(simTime / (TYPING_SECS[id] || 10), 1.0);
     const n        = Math.min(Math.floor(progress * full.length), full.length);
     if (n === tsLastN) return;
     tsLastN = n;
